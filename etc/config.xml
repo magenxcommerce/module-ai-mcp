@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * Copyright © Magenx. All rights reserved.
+ *
+ * Every switch defaults to the safe value: the endpoint is off, writes are off,
+ * and the config-write allowlist is empty (which denies every config write).
+ * A valid integration token is never sufficient on its own.
+ */
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Store:etc/config.xsd">
+    <default>
+        <magenx_ai_mcp>
+            <general>
+                <enabled>0</enabled>
+            </general>
+            <security>
+                <allow_writes>0</allow_writes>
+                <allowed_ips/>
+                <allowed_config_paths/>
+            </security>
+        </magenx_ai_mcp>
+    </default>
+</config>

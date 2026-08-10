@@ -1,0 +1,52 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * Copyright © Magenx. All rights reserved.
+ */
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Config:etc/system_file.xsd">
+    <system>
+        <tab id="magenx" translate="label" sortOrder="400">
+            <label>Magenx</label>
+        </tab>
+        <section id="magenx_ai_mcp" translate="label" sortOrder="440" showInDefault="1">
+            <class>separator-top</class>
+            <label>AI MCP Server</label>
+            <tab>magenx</tab>
+            <resource>Magenx_AiMcp::config</resource>
+            <group id="general" translate="label" sortOrder="10" showInDefault="1">
+                <label>General</label>
+                <field id="enabled" translate="label comment" type="select" sortOrder="10" showInDefault="1">
+                    <label>Enable MCP Endpoint</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    <comment><![CDATA[Serves the Model Context Protocol endpoint at <code>/magenx-mcp/server</code>. While disabled the endpoint returns 404 and advertises nothing. Requires a Magento Integration whose ACL role includes "AI MCP Server".]]></comment>
+                </field>
+            </group>
+            <group id="security" translate="label" sortOrder="20" showInDefault="1">
+                <label>Security</label>
+                <field id="allow_writes" translate="label comment" type="select" sortOrder="10" showInDefault="1">
+                    <label>Allow Write Tools</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    <comment>When No, tools that change data are not listed and cannot be called; the endpoint is read-only. This is independent of the integration's ACL — both must permit the write.</comment>
+                    <depends>
+                        <field id="magenx_ai_mcp/general/enabled">1</field>
+                    </depends>
+                </field>
+                <field id="allowed_ips" translate="label comment" type="textarea" sortOrder="20" showInDefault="1">
+                    <label>Allowed IP Addresses</label>
+                    <comment><![CDATA[Comma or newline separated. Plain addresses (<code>203.0.113.7</code>) and CIDR ranges (<code>10.0.0.0/8</code>) are supported. Leave empty to accept any source address that presents a valid token.]]></comment>
+                    <depends>
+                        <field id="magenx_ai_mcp/general/enabled">1</field>
+                    </depends>
+                </field>
+                <field id="allowed_config_paths" translate="label comment" type="textarea" sortOrder="30" showInDefault="1">
+                    <label>Writable Configuration Paths</label>
+                    <comment><![CDATA[Comma or newline separated glob patterns, e.g. <code>magenx_*/*</code> or <code>catalog/frontend/*</code>. Empty denies every configuration write. Secret-bearing paths (keys, passwords, tokens, encrypted values) are refused regardless of what is listed here.]]></comment>
+                    <depends>
+                        <field id="magenx_ai_mcp/general/enabled">1</field>
+                    </depends>
+                </field>
+            </group>
+        </section>
+    </system>
+</config>

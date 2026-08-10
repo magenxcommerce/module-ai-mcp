@@ -1,0 +1,56 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * Copyright © Magenx. All rights reserved.
+ *
+ * The tool registry is the module's extension point: another module adds a tool
+ * by contributing one item to the `tools` argument, and it is picked up by
+ * tools/list and tools/call with all of the server's guards already applied.
+ */
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+    <type name="Magenx\AiMcp\Model\Tool\ToolRegistry">
+        <arguments>
+            <argument name="tools" xsi:type="array">
+                <item name="list_stores" xsi:type="object">Magenx\AiMcp\Model\Tool\Store\ListStores</item>
+                <item name="search_products" xsi:type="object">Magenx\AiMcp\Model\Tool\Catalog\SearchProducts</item>
+                <item name="get_product" xsi:type="object">Magenx\AiMcp\Model\Tool\Catalog\GetProduct</item>
+                <item name="create_product" xsi:type="object">Magenx\AiMcp\Model\Tool\Catalog\CreateProduct</item>
+                <item name="update_product" xsi:type="object">Magenx\AiMcp\Model\Tool\Catalog\UpdateProduct</item>
+                <item name="list_product_attributes" xsi:type="object">Magenx\AiMcp\Model\Tool\Catalog\ListAttributes</item>
+                <item name="get_category_tree" xsi:type="object">Magenx\AiMcp\Model\Tool\Category\GetCategoryTree</item>
+                <item name="create_category" xsi:type="object">Magenx\AiMcp\Model\Tool\Category\CreateCategory</item>
+                <item name="update_category" xsi:type="object">Magenx\AiMcp\Model\Tool\Category\UpdateCategory</item>
+                <item name="assign_product_to_category" xsi:type="object">Magenx\AiMcp\Model\Tool\Category\AssignProductToCategory</item>
+                <item name="list_cms_blocks" xsi:type="object">Magenx\AiMcp\Model\Tool\Cms\ListCmsBlocks</item>
+                <item name="update_cms_block" xsi:type="object">Magenx\AiMcp\Model\Tool\Cms\UpdateCmsBlock</item>
+                <item name="get_config" xsi:type="object">Magenx\AiMcp\Model\Tool\Config\GetConfig</item>
+                <item name="set_config" xsi:type="object">Magenx\AiMcp\Model\Tool\Config\SetConfig</item>
+                <item name="flush_cache" xsi:type="object">Magenx\AiMcp\Model\Tool\Ops\FlushCache</item>
+                <item name="indexer_status" xsi:type="object">Magenx\AiMcp\Model\Tool\Ops\IndexerStatus</item>
+                <item name="invalidate_indexers" xsi:type="object">Magenx\AiMcp\Model\Tool\Ops\InvalidateIndexers</item>
+            </argument>
+        </arguments>
+    </type>
+
+    <!-- Every attempted write lands in var/log/magenx_ai_mcp.log, separate from
+         the general log so an operator can audit agent activity on its own. -->
+    <virtualType name="MagenxAiMcpAuditHandler" type="Magento\Framework\Logger\Handler\Base">
+        <arguments>
+            <argument name="fileName" xsi:type="string">/var/log/magenx_ai_mcp.log</argument>
+        </arguments>
+    </virtualType>
+    <virtualType name="MagenxAiMcpAuditLogger" type="Magento\Framework\Logger\Monolog">
+        <arguments>
+            <argument name="name" xsi:type="string">magenxAiMcp</argument>
+            <argument name="handlers" xsi:type="array">
+                <item name="system" xsi:type="object">MagenxAiMcpAuditHandler</item>
+            </argument>
+        </arguments>
+    </virtualType>
+    <type name="Magenx\AiMcp\Model\Protocol\Server">
+        <arguments>
+            <argument name="auditLogger" xsi:type="object">MagenxAiMcpAuditLogger</argument>
+        </arguments>
+    </type>
+</config>

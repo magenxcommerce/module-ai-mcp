@@ -1,0 +1,282 @@
+# Magenx_AiMcp
+
+Serves a **Model Context Protocol (MCP)** endpoint from Magento, so an AI agent
+such as Claude Code can inspect and manage the backend directly: products,
+categories, CMS blocks, store configuration, caches and indexers.
+
+This is a *management* surface, not a storefront feature. It is disabled by
+default, requires a Magento Integration access token, and authorizes every
+individual tool against that integration's own ACL role.
+
+## Why this lives in Magento
+
+Stock Magento REST already covers most admin CRUD, so an MCP server could have
+been written outside Magento against `/rest/V1/...`. Three things stopped that:
+
+- **`core_config_data` has no stock write endpoint.** Store configuration — the
+  "settings" half of the requirement — is only reachable from PHP.
+- **Cache and indexer operations have no REST surface** either.
+- Management authority belongs next to the thing being managed. Putting admin
+  write powers behind the public headless storefront would turn any storefront
+  vulnerability into a catalog-destruction vulnerability.
+
+## Endpoint
+
+```
+POST /magenx-mcp/server
+Authorization: Bearer <integration access token>
+Content-Type: application/json
+```
+
+One JSON-RPC 2.0 request per POST, answered with one JSON response — MCP's
+streamable HTTP transport in its single-response form. No SSE stream is opened.
+Notifications are answered with a bare `202`. Batched requests are rejected;
+MCP dropped JSON-RPC batching in protocol revision `2025-06-18`, which is the
+revision this server advertises.
+
+`GET` and every other method return `405`. While the module is disabled the
+route returns `404`, so a store that has not opted in advertises nothing.
+
+### Why a controller and not a `webapi.xml` route
+
+MCP fixes the wire format. The webapi framework's typed (de)serialization
+cannot reproduce a JSON-RPC envelope — it cannot echo an `id` back with its
+original JSON type, and it cannot answer a notification with an empty `202`.
+The authorization webapi would have provided is reimplemented faithfully in
+`Model/Auth/Authenticator.php`, against the same `oauth_token` records and the
+same ACL role, so nothing is lost but the serializer.
+
+## Tools
+
+| Tool | Writes | ACL resource |
+|---|---|---|
+| `list_stores` | | *(endpoint grant only)* |
+| `search_products` | | `Magento_Catalog::products` |
+| `get_product` | | `Magento_Catalog::products` |
+| `create_product` | ✓ | `Magento_Catalog::products` |
+| `update_product` | ✓ | `Magento_Catalog::products` |
+| `list_product_attributes` | | `Magento_Catalog::attributes_attributes` |
+| `get_category_tree` | | `Magento_Catalog::categories` |
+| `create_category` | ✓ | `Magento_Catalog::categories` |
+| `update_category` | ✓ | `Magento_Catalog::categories` |
+| `assign_product_to_category` | ✓ | `Magento_Catalog::categories` |
+| `list_cms_blocks` | | `Magento_Cms::block` |
+| `update_cms_block` | ✓ | `Magento_Cms::block` |
+| `get_config` | | `Magento_Config::config` |
+| `set_config` | ✓ | `Magento_Config::config` |
+| `flush_cache` | ✓ | `Magento_Backend::cache` |
+| `indexer_status` | | `Magento_Indexer::index` |
+| `invalidate_indexers` | ✓ | `Magento_Indexer::index` |
+
+A tool the caller may not use is not *listed*, so an agent never plans around a
+capability it does not have.
+
+Add a tool from another module by contributing to the `tools` argument of
+`Magenx\AiMcp\Model\Tool\ToolRegistry` in `di.xml` and implementing
+`Magenx\AiMcp\Api\ToolInterface`. Every guard below applies to it automatically.
+
+## The four guards
+
+1. **The module switch.** `magenx_ai_mcp/general/enabled` is off by default; the
+   route 404s.
+2. **ACL.** The integration must hold `Magenx_AiMcp::server` to reach the
+   endpoint, plus the tool's own resource to call it.
+3. **The write switch.** `magenx_ai_mcp/security/allow_writes` is off by
+   default. While off the endpoint is strictly read-only, whatever the ACL says.
+4. **The confirm gate.** A write tool called without `"confirm": true` returns a
+   preview of exactly what it would do and changes nothing.
+
+Configuration writes have two more gates: a hard-coded denylist of
+secret-bearing paths (`*password*`, `*secret*`, `*token*`, `admin/*`, `oauth/*`,
+`crypt/*`, and this module's own settings) that no allowlist can open, and the
+store's `magenx_ai_mcp/security/allowed_config_paths` glob allowlist, which is
+**empty by default and therefore denies every write** until an operator names
+the paths they want managed. `get_config` redacts secret values rather than
+returning them.
+
+Every attempted write is logged to `var/log/magenx_ai_mcp.log` with the calling
+integration, the arguments and the verdict.
+
+## Configuration
+
+**Stores → Configuration → Magenx → AI MCP Server**
+
+| Path | Default | Meaning |
+|---|---|---|
+| `magenx_ai_mcp/general/enabled` | `0` | Serve the endpoint at all |
+| `magenx_ai_mcp/security/allow_writes` | `0` | Allow tools that change data |
+| `magenx_ai_mcp/security/allowed_ips` | *(empty)* | Optional source-address allowlist; plain addresses and CIDR ranges |
+| `magenx_ai_mcp/security/allowed_config_paths` | *(empty)* | Glob patterns `set_config` may write; empty denies all |
+
+## Install
+
+```bash
+bin/magento module:enable Magenx_AiMcp
+bin/magento setup:upgrade
+bin/magento cache:flush
+```
+
+Then, in admin:
+
+1. **System → Extensions → Integrations → Add New Integration.** Give it a name
+   and **leave Callback URL and Identity Link URL empty** — those drive
+   Magento's OAuth 1.0a token exchange, for an integration hosted by a third
+   party that provisions itself. Filling in a Callback URL changes what
+   Activate does: Magento tries to POST the credentials to it and activation
+   fails if nothing valid answers. A manually activated integration needs
+   neither.
+2. On the **API** tab grant *at least* `AI MCP Server`, plus the resources for
+   the tools you want: Catalog → Products / Categories, Content → Blocks,
+   Stores → Settings → Configuration, System → Cache Management, System → Index
+   Management.
+3. Save, then **Activate**. The popup shows four values — the one to copy is the
+   **Access Token**, not the Consumer Key or the Access Token Secret. It is what
+   goes in `Authorization: Bearer <token>`.
+4. **Stores → Configuration → Magenx → AI MCP Server**: enable the endpoint.
+   Leave writes off until you have watched it read.
+
+Use an **Integration** token, not `POST /V1/integration/admin/token`. Admin-user
+tokens expire (4 hours by default) and the server will start refusing them
+mid-session; integration tokens do not expire.
+
+## Connect Claude Code
+
+### From Claude Code on the web — use the repo's `.mcp.json`
+
+This is the path for cloud sessions at claude.ai/code, and it needs no CLI.
+A repository's `.mcp.json` is part of the clone, so it carries into a web
+session; `claude mcp add` does **not**, because it writes to your local user
+config rather than the repo.
+
+The file is already committed at the repo root:
+
+```json
+{
+  "mcpServers": {
+    "magento": {
+      "type": "http",
+      "url": "${MAGENTO_MCP_URL:-https://www.magenxcommerce.com/magenx-mcp/server}",
+      "headers": { "Authorization": "Bearer ${MAGENTO_MCP_TOKEN}" }
+    }
+  }
+}
+```
+
+`url` and `headers` both support `${VAR}` / `${VAR:-default}` expansion, so the
+token never enters the repository. Supply it as an environment variable:
+
+1. In the web UI, click the cloud icon showing the environment's name, hover
+   the environment, and click the settings icon.
+2. Under **Environment variables**, add one `KEY=value` per line, unquoted —
+   quotes are stored as part of the value:
+
+   ```
+   MAGENTO_MCP_TOKEN=<access token>
+   MAGENTO_MCP_URL=https://your-magento-host/magenx-mcp/server
+   ```
+
+3. **Start a new session.** Environment variables and MCP servers are both
+   applied when the session container starts, so an already-running session
+   will not pick them up.
+
+Two things to know. Cloud environments have **no dedicated secrets store** —
+variables live in the environment configuration and are visible to anyone who
+can edit it, so scope the Integration's ACL to what the agent actually needs
+and rotate the token (Reauthorize) when you are done. And if a variable is
+missing with no default, the config still loads: Claude Code warns and passes
+the literal `${VAR}` text through, which reaches Magento as a malformed token
+and returns 401 — so a 401 here usually means the variable is unset, not that
+the token is wrong.
+
+### From the Claude Code CLI
+
+```bash
+claude mcp add --transport http magento \
+  https://your-magento-host/magenx-mcp/server \
+  --header "Authorization: Bearer <access token>"
+```
+
+This writes to your local user config, which makes the server available across
+all your projects — but it does not travel to cloud sessions. Use `.mcp.json`
+for anything the team or a web session should share.
+
+### From claude.ai "Custom connectors" — not yet
+
+The custom-connector dialog on claude.ai offers only a URL plus optional
+**OAuth Client ID / Client Secret**. Those are static credentials for a
+pre-registered **OAuth 2.0** client on your own authorization server. Magento
+implements OAuth **1.0a** and is not an OAuth 2.0 authorization server, so
+there is nothing to put in them, and this module authenticates with a fixed
+bearer token rather than an OAuth flow.
+
+Claude does support fixed credentials — the `static_headers` auth type, where
+an organization administrator enters the token once as a request header — but
+it is in beta, which is why the header field is usually absent from that
+dialog. Until your organization has it, use one of the two paths above — both
+carry a bearer token today.
+
+**Do not** work around this by putting the token in the connector URL
+(`?token=…`). URLs are recorded in nginx access logs, proxies and browser
+history, and the MCP authorization spec prohibits access tokens in the query
+string.
+
+If you do connect via a hosted Claude surface, its requests come from
+Anthropic's published egress range **`160.79.104.0/21`**, which is what to put
+in the nginx `allow` list (see `deploy/nginx/mcp.conf.example`).
+
+### Verify
+
+Verify with `/mcp` inside Claude Code, or from a shell:
+
+```bash
+curl -sS https://your-magento-host/magenx-mcp/server \
+  -H "Authorization: Bearer <access token>" \
+  -H 'Content-Type: application/json' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}' | jq '.result.tools[].name'
+```
+
+## Route it at nginx — required, and it fails silently
+
+In a headless deployment nginx sends everything it does not recognise to the
+**Next.js storefront**, so out of the box `POST /magenx-mcp/server` never
+reaches Magento at all. The storefront has no locale middleware, so it treats
+the path as locale-less and answers **`307 → /en/magenx-mcp/server`**. An MCP
+client sees a redirect rather than a protocol error and reports the server as
+broken, with nothing in the Magento logs to explain it.
+
+Add a location block beside your existing `location /graphql`, in the same
+server block and pointing at the same Magento upstream — a ready-to-adapt one
+is in [`deploy/nginx/mcp.conf.example`](../../../deploy/nginx/mcp.conf.example).
+
+Check it took effect:
+
+```bash
+curl -sS -o /dev/null -w '%{http_code} %{redirect_url}\n' \
+  -X POST https://your-host/magenx-mcp/server
+```
+
+- `404` with no redirect target — reaching Magento with the module disabled.
+  Correct; enable the module.
+- `307` to `/en/…` — still hitting the storefront; the block is not in effect.
+
+Restrict the route at the edge too, unless you connect from Claude Code on the
+web (which egresses through a proxy with no stable address — there the token is
+the boundary). The `allowed_ips` setting performs the same check inside
+Magento; use both when the agent runs from a fixed address.
+
+## Caveats
+
+- **`invalidate_indexers` does not reindex.** A full reindex cannot finish
+  inside an HTTP request, so the tool marks indexers invalid and cron rebuilds
+  them. Run `bin/magento indexer:reindex` for an immediate rebuild.
+- **`set_config` refreshes Magento's config cache but not a headless
+  storefront's.** In this stack the Next.js app caches store config under its
+  own ISR tag; purge it through the existing `/api/revalidate` path.
+- **`search_products` runs in the default scope**, which is the right basis for
+  management — it sees every product regardless of store-view overrides. Read a
+  specific store view's values with `get_product` and `store_code`.
+- **Scope mistakes are the easiest way to go wrong with this server.** Omitting
+  `store_code` writes the default value that all store views inherit; passing it
+  writes an override for that view only. `list_stores` exists so the agent can
+  check before it writes.
+- Product deletion is deliberately not exposed.

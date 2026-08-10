@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * Copyright © Magenx. All rights reserved.
+ *
+ * The MCP endpoint is registered in the frontend area because it needs raw
+ * request-body access and full control of the JSON-RPC response envelope,
+ * which the webapi framework's typed (de)serialization cannot give it. It is
+ * NOT a storefront feature: the controller is disabled by default, requires a
+ * Magento Integration access token, and authorizes every tool against that
+ * integration's ACL role. Lock the route down at nginx as well — see README.
+ */
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:App/etc/routes.xsd">
+    <router id="standard">
+        <route id="magenx_aimcp" frontName="magenx-mcp">
+            <module name="Magenx_AiMcp"/>
+        </route>
+    </router>
+</config>
