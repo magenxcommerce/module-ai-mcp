@@ -193,7 +193,9 @@ class Authenticator
         }
 
         [$subnet, $bits] = explode('/', $candidate, 2);
+        // phpcs:ignore Generic.PHP.NoSilencedErrors.Discouraged -- a malformed remote address must yield false, which is handled immediately below.
         $remoteBinary = @inet_pton($remote);
+        // phpcs:ignore Generic.PHP.NoSilencedErrors.Discouraged -- a malformed subnet must yield false, which is handled immediately below.
         $subnetBinary = @inet_pton($subnet);
         if ($remoteBinary === false || $subnetBinary === false
             || strlen($remoteBinary) !== strlen($subnetBinary)
@@ -240,6 +242,7 @@ class Authenticator
         $header = $raw instanceof HeaderInterface ? $raw->getFieldValue() : (string) $raw;
 
         if ($header === '' || $header === '1') {
+            // phpcs:ignore Magento2.Security.Superglobal.SuperglobalUsageWarning -- Apache/CGI strips Authorization from the request object; these are the only places it survives.
             $header = (string) ($_SERVER['HTTP_AUTHORIZATION'] ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? '');
         }
         if (!str_starts_with($header, self::BEARER_PREFIX)) {
