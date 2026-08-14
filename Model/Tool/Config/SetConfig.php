@@ -108,7 +108,9 @@ class SetConfig extends AbstractTool
      */
     public function execute(array $arguments): array
     {
-        $path = trim($this->requireString($arguments, 'path'), '/');
+        // Magento stores configuration paths lower-cased; normalising here keeps
+        // the policy's denylist from being sidestepped by a change of case.
+        $path = strtolower(trim($this->requireString($arguments, 'path'), '/'));
         if (substr_count($path, '/') !== 2) {
             throw new LocalizedException(
                 __('A configuration path has three segments, e.g. "catalog/frontend/grid_per_page". Got "%1".', $path)
@@ -117,7 +119,7 @@ class SetConfig extends AbstractTool
 
         $refusal = $this->policy->refuseWriteReason($path);
         if ($refusal !== null) {
-            throw new LocalizedException(__($refusal));
+            throw new LocalizedException($refusal);
         }
 
         if (!array_key_exists('value', $arguments)) {

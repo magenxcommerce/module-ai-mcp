@@ -19,12 +19,14 @@ use Psr\Log\LoggerInterface;
  *
  * Owns every cross-cutting guard so an individual tool cannot forget one:
  *
- *  1. ACL — the calling integration must hold the tool's resource.
- *  2. The store-level write switch — write tools are neither listed nor callable
+ *  1. The endpoint grant — the caller must hold `Magenx_AiMcp::server` before any
+ *     method is dispatched, whatever else its role allows.
+ *  2. ACL — the calling integration must hold the tool's resource.
+ *  3. The store-level write switch — write tools are neither listed nor callable
  *     while it is off.
- *  3. The confirm gate — a write tool called without `confirm: true` returns a
+ *  4. The confirm gate — a write tool called without `confirm: true` returns a
  *     preview of what it would do and changes nothing.
- *  4. The audit log — every attempted write is recorded with the caller.
+ *  5. The audit log — every attempted write is recorded with the caller.
  *
  * A tool that is not permitted is also not *listed*, so an agent never plans
  * around a capability it cannot use.
@@ -34,8 +36,19 @@ class Server
     /** MCP protocol revision this server implements. */
     public const PROTOCOL_VERSION = '2025-06-18';
 
+    /**
+     * The grant that buys admission to the endpoint itself.
+     *
+     * Holding a valid token is not enough: an Integration whose role does not
+     * include this resource is refused before any method runs, including
+     * `initialize` and the tools whose own ACL resource is empty.
+     */
+    public const ENDPOINT_RESOURCE = 'Magenx_AiMcp::server';
+
     private const SERVER_NAME = 'magenx-magento';
-    private const SERVER_VERSION = '1.0.0';
+
+    /** Longest string value written verbatim to the audit log. */
+    private const MAX_AUDITED_VALUE_LENGTH = 512;
 
     /**
      * @param ToolRegistry $registry
@@ -43,13 +56,15 @@ class Server
      * @param JsonRpc $jsonRpc
      * @param Json $serializer
      * @param LoggerInterface $auditLogger
+     * @param string $serverVersion Set from di.xml so the advertised version tracks the release.
      */
     public function __construct(
         private readonly ToolRegistry $registry,
         private readonly Config $config,
         private readonly JsonRpc $jsonRpc,
         private readonly Json $serializer,
-        private readonly LoggerInterface $auditLogger
+        private readonly LoggerInterface $auditLogger,
+        private readonly string $serverVersion = '0.0.0'
     ) {
     }
 
@@ -64,6 +79,26 @@ class Server
      */
     public function dispatch(string $method, array $params, string|int|null $id, Identity $identity): Outcome
     {
+        // The endpoint grant is checked before anything else, so a caller
+        // without it cannot even complete the handshake or reach a tool whose
+        // own ACL resource is empty.
+        if (!$identity->isAllowed(self::ENDPOINT_RESOURCE)) {
+            $this->auditLogger->warning('[magenx-mcp] endpoint refused', [
+                'caller' => $identity->getLabel(),
+                'user_type' => $identity->getUserType(),
+                'user_id' => $identity->getUserId(),
+                'method' => $method,
+                'reason' => 'missing ' . self::ENDPOINT_RESOURCE,
+            ]);
+
+            return new Outcome(403, $this->jsonRpc->error(
+                $id,
+                JsonRpc::INVALID_REQUEST,
+                'This token is not authorized to use the MCP endpoint. Its integration role must '
+                . 'include the "AI MCP Server" resource.'
+            ));
+        }
+
         // Notifications carry no id and take no response body.
         if (str_starts_with($method, 'notifications/')) {
             return new Outcome(202, null);
@@ -90,7 +125,7 @@ class Server
         return [
             'protocolVersion' => self::PROTOCOL_VERSION,
             'capabilities' => ['tools' => ['listChanged' => false]],
-            'serverInfo' => ['name' => self::SERVER_NAME, 'version' => self::SERVER_VERSION],
+            'serverInfo' => ['name' => self::SERVER_NAME, 'version' => $this->serverVersion],
             'instructions' => 'Manage this Magento store: read and edit products, categories, CMS '
                 . 'content and store configuration, and flush caches or invalidate indexers. '
                 . 'Call list_stores first when a change should apply to one store view rather than '
@@ -301,8 +336,37 @@ class Server
             'user_type' => $identity->getUserType(),
             'user_id' => $identity->getUserId(),
             'verdict' => $verdict,
-            'arguments' => $arguments,
+            'arguments' => $this->summarizeArguments($arguments),
         ]);
+    }
+
+    /**
+     * Keep one call from swamping the audit file.
+     *
+     * The log exists so an operator can see *what* an agent changed, which a
+     * truncated value still answers; a CMS block's HTML body would otherwise
+     * put tens of kilobytes on a single line.
+     *
+     * @param array<string, mixed> $arguments
+     * @return array<string, mixed>
+     */
+    private function summarizeArguments(array $arguments): array
+    {
+        $summary = [];
+        foreach ($arguments as $key => $value) {
+            if (is_array($value)) {
+                $summary[$key] = $this->summarizeArguments($value);
+                continue;
+            }
+            $summary[$key] = is_string($value) && strlen($value) > self::MAX_AUDITED_VALUE_LENGTH
+                ? substr($value, 0, self::MAX_AUDITED_VALUE_LENGTH) . sprintf(
+                    '... (truncated, %d characters total)',
+                    strlen($value)
+                )
+                : $value;
+        }
+
+        return $summary;
     }
 
     /**

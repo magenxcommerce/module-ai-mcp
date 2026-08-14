@@ -6,6 +6,8 @@ declare(strict_types=1);
 
 namespace Magenx\AiMcp\Controller\Server;
 
+use Laminas\Http\Header\HeaderInterface;
+use Magenx\AiMcp\Model\Auth\AccessDeniedException;
 use Magenx\AiMcp\Model\Auth\Authenticator;
 use Magenx\AiMcp\Model\Config;
 use Magenx\AiMcp\Model\Protocol\JsonRpc;
@@ -76,13 +78,25 @@ class Index implements HttpPostActionInterface, HttpGetActionInterface, CsrfAwar
             return $this->emit(new Outcome(405, null));
         }
 
+        if (!$this->isOriginAllowed()) {
+            return $this->emit(new Outcome(403, $this->jsonRpc->error(
+                null,
+                JsonRpc::INVALID_REQUEST,
+                'This origin is not permitted.'
+            )));
+        }
+
         $decoded = $this->decodeBody((string) $this->request->getContent());
         if ($decoded === null) {
             return $this->emit(
                 new Outcome(200, $this->jsonRpc->error(null, JsonRpc::PARSE_ERROR, 'Request body is not valid JSON.'))
             );
         }
-        if (!is_array($decoded) || array_is_list($decoded)) {
+        // `{}` decodes to an empty PHP array, and array_is_list([]) is true, so
+        // an empty JSON *object* must be excluded here or it is reported as a
+        // batch. It falls through to the "Missing method" error below, which is
+        // what it actually is.
+        if (!is_array($decoded) || ($decoded !== [] && array_is_list($decoded))) {
             return $this->emit(new Outcome(200, $this->jsonRpc->error(
                 null,
                 JsonRpc::INVALID_REQUEST,
@@ -94,6 +108,12 @@ class Index implements HttpPostActionInterface, HttpGetActionInterface, CsrfAwar
 
         try {
             $identity = $this->authenticator->authenticate($this->request);
+        } catch (AccessDeniedException $e) {
+            // Not a credential problem — a better token would not help — so no
+            // 401 and no WWW-Authenticate to invite a retry.
+            return $this->emit(
+                new Outcome(403, $this->jsonRpc->error($id, JsonRpc::INVALID_REQUEST, $e->getMessage()))
+            );
         } catch (AuthenticationException $e) {
             // Transport-level refusal keeps its HTTP status: the call never
             // reached the RPC layer.
@@ -113,6 +133,40 @@ class Index implements HttpPostActionInterface, HttpGetActionInterface, CsrfAwar
         $params = $decoded['params'] ?? [];
 
         return $this->emit($this->server->dispatch($method, is_array($params) ? $params : [], $id, $identity));
+    }
+
+    /**
+     * Check the Origin header, which the MCP transport requires servers to
+     * validate against DNS-rebinding attacks.
+     *
+     * Only *browser* callers send an Origin. Every documented client of this
+     * endpoint — curl, Claude Code, an MCP client library — sends none, and is
+     * waved through unchanged; the bearer token is their boundary. A request
+     * that does carry one is answered only if an administrator listed that
+     * origin, so the default empty setting refuses every browser rather than
+     * accepting every browser.
+     *
+     * @return bool
+     */
+    private function isOriginAllowed(): bool
+    {
+        $raw = $this->request->getHeader('Origin');
+        $origin = trim($raw instanceof HeaderInterface ? $raw->getFieldValue() : (string) $raw);
+        // `1` is what the string cast yields when Magento reports the header as
+        // absent; an absent header is a non-browser caller. The literal "null"
+        // is *not* absent — a sandboxed iframe sends it — so it falls through to
+        // the allowlist and is refused by default.
+        if ($origin === '' || $origin === '1') {
+            return true;
+        }
+
+        foreach ($this->config->getAllowedOrigins() as $candidate) {
+            if (strcasecmp($origin, $candidate) === 0) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

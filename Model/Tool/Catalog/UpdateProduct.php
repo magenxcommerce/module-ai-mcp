@@ -66,7 +66,9 @@ class UpdateProduct extends AbstractTool
     public function getDescription(): string
     {
         return 'Update fields on an existing product. Only the fields you pass are changed. '
-            . 'Pass store_code to set a store-view specific override instead of the default value.';
+            . 'Pass store_code to set a store-view specific override instead of the default value. '
+            . 'Passing null writes an empty override; it does not restore inheritance from the '
+            . 'default scope — clear an override in the Magento admin with "Use Default Value".';
     }
 
     /**

@@ -65,7 +65,8 @@ class GetConfig extends AbstractTool
                 'path' => [
                     'type' => 'string',
                     'description' => 'Configuration path or path prefix, e.g. "catalog/frontend" '
-                        . 'or "catalog/frontend/grid_per_page".',
+                        . 'or "catalog/frontend/grid_per_page". At least a section and a group '
+                        . 'are required; a bare section is refused because the payload is unusably large.',
                 ],
                 'store_code' => $this->storeResolver->schemaProperty(),
             ],
@@ -87,7 +88,21 @@ class GetConfig extends AbstractTool
      */
     public function execute(array $arguments): array
     {
-        $path = trim($this->requireString($arguments, 'path'), '/');
+        $path = strtolower(trim($this->requireString($arguments, 'path'), '/'));
+
+        // Without a floor on the number of segments, a path of "/" trims to ""
+        // and ScopeConfig returns the whole merged configuration for the scope.
+        // Redaction only catches paths whose *name* marks them as secret, so a
+        // third-party credential stored under an innocuous name would be
+        // returned verbatim in a payload no agent asked for.
+        if (substr_count($path, '/') < 1) {
+            throw new LocalizedException(__(
+                'Give at least a section and a group, e.g. "catalog/frontend" for a group or '
+                . '"catalog/frontend/grid_per_page" for one value. Got "%1".',
+                $path
+            ));
+        }
+
         $storeCode = $this->optionalString($arguments, 'store_code');
         $storeId = $this->storeResolver->resolve($storeCode);
         $scope = $storeId === 0 ? ScopeConfigInterface::SCOPE_TYPE_DEFAULT : ScopeInterface::SCOPE_STORE;

@@ -83,7 +83,9 @@ Add a tool from another module by contributing to the `tools` argument of
 1. **The module switch.** `magenx_ai_mcp/general/enabled` is off by default; the
    route 404s.
 2. **ACL.** The integration must hold `Magenx_AiMcp::server` to reach the
-   endpoint, plus the tool's own resource to call it.
+   endpoint, plus the tool's own resource to call it. The endpoint grant is
+   checked in `Model/Protocol/Server.php` before any method is dispatched, so a
+   token whose role lacks it cannot even complete `initialize`, and gets `403`.
 3. **The write switch.** `magenx_ai_mcp/security/allow_writes` is off by
    default. While off the endpoint is strictly read-only, whatever the ACL says.
 4. **The confirm gate.** A write tool called without `"confirm": true` returns a
@@ -108,8 +110,38 @@ integration, the arguments and the verdict.
 |---|---|---|
 | `magenx_ai_mcp/general/enabled` | `0` | Serve the endpoint at all |
 | `magenx_ai_mcp/security/allow_writes` | `0` | Allow tools that change data |
-| `magenx_ai_mcp/security/allowed_ips` | *(empty)* | Optional source-address allowlist; plain addresses and CIDR ranges |
+| `magenx_ai_mcp/security/allowed_ips` | *(empty)* | Optional source-address allowlist; plain addresses and CIDR ranges. **See the proxy caveat below** |
+| `magenx_ai_mcp/security/allowed_origins` | *(empty)* | Browser origins permitted to call the endpoint. Requests with no `Origin` header are unaffected; empty therefore means "no browser" |
 | `magenx_ai_mcp/security/allowed_config_paths` | *(empty)* | Glob patterns `set_config` may write; empty denies all |
+
+### `allowed_ips` measures `REMOTE_ADDR`, not `X-Forwarded-For`
+
+Magento's `RemoteAddress` is constructed with no alternative headers and no
+trusted proxies, so it reads `REMOTE_ADDR` and never consults `X-Forwarded-For`.
+Behind the nginx reverse proxy this stack uses, that is **nginx's own address**
+unless the `real_ip` module is rewriting it:
+
+```nginx
+set_real_ip_from 10.0.0.0/8;     # your proxy / load balancer
+real_ip_header   X-Forwarded-For;
+real_ip_recursive on;
+```
+
+Without that, filling in `allowed_ips` locks the endpoint out entirely — it fails
+closed, so this is safe rather than dangerous, but it looks like the token has
+stopped working. Refusals are logged with the address that was actually observed:
+
+```
+grep 'source address refused' var/log/magenx_ai_mcp.log
+```
+
+### `allowed_origins` is the DNS-rebinding guard
+
+The MCP transport requires servers to validate the `Origin` header. Only browsers
+send one — `curl`, Claude Code and every ordinary MCP client send none and are
+unaffected by this setting. A request that *does* carry an `Origin` is refused
+with `403` unless it is listed, so the empty default means no browser may call
+the endpoint. Leave it empty unless you are building a browser client.
 
 ## Install
 
@@ -225,7 +257,8 @@ string.
 
 If you do connect via a hosted Claude surface, its requests come from
 Anthropic's published egress range **`160.79.104.0/21`**, which is what to put
-in the nginx `allow` list (see `deploy/nginx/mcp.conf.example`).
+in the nginx `allow` list — see the location block under
+[Route it at nginx](#route-it-at-nginx--required-and-it-fails-silently).
 
 ### Verify
 
@@ -248,8 +281,23 @@ client sees a redirect rather than a protocol error and reports the server as
 broken, with nothing in the Magento logs to explain it.
 
 Add a location block beside your existing `location /graphql`, in the same
-server block and pointing at the same Magento upstream — a ready-to-adapt one
-is in [`deploy/nginx/mcp.conf.example`](../../../deploy/nginx/mcp.conf.example).
+server block and pointing at the same Magento upstream:
+
+```nginx
+location /magenx-mcp/ {
+    # Optional edge allowlist. Drop this pair if you connect from Claude Code on
+    # the web, which egresses through a proxy with no stable address.
+    allow 160.79.104.0/21;   # Anthropic published egress range
+    deny  all;
+
+    # Same upstream and fastcgi wiring as your existing `location /graphql`.
+    try_files $uri $uri/ /index.php$is_args$args;
+}
+```
+
+Keep it byte-for-byte consistent with the `fastcgi_pass` / `include` lines your
+`/graphql` block already uses — the point is only that the path reaches Magento
+rather than falling through to the storefront.
 
 Check it took effect:
 
@@ -264,8 +312,10 @@ curl -sS -o /dev/null -w '%{http_code} %{redirect_url}\n' \
 
 Restrict the route at the edge too, unless you connect from Claude Code on the
 web (which egresses through a proxy with no stable address — there the token is
-the boundary). The `allowed_ips` setting performs the same check inside
-Magento; use both when the agent runs from a fixed address.
+the boundary). The `allowed_ips` setting performs the same check inside Magento
+**provided nginx is rewriting `REMOTE_ADDR`** (see the caveat under
+[Configuration](#configuration)); use both when the agent runs from a fixed
+address.
 
 ## Caveats
 
@@ -281,5 +331,14 @@ Magento; use both when the agent runs from a fixed address.
 - **Scope mistakes are the easiest way to go wrong with this server.** Omitting
   `store_code` writes the default value that all store views inherit; passing it
   writes an override for that view only. `list_stores` exists so the agent can
-  check before it writes.
+  check before it writes. Passing `null` for a field writes an *empty override*,
+  it does not restore inheritance — clearing an override still means "Use
+  Default Value" in the admin.
+- **`update_cms_block` refuses an ambiguous identifier.** Magento allows several
+  blocks to share one identifier across store views. Rather than editing an
+  arbitrary one, the tool errors and lists the matching `block_id`s; pass
+  `block_id` to choose.
+- **`get_config` needs at least a section and a group.** A bare section (or `/`)
+  is refused: it would return the entire merged configuration, and redaction
+  only catches values whose *path* names them as secret.
 - Product deletion is deliberately not exposed.

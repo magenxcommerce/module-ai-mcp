@@ -92,6 +92,35 @@ abstract class AbstractTool implements ToolInterface
     }
 
     /**
+     * A boolean argument, or the default when it was not supplied.
+     *
+     * Deliberately not a `(bool)` cast: JSON has real booleans, and a cast
+     * turns the string "false" — which a model does produce — into true, which
+     * is the kind of silent wrong write this server exists to avoid.
+     *
+     * @param array<string, mixed> $arguments
+     * @param string $key
+     * @param bool|null $default
+     * @return bool|null
+     * @throws LocalizedException
+     */
+    protected function optionalBool(array $arguments, string $key, ?bool $default = null): ?bool
+    {
+        if (!array_key_exists($key, $arguments) || $arguments[$key] === null) {
+            return $default;
+        }
+
+        $value = $arguments[$key];
+        if (!is_bool($value)) {
+            throw new LocalizedException(
+                __('The "%1" argument must be true or false, not a string or a number.', $key)
+            );
+        }
+
+        return $value;
+    }
+
+    /**
      * @param array<string, mixed> $arguments
      * @param string $key
      * @return array<mixed>

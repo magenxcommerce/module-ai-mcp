@@ -51,6 +51,19 @@
     <type name="Magenx\AiMcp\Model\Protocol\Server">
         <arguments>
             <argument name="auditLogger" xsi:type="object">MagenxAiMcpAuditLogger</argument>
+            <!-- Advertised to the MCP client as serverInfo.version. Kept here rather
+                 than as a class constant so release-please's version bump has one
+                 obvious place to land. -->
+            <argument name="serverVersion" xsi:type="string">1.0.0</argument>
+        </arguments>
+    </type>
+
+    <!-- Refused requests never reach the Server, so the authenticator needs the
+         audit logger of its own to make a failed token or a blocked address
+         visible in the same file as the writes. -->
+    <type name="Magenx\AiMcp\Model\Auth\Authenticator">
+        <arguments>
+            <argument name="auditLogger" xsi:type="object">MagenxAiMcpAuditLogger</argument>
         </arguments>
     </type>
 </config>

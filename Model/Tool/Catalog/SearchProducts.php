@@ -98,8 +98,10 @@ class SearchProducts extends AbstractTool
      */
     public function execute(array $arguments): array
     {
-        $this->searchCriteriaBuilder->setPageSize($this->pageSize($arguments));
-        $this->searchCriteriaBuilder->setCurrentPage($this->currentPage($arguments));
+        $pageSize = $this->pageSize($arguments);
+        $currentPage = $this->currentPage($arguments);
+        $this->searchCriteriaBuilder->setPageSize($pageSize);
+        $this->searchCriteriaBuilder->setCurrentPage($currentPage);
 
         $query = $this->optionalString($arguments, 'query');
         if ($query !== null) {
@@ -137,8 +139,8 @@ class SearchProducts extends AbstractTool
 
         return [
             'total_count' => (int) $result->getTotalCount(),
-            'page' => $this->currentPage($arguments),
-            'page_size' => $this->pageSize($arguments),
+            'page' => $currentPage,
+            'page_size' => $pageSize,
             'items' => array_map(
                 fn ($product): array => $this->projector->toSummary($product),
                 $result->getItems()

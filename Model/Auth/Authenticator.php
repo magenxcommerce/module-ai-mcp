@@ -13,10 +13,12 @@ use Magento\Authorization\Model\UserContextInterface;
 use Magento\Framework\App\Request\Http as HttpRequest;
 use Magento\Framework\Exception\AuthenticationException;
 use Magento\Framework\HTTP\PhpEnvironment\RemoteAddress;
+use Magento\Framework\Phrase;
 use Magento\Framework\Stdlib\DateTime\DateTime as CoreDate;
 use Magento\Integration\Api\IntegrationServiceInterface;
 use Magento\Integration\Helper\Oauth\Data as OauthHelper;
 use Magento\Integration\Model\Oauth\TokenFactory;
+use Psr\Log\LoggerInterface;
 
 /**
  * Turns the request's `Authorization: Bearer <token>` into an {@see Identity}.
@@ -42,6 +44,7 @@ class Authenticator
      * @param CoreDate $date
      * @param RemoteAddress $remoteAddress
      * @param Config $config
+     * @param LoggerInterface $auditLogger
      */
     public function __construct(
         private readonly TokenFactory $tokenFactory,
@@ -50,7 +53,8 @@ class Authenticator
         private readonly OauthHelper $oauthHelper,
         private readonly CoreDate $date,
         private readonly RemoteAddress $remoteAddress,
-        private readonly Config $config
+        private readonly Config $config,
+        private readonly LoggerInterface $auditLogger
     ) {
     }
 
@@ -60,6 +64,7 @@ class Authenticator
      * @param HttpRequest $request
      * @return Identity
      * @throws AuthenticationException
+     * @throws AccessDeniedException
      */
     public function authenticate(HttpRequest $request): Identity
     {
@@ -67,12 +72,12 @@ class Authenticator
 
         $token = $this->readBearerToken($request);
         if ($token === null) {
-            throw new AuthenticationException(__('A bearer token is required.'));
+            throw $this->refuse(__('A bearer token is required.'));
         }
 
         $tokenModel = $this->tokenFactory->create()->loadByToken($token);
         if (!$tokenModel->getId() || (int) $tokenModel->getRevoked() === 1) {
-            throw new AuthenticationException(__('The access token is invalid or has been revoked.'));
+            throw $this->refuse(__('The access token is invalid or has been revoked.'));
         }
 
         $userType = (int) $tokenModel->getUserType();
@@ -81,7 +86,7 @@ class Authenticator
             $integration = $this->integrationService->findByConsumerId((int) $tokenModel->getConsumerId());
             $integrationId = (int) $integration->getId();
             if ($integrationId === 0) {
-                throw new AuthenticationException(__('The access token is not bound to an integration.'));
+                throw $this->refuse(__('The access token is not bound to an integration.'));
             }
 
             return $this->buildIdentity(
@@ -102,7 +107,32 @@ class Authenticator
         }
 
         // Customer tokens (and anything else) have no business here.
-        throw new AuthenticationException(__('This token type cannot be used with the MCP endpoint.'));
+        throw $this->refuse(__('This token type cannot be used with the MCP endpoint.'));
+    }
+
+    /**
+     * Record a refusal and build the exception for it.
+     *
+     * Failures are logged to the same file as the writes, because a stream of
+     * rejected tokens is exactly what an operator auditing this endpoint needs
+     * to see. The token itself is never logged, in any form: a truncated secret
+     * is still a secret, and the source address is what identifies the caller.
+     *
+     * Takes an already-built Phrase rather than a string to translate here, so
+     * every message stays a literal at its call site where Magento's i18n
+     * collector can find it.
+     *
+     * @param Phrase $reason
+     * @return AuthenticationException
+     */
+    private function refuse(Phrase $reason): AuthenticationException
+    {
+        $this->auditLogger->warning('[magenx-mcp] authentication failed', [
+            'remote_address' => (string) $this->remoteAddress->getRemoteAddress(),
+            'reason' => $reason->render(),
+        ]);
+
+        return new AuthenticationException($reason);
     }
 
     /**
@@ -117,7 +147,7 @@ class Authenticator
     private function buildIdentity(int $userType, int $userId, string $label): Identity
     {
         if ($userId === 0) {
-            throw new AuthenticationException(__('The access token is not bound to a user.'));
+            throw $this->refuse(__('The access token is not bound to a user.'));
         }
 
         try {
@@ -146,7 +176,7 @@ class Authenticator
 
         $expiresAt = strtotime($createdAt) + ($lifetimeHours * 3600);
         if ($expiresAt < $this->date->gmtTimestamp()) {
-            throw new AuthenticationException(
+            throw $this->refuse(
                 __('The admin token has expired. Use an Integration access token, which does not expire.')
             );
         }
@@ -155,8 +185,16 @@ class Authenticator
     /**
      * Enforce the optional source-address allowlist.
      *
+     * Note that this compares against REMOTE_ADDR: Magento's RemoteAddress is
+     * constructed with no alternative headers and no trusted proxies, so it
+     * never consults X-Forwarded-For. Behind a reverse proxy that is the
+     * proxy's address unless nginx's real_ip module is rewriting it — see the
+     * README. The failure is closed, so a misconfigured allowlist locks the
+     * endpoint rather than opening it, and the log line below is what makes
+     * that diagnosable.
+     *
      * @return void
-     * @throws AuthenticationException
+     * @throws AccessDeniedException
      */
     private function assertSourceAddressAllowed(): void
     {
@@ -172,7 +210,12 @@ class Authenticator
             }
         }
 
-        throw new AuthenticationException(__('This source address is not permitted.'));
+        $this->auditLogger->warning('[magenx-mcp] source address refused', [
+            'remote_address' => $remote,
+            'reason' => 'not matched by magenx_ai_mcp/security/allowed_ips',
+        ]);
+
+        throw new AccessDeniedException(__('This source address is not permitted.'));
     }
 
     /**
@@ -192,7 +235,15 @@ class Authenticator
             return $remote === $candidate;
         }
 
-        [$subnet, $bits] = explode('/', $candidate, 2);
+        [$subnet, $prefix] = explode('/', $candidate, 2);
+
+        // A prefix that is not a plain number must refuse, not be cast: `(int)`
+        // turns "10.0.0.0/" and "10.0.0.0/abc" into a /0, which matches every
+        // address and would silently convert a typo in the allowlist into no
+        // allowlist at all.
+        if ($prefix === '' || !ctype_digit($prefix)) {
+            return false;
+        }
         // phpcs:ignore Generic.PHP.NoSilencedErrors.Discouraged -- a malformed remote address must yield false, which is handled immediately below.
         $remoteBinary = @inet_pton($remote);
         // phpcs:ignore Generic.PHP.NoSilencedErrors.Discouraged -- a malformed subnet must yield false, which is handled immediately below.
@@ -203,9 +254,9 @@ class Authenticator
             return false;
         }
 
-        $bits = (int) $bits;
+        $bits = (int) $prefix;
         $maxBits = strlen($remoteBinary) * 8;
-        if ($bits < 0 || $bits > $maxBits) {
+        if ($bits > $maxBits) {
             return false;
         }
 

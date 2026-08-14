@@ -20,6 +20,7 @@ class Config
     private const XML_PATH_ALLOW_WRITES = 'magenx_ai_mcp/security/allow_writes';
     private const XML_PATH_ALLOWED_IPS = 'magenx_ai_mcp/security/allowed_ips';
     private const XML_PATH_ALLOWED_CONFIG_PATHS = 'magenx_ai_mcp/security/allowed_config_paths';
+    private const XML_PATH_ALLOWED_ORIGINS = 'magenx_ai_mcp/security/allowed_origins';
 
     /**
      * @param ScopeConfigInterface $scopeConfig
@@ -69,6 +70,18 @@ class Config
     public function getAllowedConfigPaths(): array
     {
         return $this->splitList((string) $this->scopeConfig->getValue(self::XML_PATH_ALLOWED_CONFIG_PATHS));
+    }
+
+    /**
+     * Browser origins permitted to call the endpoint. Empty denies every
+     * request that carries an Origin header at all — which is every browser,
+     * and no ordinary MCP client.
+     *
+     * @return string[]
+     */
+    public function getAllowedOrigins(): array
+    {
+        return $this->splitList((string) $this->scopeConfig->getValue(self::XML_PATH_ALLOWED_ORIGINS));
     }
 
     /**
