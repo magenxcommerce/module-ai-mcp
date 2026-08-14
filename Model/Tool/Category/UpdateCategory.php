@@ -55,7 +55,8 @@ class UpdateCategory extends AbstractTool
     public function getDescription(): string
     {
         return 'Update fields on an existing category. Only the fields you pass are changed. '
-            . 'Pass store_code to set a store-view specific override.';
+            . 'Pass store_code to set a store-view specific override. Passing null writes an empty '
+            . 'override; it does not restore inheritance from the default scope.';
     }
 
     /**

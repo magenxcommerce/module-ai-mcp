@@ -88,7 +88,9 @@ class GetCategoryTree extends AbstractTool
         try {
             $tree = $this->categoryManagement->getTree($rootId, $depth);
         } catch (NoSuchEntityException) {
-            throw new LocalizedException(__('No category exists with id %1.', (string) $rootId));
+            throw new LocalizedException($rootId === null
+                ? __('This store has no root category to read the tree from.')
+                : __('No category exists with id %1.', $rootId));
         }
 
         return ['tree' => $this->flattenNode($tree)];

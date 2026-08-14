@@ -84,11 +84,8 @@ class FlushCache extends AbstractTool
      */
     public function execute(array $arguments): array
     {
-        $available = [];
-        foreach ($this->cacheTypeList->getTypes() as $type) {
-            $available[] = is_array($type) ? (string) ($type['id'] ?? '') : (string) $type->getId();
-        }
-        $available = array_values(array_filter($available));
+        // getTypes() is keyed by type code, same shape IndexerStatus relies on.
+        $available = array_map('strval', array_keys($this->cacheTypeList->getTypes()));
 
         $requested = array_values(array_filter($this->optionalArray($arguments, 'types'), 'is_string'));
         if ($requested === []) {

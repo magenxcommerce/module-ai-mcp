@@ -81,11 +81,14 @@ class ListAttributes extends AbstractTool
     public function execute(array $arguments): array
     {
         $code = $this->optionalString($arguments, 'attribute_code');
+        $pageSize = $this->pageSize($arguments);
+        $currentPage = $this->currentPage($arguments);
+
         if ($code !== null) {
             $this->searchCriteriaBuilder->addFilter('attribute_code', $code);
         }
-        $this->searchCriteriaBuilder->setPageSize($this->pageSize($arguments));
-        $this->searchCriteriaBuilder->setCurrentPage($this->currentPage($arguments));
+        $this->searchCriteriaBuilder->setPageSize($pageSize);
+        $this->searchCriteriaBuilder->setCurrentPage($currentPage);
 
         $result = $this->attributeRepository->getList($this->searchCriteriaBuilder->create());
 
@@ -119,8 +122,8 @@ class ListAttributes extends AbstractTool
 
         return [
             'total_count' => (int) $result->getTotalCount(),
-            'page' => $this->currentPage($arguments),
-            'page_size' => $this->pageSize($arguments),
+            'page' => $currentPage,
+            'page_size' => $pageSize,
             'items' => $items,
         ];
     }

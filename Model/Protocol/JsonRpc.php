@@ -16,6 +16,12 @@ class JsonRpc
 {
     public const VERSION = '2.0';
 
+    /**
+     * The reserved codes, in full, because this class is where a reader looks
+     * for them. INTERNAL_ERROR has no call site by design: a tool that fails is
+     * reported to the agent as a *tool* error with `isError`, not as a protocol
+     * error, so the conversation can continue.
+     */
     public const PARSE_ERROR = -32700;
     public const INVALID_REQUEST = -32600;
     public const METHOD_NOT_FOUND = -32601;

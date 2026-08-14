@@ -80,7 +80,7 @@ class CreateProduct extends AbstractTool
                 ],
                 'attribute_set_id' => [
                     'type' => 'integer',
-                    'description' => 'Defaults to the Default attribute set. Use list_attribute_sets to choose another.',
+                    'description' => 'Defaults to the Default attribute set of the Catalog Product entity.',
                 ],
                 'status' => ['type' => 'integer', 'description' => '1 = enabled (default), 2 = disabled.'],
                 'visibility' => [
@@ -155,7 +155,7 @@ class CreateProduct extends AbstractTool
             $websiteIds = [(int) $this->storeManager->getWebsite()->getId()];
         }
         $qty = isset($arguments['qty']) && is_numeric($arguments['qty']) ? (float) $arguments['qty'] : 0.0;
-        $inStock = (bool) ($arguments['is_in_stock'] ?? ($qty > 0));
+        $inStock = $this->optionalBool($arguments, 'is_in_stock', $qty > 0);
 
         // Websites and the initial stock item both travel as extension
         // attributes; a new product has no stock item yet, so build one.

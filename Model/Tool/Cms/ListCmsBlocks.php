@@ -79,15 +79,17 @@ class ListCmsBlocks extends AbstractTool
      */
     public function execute(array $arguments): array
     {
-        $this->searchCriteriaBuilder->setPageSize($this->pageSize($arguments));
-        $this->searchCriteriaBuilder->setCurrentPage($this->currentPage($arguments));
+        $pageSize = $this->pageSize($arguments);
+        $currentPage = $this->currentPage($arguments);
+        $this->searchCriteriaBuilder->setPageSize($pageSize);
+        $this->searchCriteriaBuilder->setCurrentPage($currentPage);
 
         $identifier = $this->optionalString($arguments, 'identifier');
         if ($identifier !== null) {
             $this->searchCriteriaBuilder->addFilter('identifier', $identifier);
         }
 
-        $includeContent = ($arguments['include_content'] ?? false) === true;
+        $includeContent = $this->optionalBool($arguments, 'include_content', false);
         $result = $this->blockRepository->getList($this->searchCriteriaBuilder->create());
 
         $items = [];
@@ -108,8 +110,8 @@ class ListCmsBlocks extends AbstractTool
 
         return [
             'total_count' => (int) $result->getTotalCount(),
-            'page' => $this->currentPage($arguments),
-            'page_size' => $this->pageSize($arguments),
+            'page' => $currentPage,
+            'page_size' => $pageSize,
             'items' => $items,
         ];
     }

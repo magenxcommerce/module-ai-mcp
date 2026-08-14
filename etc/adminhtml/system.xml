@@ -34,7 +34,14 @@
                 </field>
                 <field id="allowed_ips" translate="label comment" type="textarea" sortOrder="20" showInDefault="1">
                     <label>Allowed IP Addresses</label>
-                    <comment><![CDATA[Comma or newline separated. Plain addresses (<code>203.0.113.7</code>) and CIDR ranges (<code>10.0.0.0/8</code>) are supported. Leave empty to accept any source address that presents a valid token.]]></comment>
+                    <comment><![CDATA[Comma or newline separated. Plain addresses (<code>203.0.113.7</code>) and CIDR ranges (<code>10.0.0.0/8</code>) are supported. Leave empty to accept any source address that presents a valid token.<br/><strong>Behind a reverse proxy this compares against <code>REMOTE_ADDR</code>,</strong> which is the proxy's own address unless nginx's <code>real_ip</code> module is rewriting it (<code>set_real_ip_from</code> / <code>real_ip_header</code>). Without that, filling this in locks the endpoint out entirely. Refusals are recorded with the observed address in <code>var/log/magenx_ai_mcp.log</code>.]]></comment>
+                    <depends>
+                        <field id="magenx_ai_mcp/general/enabled">1</field>
+                    </depends>
+                </field>
+                <field id="allowed_origins" translate="label comment" type="textarea" sortOrder="25" showInDefault="1">
+                    <label>Allowed Browser Origins</label>
+                    <comment><![CDATA[Comma or newline separated, e.g. <code>https://app.example.com</code>. The MCP transport requires the <code>Origin</code> header to be validated against DNS-rebinding attacks. Requests that send <strong>no</strong> Origin — curl, Claude Code, every ordinary MCP client — are unaffected by this setting. Requests that send one are refused unless it is listed here, so empty means "no browser may call this endpoint".]]></comment>
                     <depends>
                         <field id="magenx_ai_mcp/general/enabled">1</field>
                     </depends>

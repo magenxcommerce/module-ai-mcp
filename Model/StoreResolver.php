@@ -40,7 +40,7 @@ class StoreResolver
      */
     public function resolve(?string $storeCode): int
     {
-        if ($storeCode === null || $storeCode === '' || $storeCode === 'admin' || $storeCode === 'default_scope') {
+        if ($storeCode === null || $storeCode === '' || $storeCode === 'admin') {
             return Store::DEFAULT_STORE_ID;
         }
 

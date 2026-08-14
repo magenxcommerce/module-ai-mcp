@@ -18,6 +18,7 @@
                 <allow_writes>0</allow_writes>
                 <allowed_ips/>
                 <allowed_config_paths/>
+                <allowed_origins/>
             </security>
         </magenx_ai_mcp>
     </default>

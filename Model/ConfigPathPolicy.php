@@ -6,6 +6,8 @@ declare(strict_types=1);
 
 namespace Magenx\AiMcp\Model;
 
+use Magento\Framework\Phrase;
+
 /**
  * Decides which configuration paths may be read in full and which may be
  * written.
@@ -97,40 +99,45 @@ class ConfigPathPolicy
      * Whether this path may be written. Returns a reason when it may not, so
      * the agent is told which gate refused it.
      *
+     * Matching is done on the lower-cased path: `isSecret()` was always
+     * case-insensitive, and the prefix and glob gates must agree with it or
+     * `Admin/...` would slip past a denylist written as `admin/`.
+     *
      * @param string $path
-     * @return string|null Null when the write is permitted.
+     * @return Phrase|null Null when the write is permitted.
      */
-    public function refuseWriteReason(string $path): ?string
+    public function refuseWriteReason(string $path): ?Phrase
     {
-        if ($this->isSecret($path)) {
-            return sprintf(
-                'The path "%s" looks like it holds a credential. Secret-bearing paths cannot be '
+        $needle = strtolower($path);
+
+        if ($this->isSecret($needle)) {
+            return __(
+                'The path "%1" looks like it holds a credential. Secret-bearing paths cannot be '
                 . 'written through this server; change it in the Magento admin instead.',
                 $path
             );
         }
 
         foreach (self::PROTECTED_PREFIXES as $prefix) {
-            if (str_starts_with($path, $prefix)) {
-                return sprintf('The path "%s" is protected and cannot be written through this server.', $path);
+            if (str_starts_with($needle, $prefix)) {
+                return __('The path "%1" is protected and cannot be written through this server.', $path);
             }
         }
 
         $allowed = $this->config->getAllowedConfigPaths();
         if ($allowed === []) {
-            return 'No configuration paths are writable. An administrator must list them under '
-                . 'Stores > Configuration > Magenx > AI MCP Server > Writable Configuration Paths.';
+            return __(
+                'No configuration paths are writable. An administrator must list them under '
+                . 'Stores > Configuration > Magenx > AI MCP Server > Writable Configuration Paths.'
+            );
         }
 
         foreach ($allowed as $pattern) {
-            if (fnmatch($pattern, $path)) {
+            if (fnmatch(strtolower($pattern), $needle)) {
                 return null;
             }
         }
 
-        return sprintf(
-            'The path "%s" is not in the store\'s writable configuration paths.',
-            $path
-        );
+        return __('The path "%1" is not in the store\'s writable configuration paths.', $path);
     }
 }

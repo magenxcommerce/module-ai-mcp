@@ -98,8 +98,8 @@ class CreateCategory extends AbstractTool
         $category = $this->categoryFactory->create();
         $category->setParentId((int) $parent->getId());
         $category->setName($name);
-        $category->setIsActive((bool) ($arguments['is_active'] ?? true));
-        $category->setData('include_in_menu', (bool) ($arguments['include_in_menu'] ?? true));
+        $category->setIsActive($this->optionalBool($arguments, 'is_active', true));
+        $category->setData('include_in_menu', $this->optionalBool($arguments, 'include_in_menu', true));
 
         $urlKey = $this->optionalString($arguments, 'url_key');
         if ($urlKey !== null) {
