@@ -6,8 +6,8 @@
 Serves a **Model Context Protocol (MCP)** endpoint from Magento, so an AI agent
 such as Claude Code can inspect and manage the backend directly: products,
 categories, orders and their invoices, shipments and credit memos, customer
-accounts and their addresses, CMS blocks, store configuration, caches and
-indexers.
+accounts and their addresses, stock levels, tier prices, cart and catalog price
+rules, CMS blocks, store configuration, caches and indexers.
 
 This is a *management* surface, not a storefront feature. It is disabled by
 default, requires a Magento Integration access token, and authorizes every
@@ -92,6 +92,21 @@ same ACL role, so nothing is lost but the serializer.
 | `initiate_password_reset` | ✓ | `Magento_Customer::reset_password` |
 | `invalidate_customer_tokens` | ✓ | `Magento_Customer::invalidate_tokens` |
 | `set_newsletter_subscription` | ✓ | `Magento_Newsletter::subscriber` |
+| `get_stock` | | `Magento_CatalogInventory::cataloginventory` |
+| `update_stock` | ✓ | `Magento_CatalogInventory::cataloginventory` |
+| `search_low_stock` | | `Magento_CatalogInventory::cataloginventory` |
+| `get_tier_prices` | | `Magento_Catalog::products` |
+| `set_tier_prices` | ✓ | `Magento_Catalog::products` |
+| `delete_tier_prices` | ✓ | `Magento_Catalog::products` |
+| `search_cart_price_rules` | | `Magento_SalesRule::quote` |
+| `get_cart_price_rule` | | `Magento_SalesRule::quote` |
+| `update_cart_price_rule` | ✓ | `Magento_SalesRule::quote` |
+| `generate_coupons` | ✓ | `Magento_SalesRule::quote` |
+| `search_coupons` | | `Magento_SalesRule::quote` |
+| `delete_coupons` | ✓ | `Magento_SalesRule::quote` |
+| `search_catalog_price_rules` | | `Magento_CatalogRule::promo_catalog` |
+| `get_catalog_price_rule` | | `Magento_CatalogRule::promo_catalog` |
+| `update_catalog_price_rule` | ✓ | `Magento_CatalogRule::promo_catalog` |
 | `get_config` | | `Magento_Config::config` |
 | `set_config` | ✓ | `Magento_Config::config` |
 | `flush_cache` | ✓ | `Magento_Backend::cache` |
@@ -162,6 +177,53 @@ the password, which is the pairing for a compromised account.
 address list on a saved customer as authoritative and deletes any address
 missing from it, so addresses are only ever changed through the three dedicated
 address tools.
+
+### Stock and pricing: three things that are not obvious
+
+**Stock is the legacy single-stock API.** These tools use
+`CatalogInventory`'s `StockRegistryInterface`, which is the aggregate quantity
+and the default source. Multi-Source Inventory ships as a separate package set
+and is not a dependency here, so on a multi-source installation `get_stock` and
+`update_stock` read and write the legacy view that MSI keeps in sync — not
+per-source quantities. Managing individual sources still needs the admin.
+
+**Thresholds are stored as a value plus an inheritance flag.** Magento keeps
+`min_qty`, `backorders`, `notify_stock_qty` and the rest alongside a
+`use_config_*` flag saying to ignore the stored value in favour of the store
+default. Writing a threshold without clearing that flag stores a number Magento
+never reads — a change that reports success and does nothing. So `get_stock`
+reports each setting as `{value, uses_config_default}`, and `update_stock`
+clears the flag whenever you set one; pass the field as `null` to go back to
+inheriting.
+
+**Nothing here reindexes.** A stock change, a tier price or an activated
+catalog rule reaches the storefront only after the relevant indexer runs. The
+affected tools return `reindex_required: true`; `invalidate_indexers` is what
+marks the indexers to rerun.
+
+### Price rules: what these tools will not do
+
+Neither rule tool writes **conditions**. That is deliberate, and it is why both
+update tools load the existing rule and mutate it rather than building a new
+one: Magento's sales rule repository converts the whole data object back into
+the rule on save, so a rule rebuilt from only the fields being changed would be
+saved with no conditions — a cart discount that suddenly applies to every cart,
+or a catalog rule that re-prices the entire catalogue. A rule whose conditions
+need changing has to be edited in the admin.
+
+`get_cart_price_rule` does return both condition trees, read-only and
+depth-limited, because they are the usual answer to "why is this rule not
+applying". A catalog rule's condition is only an opaque serialized blob in
+Magento's API, so `get_catalog_price_rule` reports just whether it has one — a
+catalog rule with no condition applies to every product.
+
+`generate_coupons` refuses a rule that is not set to auto-generate coupons
+rather than failing obscurely, and `delete_coupons` is all-or-nothing: Magento's
+mass delete reports a bad code only as "Some coupons are invalid", so the codes
+are checked first and a missing one is named before anything is deleted.
+`set_tier_prices` and `delete_tier_prices` guard the matching trap — the tier
+price storage reports rejected rows by *returning* them instead of throwing, so
+an empty return is the only thing that means the prices were applied.
 
 Add a tool from another module by contributing to the `tools` argument of
 `Magenx\AiMcp\Model\Tool\ToolRegistry` in `di.xml` and implementing

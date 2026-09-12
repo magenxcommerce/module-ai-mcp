@@ -49,6 +49,21 @@
                 <item name="initiate_password_reset" xsi:type="object">Magenx\AiMcp\Model\Tool\Customer\InitiatePasswordReset</item>
                 <item name="invalidate_customer_tokens" xsi:type="object">Magenx\AiMcp\Model\Tool\Customer\InvalidateCustomerTokens</item>
                 <item name="set_newsletter_subscription" xsi:type="object">Magenx\AiMcp\Model\Tool\Customer\SetNewsletterSubscription</item>
+                <item name="get_stock" xsi:type="object">Magenx\AiMcp\Model\Tool\Inventory\GetStock</item>
+                <item name="update_stock" xsi:type="object">Magenx\AiMcp\Model\Tool\Inventory\UpdateStock</item>
+                <item name="search_low_stock" xsi:type="object">Magenx\AiMcp\Model\Tool\Inventory\SearchLowStock</item>
+                <item name="get_tier_prices" xsi:type="object">Magenx\AiMcp\Model\Tool\Price\GetTierPrices</item>
+                <item name="set_tier_prices" xsi:type="object">Magenx\AiMcp\Model\Tool\Price\SetTierPrices</item>
+                <item name="delete_tier_prices" xsi:type="object">Magenx\AiMcp\Model\Tool\Price\DeleteTierPrices</item>
+                <item name="search_cart_price_rules" xsi:type="object">Magenx\AiMcp\Model\Tool\Promotion\SearchCartPriceRules</item>
+                <item name="get_cart_price_rule" xsi:type="object">Magenx\AiMcp\Model\Tool\Promotion\GetCartPriceRule</item>
+                <item name="update_cart_price_rule" xsi:type="object">Magenx\AiMcp\Model\Tool\Promotion\UpdateCartPriceRule</item>
+                <item name="generate_coupons" xsi:type="object">Magenx\AiMcp\Model\Tool\Promotion\GenerateCoupons</item>
+                <item name="search_coupons" xsi:type="object">Magenx\AiMcp\Model\Tool\Promotion\SearchCoupons</item>
+                <item name="delete_coupons" xsi:type="object">Magenx\AiMcp\Model\Tool\Promotion\DeleteCoupons</item>
+                <item name="search_catalog_price_rules" xsi:type="object">Magenx\AiMcp\Model\Tool\Promotion\SearchCatalogPriceRules</item>
+                <item name="get_catalog_price_rule" xsi:type="object">Magenx\AiMcp\Model\Tool\Promotion\GetCatalogPriceRule</item>
+                <item name="update_catalog_price_rule" xsi:type="object">Magenx\AiMcp\Model\Tool\Promotion\UpdateCatalogPriceRule</item>
                 <item name="get_config" xsi:type="object">Magenx\AiMcp\Model\Tool\Config\GetConfig</item>
                 <item name="set_config" xsi:type="object">Magenx\AiMcp\Model\Tool\Config\SetConfig</item>
                 <item name="flush_cache" xsi:type="object">Magenx\AiMcp\Model\Tool\Ops\FlushCache</item>
