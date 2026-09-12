@@ -126,7 +126,8 @@ class Server
             'protocolVersion' => self::PROTOCOL_VERSION,
             'capabilities' => ['tools' => ['listChanged' => false]],
             'serverInfo' => ['name' => self::SERVER_NAME, 'version' => $this->serverVersion],
-            'instructions' => 'Manage this Magento store: read and edit products, categories, orders '
+            'instructions' => 'Manage this Magento store: read and edit products with their images, '
+                . 'linked products and configurable variants, categories, orders '
                 . 'and their invoices, shipments and credit memos, customer accounts and their '
                 . 'addresses, stock levels, tier prices, cart and catalog price rules, CMS '
                 . 'pages and blocks, product attributes and attribute sets, and store '

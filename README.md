@@ -4,8 +4,8 @@
 > headless integration and is published as such.
 
 Serves a **Model Context Protocol (MCP)** endpoint from Magento, so an AI agent
-such as Claude Code can inspect and manage the backend directly: products,
-categories, orders and their invoices, shipments and credit memos, customer
+such as Claude Code can inspect and manage the backend directly: products with
+their images, linked products and variants, categories, orders and their invoices, shipments and credit memos, customer
 accounts and their addresses, stock levels, tier prices, cart and catalog price
 rules, CMS pages and blocks, product attributes and attribute sets, store
 configuration, caches and indexers.
@@ -126,6 +126,21 @@ same ACL role, so nothing is lost but the serializer.
 | `assign_product_attribute_to_set` | ✓ | `Magento_Catalog::sets` |
 | `unassign_product_attribute_from_set` | ✓ | `Magento_Catalog::sets` |
 | `search_url_rewrites` | | `Magento_UrlRewrite::urlrewrite` |
+| `list_product_media` | | `Magento_Catalog::products` |
+| `add_product_media` | ✓ | `Magento_Catalog::products` |
+| `update_product_media` | ✓ | `Magento_Catalog::products` |
+| `delete_product_media` | ✓ | `Magento_Catalog::products` |
+| `list_product_link_types` | | `Magento_Catalog::products` |
+| `get_product_links` | | `Magento_Catalog::products` |
+| `set_product_links` | ✓ | `Magento_Catalog::products` |
+| `delete_product_link` | ✓ | `Magento_Catalog::products` |
+| `list_configurable_children` | | `Magento_Catalog::products` |
+| `add_configurable_child` | ✓ | `Magento_Catalog::products` |
+| `remove_configurable_child` | ✓ | `Magento_Catalog::products` |
+| `assign_product_to_website` | ✓ | `Magento_Catalog::products` |
+| `delete_product` | ✓ | `Magento_Catalog::products` |
+| `delete_category` | ✓ | `Magento_Catalog::categories` |
+| `move_category` | ✓ | `Magento_Catalog::categories` |
 | `get_config` | | `Magento_Config::config` |
 | `set_config` | ✓ | `Magento_Config::config` |
 | `flush_cache` | ✓ | `Magento_Backend::cache` |
@@ -295,6 +310,48 @@ Magento uses to regenerate its own entity rewrites, and a rewrite written
 through it is liable to be replaced the next time the product or category is
 saved. Custom rewrites belong in the admin. The lookup requires at least one
 filter, because an unfiltered one returns every rewrite in the store.
+
+### Catalog depth: replace, not merge
+
+Two of Magento's catalog operations replace where they read like they add, and
+both are wrapped accordingly.
+
+**`update_product_media` loads the entry it is changing.** Magento's gallery
+update assigns the entry it is handed straight into the existing list
+(`$entries[$key] = $entry`), so an entry built from only the fields being
+changed would blank the rest — including the `file` that points at the image on
+disk. The tool fetches the entry, mutates what you passed, and sends that back.
+Assigning a role also *moves* it: a role belongs to one image at a time, so
+giving `image` to one entry takes it from whichever held it.
+
+**`set_product_links` replaces the whole list for the type.** Any existing link
+of that type you do not list is removed. Because "set these links" reads like
+"add these links", the tool takes an explicit `mode`: `replace` (Magento's own
+behaviour, the default) or `append`, which reads the current links and carries
+them through. `delete_product_link` is the simpler way to drop one.
+
+`add_product_media` is the only tool in the module that needs real bytes. It
+takes base64 — there is no URL or file-path form — so in practice the image
+comes from a person. It checks the payload decodes, that it is genuinely an
+image, and that the bytes match the declared mime type *before* Magento is
+asked to store it, because Magento's own rejection arrives as a generic save
+failure after the upload attempt.
+
+### What the deletes take with them
+
+- `delete_product` also removes that product's images, tier prices, links and
+  category assignments, and drops it as a variant of any configurable. Past
+  orders keep their own copy of the line.
+- `delete_category` deletes **the whole subtree**, and the result names how many
+  categories went. Products are not deleted but lose the assignment. A store's
+  root category is refused.
+- `move_category` takes the subtree and the products with it, and changes the
+  URL of everything beneath — old links stop resolving without a redirect.
+- `remove_configurable_child` does not delete the simple product; it becomes
+  standalone. Removing the last variant leaves the configurable unbuyable.
+
+For each of these, the reversible alternative is in the tool's own description:
+disable rather than delete, unassign from a website rather than remove.
 
 Add a tool from another module by contributing to the `tools` argument of
 `Magenx\AiMcp\Model\Tool\ToolRegistry` in `di.xml` and implementing

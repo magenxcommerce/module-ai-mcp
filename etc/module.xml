@@ -15,6 +15,7 @@
             <module name="Magento_CatalogRule"/>
             <module name="Magento_Cms"/>
             <module name="Magento_Config"/>
+            <module name="Magento_ConfigurableProduct"/>
             <module name="Magento_Customer"/>
             <module name="Magento_Indexer"/>
             <module name="Magento_Newsletter"/>

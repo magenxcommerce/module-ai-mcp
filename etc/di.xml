@@ -82,6 +82,21 @@
                 <item name="assign_product_attribute_to_set" xsi:type="object">Magenx\AiMcp\Model\Tool\Attribute\AssignProductAttributeToSet</item>
                 <item name="unassign_product_attribute_from_set" xsi:type="object">Magenx\AiMcp\Model\Tool\Attribute\UnassignProductAttributeFromSet</item>
                 <item name="search_url_rewrites" xsi:type="object">Magenx\AiMcp\Model\Tool\UrlRewrite\SearchUrlRewrites</item>
+                <item name="list_product_media" xsi:type="object">Magenx\AiMcp\Model\Tool\Media\ListProductMedia</item>
+                <item name="add_product_media" xsi:type="object">Magenx\AiMcp\Model\Tool\Media\AddProductMedia</item>
+                <item name="update_product_media" xsi:type="object">Magenx\AiMcp\Model\Tool\Media\UpdateProductMedia</item>
+                <item name="delete_product_media" xsi:type="object">Magenx\AiMcp\Model\Tool\Media\DeleteProductMedia</item>
+                <item name="list_product_link_types" xsi:type="object">Magenx\AiMcp\Model\Tool\Link\ListProductLinkTypes</item>
+                <item name="get_product_links" xsi:type="object">Magenx\AiMcp\Model\Tool\Link\GetProductLinks</item>
+                <item name="set_product_links" xsi:type="object">Magenx\AiMcp\Model\Tool\Link\SetProductLinks</item>
+                <item name="delete_product_link" xsi:type="object">Magenx\AiMcp\Model\Tool\Link\DeleteProductLink</item>
+                <item name="list_configurable_children" xsi:type="object">Magenx\AiMcp\Model\Tool\Configurable\ListConfigurableChildren</item>
+                <item name="add_configurable_child" xsi:type="object">Magenx\AiMcp\Model\Tool\Configurable\AddConfigurableChild</item>
+                <item name="remove_configurable_child" xsi:type="object">Magenx\AiMcp\Model\Tool\Configurable\RemoveConfigurableChild</item>
+                <item name="assign_product_to_website" xsi:type="object">Magenx\AiMcp\Model\Tool\Catalog\AssignProductToWebsite</item>
+                <item name="delete_product" xsi:type="object">Magenx\AiMcp\Model\Tool\Catalog\DeleteProduct</item>
+                <item name="delete_category" xsi:type="object">Magenx\AiMcp\Model\Tool\Category\DeleteCategory</item>
+                <item name="move_category" xsi:type="object">Magenx\AiMcp\Model\Tool\Category\MoveCategory</item>
                 <item name="get_config" xsi:type="object">Magenx\AiMcp\Model\Tool\Config\GetConfig</item>
                 <item name="set_config" xsi:type="object">Magenx\AiMcp\Model\Tool\Config\SetConfig</item>
                 <item name="flush_cache" xsi:type="object">Magenx\AiMcp\Model\Tool\Ops\FlushCache</item>
