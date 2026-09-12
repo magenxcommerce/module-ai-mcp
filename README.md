@@ -7,7 +7,8 @@ Serves a **Model Context Protocol (MCP)** endpoint from Magento, so an AI agent
 such as Claude Code can inspect and manage the backend directly: products,
 categories, orders and their invoices, shipments and credit memos, customer
 accounts and their addresses, stock levels, tier prices, cart and catalog price
-rules, CMS blocks, store configuration, caches and indexers.
+rules, CMS pages and blocks, product attributes and attribute sets, store
+configuration, caches and indexers.
 
 This is a *management* surface, not a storefront feature. It is disabled by
 default, requires a Magento Integration access token, and authorizes every
@@ -107,6 +108,24 @@ same ACL role, so nothing is lost but the serializer.
 | `search_catalog_price_rules` | | `Magento_CatalogRule::promo_catalog` |
 | `get_catalog_price_rule` | | `Magento_CatalogRule::promo_catalog` |
 | `update_catalog_price_rule` | ✓ | `Magento_CatalogRule::promo_catalog` |
+| `search_cms_pages` | | `Magento_Cms::page` |
+| `get_cms_page` | | `Magento_Cms::page` |
+| `create_cms_page` | ✓ | `Magento_Cms::save` |
+| `update_cms_page` | ✓ | `Magento_Cms::save` |
+| `update_cms_page_design` | ✓ | `Magento_Cms::save_design` |
+| `delete_cms_page` | ✓ | `Magento_Cms::page_delete` |
+| `create_cms_block` | ✓ | `Magento_Cms::block` |
+| `delete_cms_block` | ✓ | `Magento_Cms::block` |
+| `get_product_attribute` | | `Magento_Catalog::attributes_attributes` |
+| `create_product_attribute` | ✓ | `Magento_Catalog::attributes_attributes` |
+| `update_product_attribute` | ✓ | `Magento_Catalog::attributes_attributes` |
+| `delete_product_attribute` | ✓ | `Magento_Catalog::attributes_attributes` |
+| `add_product_attribute_option` | ✓ | `Magento_Catalog::attributes_attributes` |
+| `delete_product_attribute_option` | ✓ | `Magento_Catalog::attributes_attributes` |
+| `list_attribute_sets` | | `Magento_Catalog::sets` |
+| `assign_product_attribute_to_set` | ✓ | `Magento_Catalog::sets` |
+| `unassign_product_attribute_from_set` | ✓ | `Magento_Catalog::sets` |
+| `search_url_rewrites` | | `Magento_UrlRewrite::urlrewrite` |
 | `get_config` | | `Magento_Config::config` |
 | `set_config` | ✓ | `Magento_Config::config` |
 | `flush_cache` | ✓ | `Magento_Backend::cache` |
@@ -224,6 +243,58 @@ are checked first and a missing one is named before anything is deleted.
 `set_tier_prices` and `delete_tier_prices` guard the matching trap — the tier
 price storage reports rejected rows by *returning* them instead of throwing, so
 an empty return is the only thing that means the prices were applied.
+
+### Content and attributes: Magento's own ACL split is followed
+
+CMS pages are the one place Magento splits permissions three ways, and the tools
+match it rather than collapsing it:
+
+| Tool | Resource | Why separate |
+|---|---|---|
+| `search_cms_pages`, `get_cms_page` | `Magento_Cms::page` | Reading |
+| `create_cms_page`, `update_cms_page` | `Magento_Cms::save` | Copy and metadata |
+| `update_cms_page_design` | `Magento_Cms::save_design` | Theme and layout XML |
+| `delete_cms_page` | `Magento_Cms::page_delete` | Irreversible |
+
+A tool declares exactly one ACL resource, so folding the design fields into
+`update_cms_page` would let an integration granted only "Save Page" inject
+layout XML. `PageContentArguments` therefore neither offers nor writes a design
+field, and there is a unit test asserting that for each of the six. The one
+exception is `page_layout`, which Magento itself saves under "Save Page".
+
+Blocks have only one resource, `Magento_Cms::block`, so all four block tools
+carry it.
+
+### Attributes change the catalogue's shape
+
+`create_product_attribute` adds a field to every product in the sets it is later
+assigned to, and an attribute is useless until
+`assign_product_attribute_to_set` puts it in one — so the create tool says so in
+its own result. Neither the attribute code nor the input type can be changed
+afterwards; Magento treats both as fixed, and `update_product_attribute` does
+not offer them.
+
+`delete_product_attribute` **refuses Magento's system attributes** even though
+the service contract would allow it. Deleting `name`, `price` or `status` does
+not fail loudly — it drops the column those values live in, taking every
+product's value with it, and nothing restores them. The admin does not offer
+that button either. Unassigning an attribute from its sets is the reversible way
+to stop using one.
+
+`add_product_attribute_option` returns the new option id, which is what
+`update_product` needs — that attribute takes option ids, not labels. Magento
+rejects a label that already exists on the attribute, so the tool cannot create
+a duplicate; within a single `create_product_attribute` call it does not, so
+that tool checks for repeated labels itself.
+
+### URL rewrites are read-only
+
+`search_url_rewrites` answers why a URL 404s or redirects. Creating and editing
+rewrites is deliberately not exposed: `UrlPersistInterface` is the mechanism
+Magento uses to regenerate its own entity rewrites, and a rewrite written
+through it is liable to be replaced the next time the product or category is
+saved. Custom rewrites belong in the admin. The lookup requires at least one
+filter, because an unfiltered one returns every rewrite in the store.
 
 Add a tool from another module by contributing to the `tools` argument of
 `Magenx\AiMcp\Model\Tool\ToolRegistry` in `di.xml` and implementing

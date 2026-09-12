@@ -64,6 +64,24 @@
                 <item name="search_catalog_price_rules" xsi:type="object">Magenx\AiMcp\Model\Tool\Promotion\SearchCatalogPriceRules</item>
                 <item name="get_catalog_price_rule" xsi:type="object">Magenx\AiMcp\Model\Tool\Promotion\GetCatalogPriceRule</item>
                 <item name="update_catalog_price_rule" xsi:type="object">Magenx\AiMcp\Model\Tool\Promotion\UpdateCatalogPriceRule</item>
+                <item name="search_cms_pages" xsi:type="object">Magenx\AiMcp\Model\Tool\Cms\SearchCmsPages</item>
+                <item name="get_cms_page" xsi:type="object">Magenx\AiMcp\Model\Tool\Cms\GetCmsPage</item>
+                <item name="create_cms_page" xsi:type="object">Magenx\AiMcp\Model\Tool\Cms\CreateCmsPage</item>
+                <item name="update_cms_page" xsi:type="object">Magenx\AiMcp\Model\Tool\Cms\UpdateCmsPage</item>
+                <item name="update_cms_page_design" xsi:type="object">Magenx\AiMcp\Model\Tool\Cms\UpdateCmsPageDesign</item>
+                <item name="delete_cms_page" xsi:type="object">Magenx\AiMcp\Model\Tool\Cms\DeleteCmsPage</item>
+                <item name="create_cms_block" xsi:type="object">Magenx\AiMcp\Model\Tool\Cms\CreateCmsBlock</item>
+                <item name="delete_cms_block" xsi:type="object">Magenx\AiMcp\Model\Tool\Cms\DeleteCmsBlock</item>
+                <item name="get_product_attribute" xsi:type="object">Magenx\AiMcp\Model\Tool\Attribute\GetProductAttribute</item>
+                <item name="create_product_attribute" xsi:type="object">Magenx\AiMcp\Model\Tool\Attribute\CreateProductAttribute</item>
+                <item name="update_product_attribute" xsi:type="object">Magenx\AiMcp\Model\Tool\Attribute\UpdateProductAttribute</item>
+                <item name="delete_product_attribute" xsi:type="object">Magenx\AiMcp\Model\Tool\Attribute\DeleteProductAttribute</item>
+                <item name="add_product_attribute_option" xsi:type="object">Magenx\AiMcp\Model\Tool\Attribute\AddProductAttributeOption</item>
+                <item name="delete_product_attribute_option" xsi:type="object">Magenx\AiMcp\Model\Tool\Attribute\DeleteProductAttributeOption</item>
+                <item name="list_attribute_sets" xsi:type="object">Magenx\AiMcp\Model\Tool\Attribute\ListAttributeSets</item>
+                <item name="assign_product_attribute_to_set" xsi:type="object">Magenx\AiMcp\Model\Tool\Attribute\AssignProductAttributeToSet</item>
+                <item name="unassign_product_attribute_from_set" xsi:type="object">Magenx\AiMcp\Model\Tool\Attribute\UnassignProductAttributeFromSet</item>
+                <item name="search_url_rewrites" xsi:type="object">Magenx\AiMcp\Model\Tool\UrlRewrite\SearchUrlRewrites</item>
                 <item name="get_config" xsi:type="object">Magenx\AiMcp\Model\Tool\Config\GetConfig</item>
                 <item name="set_config" xsi:type="object">Magenx\AiMcp\Model\Tool\Config\SetConfig</item>
                 <item name="flush_cache" xsi:type="object">Magenx\AiMcp\Model\Tool\Ops\FlushCache</item>
