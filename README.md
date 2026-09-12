@@ -5,7 +5,8 @@
 
 Serves a **Model Context Protocol (MCP)** endpoint from Magento, so an AI agent
 such as Claude Code can inspect and manage the backend directly: products,
-categories, CMS blocks, store configuration, caches and indexers.
+categories, orders and their invoices, shipments and credit memos, CMS blocks,
+store configuration, caches and indexers.
 
 This is a *management* surface, not a storefront feature. It is disabled by
 default, requires a Magento Integration access token, and authorizes every
@@ -65,6 +66,19 @@ same ACL role, so nothing is lost but the serializer.
 | `assign_product_to_category` | ✓ | `Magento_Catalog::categories` |
 | `list_cms_blocks` | | `Magento_Cms::block` |
 | `update_cms_block` | ✓ | `Magento_Cms::block` |
+| `search_orders` | | `Magento_Sales::actions_view` |
+| `get_order` | | `Magento_Sales::actions_view` |
+| `list_order_comments` | | `Magento_Sales::actions_view` |
+| `add_order_comment` | ✓ | `Magento_Sales::comment` |
+| `hold_order` | ✓ | `Magento_Sales::hold` |
+| `unhold_order` | ✓ | `Magento_Sales::unhold` |
+| `cancel_order` | ✓ | `Magento_Sales::cancel` |
+| `search_invoices` | | `Magento_Sales::sales_invoice` |
+| `create_invoice` | ✓ | `Magento_Sales::invoice` |
+| `search_shipments` | | `Magento_Sales::shipment` |
+| `create_shipment` | ✓ | `Magento_Sales::ship` |
+| `search_credit_memos` | | `Magento_Sales::sales_creditmemo` |
+| `create_credit_memo` | ✓ | `Magento_Sales::creditmemo` |
 | `get_config` | | `Magento_Config::config` |
 | `set_config` | ✓ | `Magento_Config::config` |
 | `flush_cache` | ✓ | `Magento_Backend::cache` |
@@ -73,6 +87,32 @@ same ACL role, so nothing is lost but the serializer.
 
 A tool the caller may not use is not *listed*, so an agent never plans around a
 capability it does not have.
+
+### Sales tools and what they cost to get wrong
+
+Every sales resource above is one of Magento's own, so an integration role is
+the only thing deciding how far an agent reaches into orders. They are worth
+ticking deliberately, because three of these tools cannot be undone:
+
+- `create_credit_memo` with `invoice_id` and `refund_online` sends a refund to
+  the payment gateway and **real money leaves the merchant account**. Without
+  `refund_online` it records the credit memo offline and moves nothing. Magento
+  has no operation that reverses a credit memo either way, so
+  `Magento_Sales::creditmemo` is the resource to leave unticked on any
+  integration that should not be able to refund.
+- `create_invoice` and `create_shipment` create documents that cannot be
+  deleted. `create_invoice` with `capture: true` also captures payment through
+  the gateway.
+- `cancel_order` releases reserved stock and cannot be undone.
+
+The `confirm: true` gate applies to all of them, but it is a single argument an
+agent supplies itself — it protects against a half-formed call, not against a
+confident wrong one. ACL is the boundary that holds.
+
+`get_order` reports `qty_invoiceable`, `qty_shippable` and `qty_refundable` per
+line, derived from the five counters Magento actually stores. Those are the
+quantities the three creation tools accept; an agent should read them rather
+than assume the ordered quantity is still available.
 
 Add a tool from another module by contributing to the `tools` argument of
 `Magenx\AiMcp\Model\Tool\ToolRegistry` in `di.xml` and implementing

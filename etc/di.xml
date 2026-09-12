@@ -24,6 +24,19 @@
                 <item name="assign_product_to_category" xsi:type="object">Magenx\AiMcp\Model\Tool\Category\AssignProductToCategory</item>
                 <item name="list_cms_blocks" xsi:type="object">Magenx\AiMcp\Model\Tool\Cms\ListCmsBlocks</item>
                 <item name="update_cms_block" xsi:type="object">Magenx\AiMcp\Model\Tool\Cms\UpdateCmsBlock</item>
+                <item name="search_orders" xsi:type="object">Magenx\AiMcp\Model\Tool\Sales\SearchOrders</item>
+                <item name="get_order" xsi:type="object">Magenx\AiMcp\Model\Tool\Sales\GetOrder</item>
+                <item name="list_order_comments" xsi:type="object">Magenx\AiMcp\Model\Tool\Sales\ListOrderComments</item>
+                <item name="add_order_comment" xsi:type="object">Magenx\AiMcp\Model\Tool\Sales\AddOrderComment</item>
+                <item name="hold_order" xsi:type="object">Magenx\AiMcp\Model\Tool\Sales\HoldOrder</item>
+                <item name="unhold_order" xsi:type="object">Magenx\AiMcp\Model\Tool\Sales\UnholdOrder</item>
+                <item name="cancel_order" xsi:type="object">Magenx\AiMcp\Model\Tool\Sales\CancelOrder</item>
+                <item name="search_invoices" xsi:type="object">Magenx\AiMcp\Model\Tool\Sales\SearchInvoices</item>
+                <item name="create_invoice" xsi:type="object">Magenx\AiMcp\Model\Tool\Sales\CreateInvoice</item>
+                <item name="search_shipments" xsi:type="object">Magenx\AiMcp\Model\Tool\Sales\SearchShipments</item>
+                <item name="create_shipment" xsi:type="object">Magenx\AiMcp\Model\Tool\Sales\CreateShipment</item>
+                <item name="search_credit_memos" xsi:type="object">Magenx\AiMcp\Model\Tool\Sales\SearchCreditMemos</item>
+                <item name="create_credit_memo" xsi:type="object">Magenx\AiMcp\Model\Tool\Sales\CreateCreditMemo</item>
                 <item name="get_config" xsi:type="object">Magenx\AiMcp\Model\Tool\Config\GetConfig</item>
                 <item name="set_config" xsi:type="object">Magenx\AiMcp\Model\Tool\Config\SetConfig</item>
                 <item name="flush_cache" xsi:type="object">Magenx\AiMcp\Model\Tool\Ops\FlushCache</item>
