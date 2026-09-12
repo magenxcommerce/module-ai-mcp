@@ -5,7 +5,7 @@
 
 Serves a **Model Context Protocol (MCP)** endpoint from Magento, so an AI agent
 such as Claude Code can inspect and manage the backend directly: products with
-their images, linked products and variants, categories, orders and returns, invoices, shipments and credit memos, customer
+their images, linked products and variants, categories, orders, returns and support tickets, invoices, shipments and credit memos, customer
 accounts and their addresses, stock levels, tier prices, cart and catalog price
 rules, CMS pages and blocks, product attributes and attribute sets, store
 configuration, caches and indexers.
@@ -161,6 +161,22 @@ same ACL role, so nothing is lost but the serializer.
 | `list_rma_item_conditions` | | `Magenx_Rma::rma_item_condition` |
 | `save_rma_item_condition` | ✓ | `Magenx_Rma::rma_item_condition` |
 | `delete_rma_item_condition` | ✓ | `Magenx_Rma::rma_item_condition` |
+| `search_helpdesk_tickets` | | `Magenx_Helpdesk::ticket` |
+| `get_helpdesk_ticket` | | `Magenx_Helpdesk::ticket` |
+| `create_helpdesk_ticket` | ✓ | `Magenx_Helpdesk::ticket` |
+| `list_helpdesk_ticket_messages` | | `Magenx_Helpdesk::ticket` |
+| `reply_to_helpdesk_ticket` | ✓ | `Magenx_Helpdesk::ticket` |
+| `add_helpdesk_internal_note` | ✓ | `Magenx_Helpdesk::ticket` |
+| `set_helpdesk_ticket_status` | ✓ | `Magenx_Helpdesk::ticket` |
+| `set_helpdesk_ticket_priority` | ✓ | `Magenx_Helpdesk::ticket` |
+| `assign_helpdesk_ticket` | ✓ | `Magenx_Helpdesk::ticket` |
+| `reopen_helpdesk_ticket` | ✓ | `Magenx_Helpdesk::ticket` |
+| `list_helpdesk_departments` | | `Magenx_Helpdesk::department` |
+| `list_helpdesk_statuses` | | `Magenx_Helpdesk::status` |
+| `list_helpdesk_priorities` | | `Magenx_Helpdesk::priority` |
+| `list_helpdesk_custom_fields` | | `Magenx_Helpdesk::field` |
+| `list_helpdesk_spam_patterns` | | `Magenx_Helpdesk::spam` |
+| `list_helpdesk_gateways` | | `Magenx_Helpdesk::gateway` |
 | `get_config` | | `Magento_Config::config` |
 | `set_config` | ✓ | `Magento_Config::config` |
 | `flush_cache` | ✓ | `Magento_Backend::cache` |
@@ -413,6 +429,56 @@ change. That mirrors the RMA module's own admin save. Deleting a lookup row is
 not blocked while returns still reference it — those are plain integer columns
 with no constraint — so the delete tools say so and point at deactivating
 instead.
+
+### Help desk — built on `TicketManager`, not a service contract
+
+`magenxcommerce/module-helpdesk` has no `Api/` layer. Writes therefore go
+through `Model\TicketManager`, which is the module's documented single write
+path and the seam its own admin controller and mailbox gateway already use;
+reads go through its collections, the way the admin grid does. That is a
+concrete-class dependency rather than an `@api` one, and the module carries no
+`@api` annotations at all — so a refactor there can break these tools in a way
+a service contract would not. Adding an `Api/` layer to helpdesk would fix that
+and change nothing about the tool surface: the tool names, schemas and ACL
+resources are the contract callers see, and only the bodies would move.
+
+**Replies and internal notes are separate tools, on purpose.** The module keeps
+both in one table, told apart only by `type`, and its own code warns that
+letting an unrecognised type through would downgrade a staff-only note into
+something the customer is e-mailed. Making that a choice of *tool* rather than a
+flag means the mistake is not available: `reply_to_helpdesk_ticket` is always
+public and e-mails by default, `add_helpdesk_internal_note` is never either.
+An internal note also deliberately does not move the ticket's last-reply
+markers, so an unanswered ticket still reads as unanswered.
+
+**What sends mail.** `create_helpdesk_ticket` sends the module's new-ticket
+notification and cannot suppress it. `reply_to_helpdesk_ticket` e-mails the
+customer unless `notify` is false. `assign_helpdesk_ticket` e-mails the
+*assignee*, not the customer, and only when the assignment actually moves.
+Status, priority and reopen send nothing.
+
+**A status change is not just a label.** The module reads the store's configured
+archive and lock status codes, so moving a ticket can file it into Archive and
+stop the customer replying; moving off an archiving status brings it back to the
+inbox. A ticket in Spam stays there. `set_helpdesk_ticket_status` reports the
+folder and lock state it ended up in.
+
+**Searches default to the inbox**, because a search that silently included Spam
+would report resolved noise as open work. Pass `folder` for archive, spam, or
+`any`.
+
+**The configuration tables are read-only.** Statuses are referenced by *code*
+from store configuration, which is what decides which of them archive and which
+lock a ticket — so creating or renaming one through a tool could change what
+closing a ticket does. That belongs in the admin, next to the settings it
+interacts with.
+
+**`list_helpdesk_gateways` never returns a password**, only whether one is set.
+Gateway rows hold live IMAP credentials; a read tool that handed them back would
+turn listing mailboxes into credential exfiltration, and nothing an agent does
+needs the password that `last_error` does not serve better. Creating or editing
+a gateway is not exposed at all — a tool that could set host and login could
+point the store's mail intake at someone else's mailbox.
 
 Add a tool from another module by contributing to the `tools` argument of
 `Magenx\AiMcp\Model\Tool\ToolRegistry` in `di.xml` and implementing

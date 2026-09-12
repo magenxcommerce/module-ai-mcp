@@ -131,6 +131,7 @@ class Server
                 . 'and their invoices, shipments and credit memos, customer accounts and their '
                 . 'addresses, stock levels, tier prices, cart and catalog price rules, CMS '
                 . 'pages and blocks, product attributes and attribute sets, return requests, '
+                . 'help desk tickets, '
                 . 'and store configuration; look up URL rewrites; and flush caches or invalidate '
                 . 'indexers. '
                 . 'Customer tools return personal data, so read only what the task needs. A stock '

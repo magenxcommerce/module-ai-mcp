@@ -117,6 +117,22 @@
                 <item name="list_rma_item_conditions" xsi:type="object">Magenx\AiMcp\Model\Tool\Rma\Lookup\ListItemConditions</item>
                 <item name="save_rma_item_condition" xsi:type="object">Magenx\AiMcp\Model\Tool\Rma\Lookup\SaveItemCondition</item>
                 <item name="delete_rma_item_condition" xsi:type="object">Magenx\AiMcp\Model\Tool\Rma\Lookup\DeleteItemCondition</item>
+                <item name="search_helpdesk_tickets" xsi:type="object">Magenx\AiMcp\Model\Tool\Helpdesk\SearchHelpdeskTickets</item>
+                <item name="get_helpdesk_ticket" xsi:type="object">Magenx\AiMcp\Model\Tool\Helpdesk\GetHelpdeskTicket</item>
+                <item name="create_helpdesk_ticket" xsi:type="object">Magenx\AiMcp\Model\Tool\Helpdesk\CreateHelpdeskTicket</item>
+                <item name="list_helpdesk_ticket_messages" xsi:type="object">Magenx\AiMcp\Model\Tool\Helpdesk\ListHelpdeskTicketMessages</item>
+                <item name="reply_to_helpdesk_ticket" xsi:type="object">Magenx\AiMcp\Model\Tool\Helpdesk\ReplyToHelpdeskTicket</item>
+                <item name="add_helpdesk_internal_note" xsi:type="object">Magenx\AiMcp\Model\Tool\Helpdesk\AddHelpdeskInternalNote</item>
+                <item name="set_helpdesk_ticket_status" xsi:type="object">Magenx\AiMcp\Model\Tool\Helpdesk\SetHelpdeskTicketStatus</item>
+                <item name="set_helpdesk_ticket_priority" xsi:type="object">Magenx\AiMcp\Model\Tool\Helpdesk\SetHelpdeskTicketPriority</item>
+                <item name="assign_helpdesk_ticket" xsi:type="object">Magenx\AiMcp\Model\Tool\Helpdesk\AssignHelpdeskTicket</item>
+                <item name="reopen_helpdesk_ticket" xsi:type="object">Magenx\AiMcp\Model\Tool\Helpdesk\ReopenHelpdeskTicket</item>
+                <item name="list_helpdesk_departments" xsi:type="object">Magenx\AiMcp\Model\Tool\Helpdesk\Lookup\ListDepartments</item>
+                <item name="list_helpdesk_statuses" xsi:type="object">Magenx\AiMcp\Model\Tool\Helpdesk\Lookup\ListStatuses</item>
+                <item name="list_helpdesk_priorities" xsi:type="object">Magenx\AiMcp\Model\Tool\Helpdesk\Lookup\ListPriorities</item>
+                <item name="list_helpdesk_custom_fields" xsi:type="object">Magenx\AiMcp\Model\Tool\Helpdesk\Lookup\ListCustomFields</item>
+                <item name="list_helpdesk_spam_patterns" xsi:type="object">Magenx\AiMcp\Model\Tool\Helpdesk\Lookup\ListSpamPatterns</item>
+                <item name="list_helpdesk_gateways" xsi:type="object">Magenx\AiMcp\Model\Tool\Helpdesk\Lookup\ListGateways</item>
                 <item name="get_config" xsi:type="object">Magenx\AiMcp\Model\Tool\Config\GetConfig</item>
                 <item name="set_config" xsi:type="object">Magenx\AiMcp\Model\Tool\Config\SetConfig</item>
                 <item name="flush_cache" xsi:type="object">Magenx\AiMcp\Model\Tool\Ops\FlushCache</item>
