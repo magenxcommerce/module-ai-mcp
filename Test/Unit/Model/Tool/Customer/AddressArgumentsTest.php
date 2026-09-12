@@ -7,6 +7,7 @@ declare(strict_types=1);
 namespace Magenx\AiMcp\Test\Unit\Model\Tool\Customer;
 
 use Magenx\AiMcp\Model\Tool\Customer\AddressArguments;
+use Magenx\AiMcp\Test\Unit\GeneratedFactory;
 use Magento\Customer\Api\Data\AddressInterface;
 use Magento\Customer\Api\Data\RegionInterface;
 use Magento\Customer\Api\Data\RegionInterfaceFactory;
@@ -31,6 +32,10 @@ class AddressArgumentsTest extends TestCase
      */
     protected function setUp(): void
     {
+        // Magento generates this factory rather than shipping it, so outside a
+        // Magento installation the name has no definition to mock.
+        GeneratedFactory::ensure(RegionInterfaceFactory::class);
+
         $this->regionFactory = $this->createMock(RegionInterfaceFactory::class);
         $this->addressArguments = new AddressArguments($this->regionFactory);
     }

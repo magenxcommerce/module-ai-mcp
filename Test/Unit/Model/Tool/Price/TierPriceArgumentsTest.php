@@ -7,6 +7,7 @@ declare(strict_types=1);
 namespace Magenx\AiMcp\Test\Unit\Model\Tool\Price;
 
 use Magenx\AiMcp\Model\Tool\Price\TierPriceArguments;
+use Magenx\AiMcp\Test\Unit\GeneratedFactory;
 use Magento\Catalog\Api\Data\PriceUpdateResultInterface;
 use Magento\Catalog\Api\Data\TierPriceInterface;
 use Magento\Catalog\Api\Data\TierPriceInterfaceFactory;
@@ -32,6 +33,10 @@ class TierPriceArgumentsTest extends TestCase
      */
     protected function setUp(): void
     {
+        // Magento generates this factory rather than shipping it, so outside a
+        // Magento installation the name has no definition to mock.
+        GeneratedFactory::ensure(TierPriceInterfaceFactory::class);
+
         $this->tierPriceFactory = $this->createMock(TierPriceInterfaceFactory::class);
         $this->tierPriceFactory->method('create')
             ->willReturnCallback(fn (): TierPriceInterface => $this->createMock(TierPriceInterface::class));
