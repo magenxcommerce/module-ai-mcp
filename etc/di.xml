@@ -97,6 +97,26 @@
                 <item name="delete_product" xsi:type="object">Magenx\AiMcp\Model\Tool\Catalog\DeleteProduct</item>
                 <item name="delete_category" xsi:type="object">Magenx\AiMcp\Model\Tool\Category\DeleteCategory</item>
                 <item name="move_category" xsi:type="object">Magenx\AiMcp\Model\Tool\Category\MoveCategory</item>
+                <item name="search_rma" xsi:type="object">Magenx\AiMcp\Model\Tool\Rma\SearchRma</item>
+                <item name="get_rma" xsi:type="object">Magenx\AiMcp\Model\Tool\Rma\GetRma</item>
+                <item name="update_rma" xsi:type="object">Magenx\AiMcp\Model\Tool\Rma\UpdateRma</item>
+                <item name="delete_rma" xsi:type="object">Magenx\AiMcp\Model\Tool\Rma\DeleteRma</item>
+                <item name="list_rma_comments" xsi:type="object">Magenx\AiMcp\Model\Tool\Rma\ListRmaComments</item>
+                <item name="add_rma_comment" xsi:type="object">Magenx\AiMcp\Model\Tool\Rma\AddRmaComment</item>
+                <item name="list_rma_items" xsi:type="object">Magenx\AiMcp\Model\Tool\Rma\ListRmaItems</item>
+                <item name="update_rma_item" xsi:type="object">Magenx\AiMcp\Model\Tool\Rma\UpdateRmaItem</item>
+                <item name="list_rma_statuses" xsi:type="object">Magenx\AiMcp\Model\Tool\Rma\Lookup\ListStatuses</item>
+                <item name="save_rma_status" xsi:type="object">Magenx\AiMcp\Model\Tool\Rma\Lookup\SaveStatus</item>
+                <item name="delete_rma_status" xsi:type="object">Magenx\AiMcp\Model\Tool\Rma\Lookup\DeleteStatus</item>
+                <item name="list_rma_reasons" xsi:type="object">Magenx\AiMcp\Model\Tool\Rma\Lookup\ListReasons</item>
+                <item name="save_rma_reason" xsi:type="object">Magenx\AiMcp\Model\Tool\Rma\Lookup\SaveReason</item>
+                <item name="delete_rma_reason" xsi:type="object">Magenx\AiMcp\Model\Tool\Rma\Lookup\DeleteReason</item>
+                <item name="list_rma_resolution_types" xsi:type="object">Magenx\AiMcp\Model\Tool\Rma\Lookup\ListResolutionTypes</item>
+                <item name="save_rma_resolution_type" xsi:type="object">Magenx\AiMcp\Model\Tool\Rma\Lookup\SaveResolutionType</item>
+                <item name="delete_rma_resolution_type" xsi:type="object">Magenx\AiMcp\Model\Tool\Rma\Lookup\DeleteResolutionType</item>
+                <item name="list_rma_item_conditions" xsi:type="object">Magenx\AiMcp\Model\Tool\Rma\Lookup\ListItemConditions</item>
+                <item name="save_rma_item_condition" xsi:type="object">Magenx\AiMcp\Model\Tool\Rma\Lookup\SaveItemCondition</item>
+                <item name="delete_rma_item_condition" xsi:type="object">Magenx\AiMcp\Model\Tool\Rma\Lookup\DeleteItemCondition</item>
                 <item name="get_config" xsi:type="object">Magenx\AiMcp\Model\Tool\Config\GetConfig</item>
                 <item name="set_config" xsi:type="object">Magenx\AiMcp\Model\Tool\Config\SetConfig</item>
                 <item name="flush_cache" xsi:type="object">Magenx\AiMcp\Model\Tool\Ops\FlushCache</item>

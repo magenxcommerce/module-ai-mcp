@@ -5,7 +5,7 @@
 
 Serves a **Model Context Protocol (MCP)** endpoint from Magento, so an AI agent
 such as Claude Code can inspect and manage the backend directly: products with
-their images, linked products and variants, categories, orders and their invoices, shipments and credit memos, customer
+their images, linked products and variants, categories, orders and returns, invoices, shipments and credit memos, customer
 accounts and their addresses, stock levels, tier prices, cart and catalog price
 rules, CMS pages and blocks, product attributes and attribute sets, store
 configuration, caches and indexers.
@@ -141,6 +141,26 @@ same ACL role, so nothing is lost but the serializer.
 | `delete_product` | ✓ | `Magento_Catalog::products` |
 | `delete_category` | ✓ | `Magento_Catalog::categories` |
 | `move_category` | ✓ | `Magento_Catalog::categories` |
+| `search_rma` | | `Magenx_Rma::rma_manage` |
+| `get_rma` | | `Magenx_Rma::rma_manage` |
+| `update_rma` | ✓ | `Magenx_Rma::rma_manage` |
+| `delete_rma` | ✓ | `Magenx_Rma::rma_manage` |
+| `list_rma_comments` | | `Magenx_Rma::rma_manage` |
+| `add_rma_comment` | ✓ | `Magenx_Rma::rma_manage` |
+| `list_rma_items` | | `Magenx_Rma::rma_manage` |
+| `update_rma_item` | ✓ | `Magenx_Rma::rma_manage` |
+| `list_rma_statuses` | | `Magenx_Rma::rma_status` |
+| `save_rma_status` | ✓ | `Magenx_Rma::rma_status` |
+| `delete_rma_status` | ✓ | `Magenx_Rma::rma_status` |
+| `list_rma_reasons` | | `Magenx_Rma::rma_reason` |
+| `save_rma_reason` | ✓ | `Magenx_Rma::rma_reason` |
+| `delete_rma_reason` | ✓ | `Magenx_Rma::rma_reason` |
+| `list_rma_resolution_types` | | `Magenx_Rma::rma_resolution_type` |
+| `save_rma_resolution_type` | ✓ | `Magenx_Rma::rma_resolution_type` |
+| `delete_rma_resolution_type` | ✓ | `Magenx_Rma::rma_resolution_type` |
+| `list_rma_item_conditions` | | `Magenx_Rma::rma_item_condition` |
+| `save_rma_item_condition` | ✓ | `Magenx_Rma::rma_item_condition` |
+| `delete_rma_item_condition` | ✓ | `Magenx_Rma::rma_item_condition` |
 | `get_config` | | `Magento_Config::config` |
 | `set_config` | ✓ | `Magento_Config::config` |
 | `flush_cache` | ✓ | `Magento_Backend::cache` |
@@ -352,6 +372,47 @@ failure after the upload attempt.
 
 For each of these, the reversible alternative is in the tool's own description:
 disable rather than delete, unassign from a website rather than remove.
+
+### Returns (RMA) — the one non-stock domain, and a hard dependency
+
+These twenty tools cover `magenxcommerce/module-rma`, which is **not** a
+Magento module. That makes it the only part of this server that depends on
+something outside Magento core, and the dependency is hard: the tool classes
+reference `Magenx\Rma\Api\*`, so `setup:di:compile` fails if the RMA module
+is absent. `composer.json` therefore requires it.
+
+If that coupling is unwanted, the clean alternative is a bridge module —
+`Magenx_AiMcpRma`, requiring both, contributing its tools to the registry's
+`tools` argument the same way. Nothing in this module needs changing for that;
+the files move as they are.
+
+The RMA module ships its own granular ACL, and the tools follow it exactly:
+`rma_manage` for the requests, and a separate resource per lookup table
+(`rma_status`, `rma_reason`, `rma_resolution_type`, `rma_item_condition`), so an
+agent can be allowed to work returns without being able to redefine the
+workflow.
+
+**`update_rma` emails the customer.** `RMARepository::save()` compares the
+stored status against the one being saved and dispatches
+`rma_status_change_after` when they differ; the module's own observer turns that
+into a status-change e-mail. Setting the status to the value it already has
+changes nothing and sends nothing, and the result reports `customer_notified`
+either way.
+
+**`add_rma_comment` requires `visible_to_customer`, with no default.** Staff
+notes and customer replies live in the same table, separated only by that flag,
+so defaulting it either way would silently publish an internal note or bury a
+reply. Adding a comment sends no e-mail on its own.
+
+**`update_rma_item` checks the line belongs to the return.** The module's item
+service sets `rma_id` from its argument, so handing it a line from another
+return would move that line rather than fail.
+
+The lookup tools are create-or-update: omit `entity_id` to create, pass it to
+change. That mirrors the RMA module's own admin save. Deleting a lookup row is
+not blocked while returns still reference it — those are plain integer columns
+with no constraint — so the delete tools say so and point at deactivating
+instead.
 
 Add a tool from another module by contributing to the `tools` argument of
 `Magenx\AiMcp\Model\Tool\ToolRegistry` in `di.xml` and implementing
