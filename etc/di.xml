@@ -37,6 +37,18 @@
                 <item name="create_shipment" xsi:type="object">Magenx\AiMcp\Model\Tool\Sales\CreateShipment</item>
                 <item name="search_credit_memos" xsi:type="object">Magenx\AiMcp\Model\Tool\Sales\SearchCreditMemos</item>
                 <item name="create_credit_memo" xsi:type="object">Magenx\AiMcp\Model\Tool\Sales\CreateCreditMemo</item>
+                <item name="search_customers" xsi:type="object">Magenx\AiMcp\Model\Tool\Customer\SearchCustomers</item>
+                <item name="get_customer" xsi:type="object">Magenx\AiMcp\Model\Tool\Customer\GetCustomer</item>
+                <item name="list_customer_groups" xsi:type="object">Magenx\AiMcp\Model\Tool\Customer\ListCustomerGroups</item>
+                <item name="create_customer" xsi:type="object">Magenx\AiMcp\Model\Tool\Customer\CreateCustomer</item>
+                <item name="update_customer" xsi:type="object">Magenx\AiMcp\Model\Tool\Customer\UpdateCustomer</item>
+                <item name="delete_customer" xsi:type="object">Magenx\AiMcp\Model\Tool\Customer\DeleteCustomer</item>
+                <item name="create_customer_address" xsi:type="object">Magenx\AiMcp\Model\Tool\Customer\CreateCustomerAddress</item>
+                <item name="update_customer_address" xsi:type="object">Magenx\AiMcp\Model\Tool\Customer\UpdateCustomerAddress</item>
+                <item name="delete_customer_address" xsi:type="object">Magenx\AiMcp\Model\Tool\Customer\DeleteCustomerAddress</item>
+                <item name="initiate_password_reset" xsi:type="object">Magenx\AiMcp\Model\Tool\Customer\InitiatePasswordReset</item>
+                <item name="invalidate_customer_tokens" xsi:type="object">Magenx\AiMcp\Model\Tool\Customer\InvalidateCustomerTokens</item>
+                <item name="set_newsletter_subscription" xsi:type="object">Magenx\AiMcp\Model\Tool\Customer\SetNewsletterSubscription</item>
                 <item name="get_config" xsi:type="object">Magenx\AiMcp\Model\Tool\Config\GetConfig</item>
                 <item name="set_config" xsi:type="object">Magenx\AiMcp\Model\Tool\Config\SetConfig</item>
                 <item name="flush_cache" xsi:type="object">Magenx\AiMcp\Model\Tool\Ops\FlushCache</item>

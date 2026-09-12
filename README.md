@@ -5,8 +5,9 @@
 
 Serves a **Model Context Protocol (MCP)** endpoint from Magento, so an AI agent
 such as Claude Code can inspect and manage the backend directly: products,
-categories, orders and their invoices, shipments and credit memos, CMS blocks,
-store configuration, caches and indexers.
+categories, orders and their invoices, shipments and credit memos, customer
+accounts and their addresses, CMS blocks, store configuration, caches and
+indexers.
 
 This is a *management* surface, not a storefront feature. It is disabled by
 default, requires a Magento Integration access token, and authorizes every
@@ -79,6 +80,18 @@ same ACL role, so nothing is lost but the serializer.
 | `create_shipment` | ✓ | `Magento_Sales::ship` |
 | `search_credit_memos` | | `Magento_Sales::sales_creditmemo` |
 | `create_credit_memo` | ✓ | `Magento_Sales::creditmemo` |
+| `search_customers` | | `Magento_Customer::manage` |
+| `get_customer` | | `Magento_Customer::manage` |
+| `list_customer_groups` | | `Magento_Customer::group` |
+| `create_customer` | ✓ | `Magento_Customer::manage` |
+| `update_customer` | ✓ | `Magento_Customer::manage` |
+| `delete_customer` | ✓ | `Magento_Customer::delete` |
+| `create_customer_address` | ✓ | `Magento_Customer::manage` |
+| `update_customer_address` | ✓ | `Magento_Customer::manage` |
+| `delete_customer_address` | ✓ | `Magento_Customer::manage` |
+| `initiate_password_reset` | ✓ | `Magento_Customer::reset_password` |
+| `invalidate_customer_tokens` | ✓ | `Magento_Customer::invalidate_tokens` |
+| `set_newsletter_subscription` | ✓ | `Magento_Newsletter::subscriber` |
 | `get_config` | | `Magento_Config::config` |
 | `set_config` | ✓ | `Magento_Config::config` |
 | `flush_cache` | ✓ | `Magento_Backend::cache` |
@@ -113,6 +126,42 @@ confident wrong one. ACL is the boundary that holds.
 line, derived from the five counters Magento actually stores. Those are the
 quantities the three creation tools accept; an agent should read them rather
 than assume the ordered quantity is still available.
+
+### Customer tools handle personal data
+
+Everything the customer tools return is personal data: names, email addresses,
+dates of birth, tax ids, postal addresses, phone numbers. Two things follow.
+
+**Reads are not audited.** The audit log in `var/log/magenx_ai_mcp.log` records
+every attempted *write* with the calling integration. It does not record reads,
+so there is no trail of which customer records an agent looked at. If that
+matters for your obligations, grant `Magento_Customer::manage` only to
+integrations that need it, and treat the endpoint as a system with access to the
+customer base rather than a read-only convenience.
+
+**Three tools are visible to the customer or irreversible:**
+
+- `delete_customer` permanently removes the account and its addresses. Past
+  orders survive and keep the personal data captured on them, so this alone does
+  not satisfy an erasure request. It sits behind `Magento_Customer::delete`, a
+  separate grant from the one that allows editing customers.
+- `create_customer` sends Magento's account-creation email, and
+  `initiate_password_reset` sends a password email. Both reach the customer's
+  inbox the moment the tool succeeds.
+- `set_newsletter_subscription` can subscribe someone. Consent is the store's to
+  obtain, not an agent's to assume; unsubscribing is always safe.
+
+There is no tool that sets a password directly. Magento's own contract for that
+requires the customer's current password, and writing a chosen password into an
+account would mean an agent holding a credential the customer is supposed to
+trust — `initiate_password_reset` leaves the new password between the store and
+its customer. `invalidate_customer_tokens` revokes API tokens without touching
+the password, which is the pairing for a compromised account.
+
+`update_customer` deliberately does not touch addresses. Magento treats the
+address list on a saved customer as authoritative and deletes any address
+missing from it, so addresses are only ever changed through the three dedicated
+address tools.
 
 Add a tool from another module by contributing to the `tools` argument of
 `Magenx\AiMcp\Model\Tool\ToolRegistry` in `di.xml` and implementing

@@ -127,8 +127,10 @@ class Server
             'capabilities' => ['tools' => ['listChanged' => false]],
             'serverInfo' => ['name' => self::SERVER_NAME, 'version' => $this->serverVersion],
             'instructions' => 'Manage this Magento store: read and edit products, categories, orders '
-                . 'and their invoices, shipments and credit memos, CMS content and store '
-                . 'configuration, and flush caches or invalidate indexers. Only the tools in '
+                . 'and their invoices, shipments and credit memos, customer accounts and their '
+                . 'addresses, CMS content and store configuration, and flush caches or invalidate '
+                . 'indexers. Customer tools return personal data, so read only what the task '
+                . 'needs. Only the tools in '
                 . 'tools/list are available to this caller — its integration role decides which, '
                 . 'so treat that list as the whole surface rather than this sentence. Call '
                 . 'list_stores first when a change should apply to one store view rather than the '
