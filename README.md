@@ -81,6 +81,15 @@ same ACL role, so nothing is lost but the serializer.
 | `create_shipment` | ✓ | `Magento_Sales::ship` |
 | `search_credit_memos` | | `Magento_Sales::sales_creditmemo` |
 | `create_credit_memo` | ✓ | `Magento_Sales::creditmemo` |
+| `get_invoice` | | `Magento_Sales::sales_invoice` |
+| `capture_invoice` | ✓ | `Magento_Sales::capture` |
+| `void_invoice` | ✓ | `Magento_Sales::capture` |
+| `get_shipment` | | `Magento_Sales::shipment` |
+| `add_shipment_track` | ✓ | `Magento_Sales::ship` |
+| `delete_shipment_track` | ✓ | `Magento_Sales::ship` |
+| `get_credit_memo` | | `Magento_Sales::sales_creditmemo` |
+| `send_order_email` | ✓ | `Magento_Sales::email` |
+| `update_order_address` | ✓ | `Magento_Sales::actions_edit` |
 | `search_customers` | | `Magento_Customer::manage` |
 | `get_customer` | | `Magento_Customer::manage` |
 | `list_customer_groups` | | `Magento_Customer::group` |
@@ -190,7 +199,7 @@ capability it does not have.
 
 Every sales resource above is one of Magento's own, so an integration role is
 the only thing deciding how far an agent reaches into orders. They are worth
-ticking deliberately, because three of these tools cannot be undone:
+ticking deliberately, because five of these tools cannot be undone:
 
 - `create_credit_memo` with `invoice_id` and `refund_online` sends a refund to
   the payment gateway and **real money leaves the merchant account**. Without
@@ -201,6 +210,15 @@ ticking deliberately, because three of these tools cannot be undone:
 - `create_invoice` and `create_shipment` create documents that cannot be
   deleted. `create_invoice` with `capture: true` also captures payment through
   the gateway.
+- `capture_invoice` captures an invoice that was created without capturing, so
+  **real money leaves the customer's account**. Nothing reverses a capture:
+  undoing one means `create_credit_memo`, which is the other irreversible tool
+  on this list. It sits behind `Magento_Sales::capture`, the same resource
+  Magento's own capture and void buttons check — which is the resource to leave
+  unticked on an integration that should be able to invoice but not take money.
+- `void_invoice` tells the gateway to release the authorization instead. The
+  invoice document survives, canceled, because Magento never deletes one, and
+  billing that order again means creating a second invoice.
 - `cancel_order` releases reserved stock and cannot be undone.
 
 The `confirm: true` gate applies to all of them, but it is a single argument an
@@ -211,6 +229,46 @@ confident wrong one. ACL is the boundary that holds.
 line, derived from the five counters Magento actually stores. Those are the
 quantities the three creation tools accept; an agent should read them rather
 than assume the ordered quantity is still available.
+
+`get_invoice`, `get_shipment` and `get_credit_memo` are the same split applied
+to the documents an order produces: the `search_*` tools return the row, these
+return the lines, totals and comments. Each takes the document's own
+`entity_id` or its own `increment_id` — which is not the order's — and an
+increment id that matches more than one document is an error naming the
+candidates rather than an arbitrary pick, exactly as `get_order` handles it.
+An invoice's `state_label` is worth reading first: it is what decides whether
+`capture_invoice` and `void_invoice` will accept it, and both refuse an invoice
+that is not open rather than letting the gateway produce a generic save failure
+after the attempt.
+
+**A tracking number is a separate write from the shipment.** `create_shipment`
+does not require one, and a shipment without one leaves the customer with a
+dispatch e-mail and nothing to follow. `add_shipment_track` fills that in, and
+refuses a `carrier_code` this store has not configured with tracking enabled —
+Magento would otherwise store it happily and render a "Track this shipment"
+link that goes nowhere. The error names the codes the store does accept; `custom`
+is always one of them, and then `title` is required because it is the only thing
+naming the carrier to the customer. Neither adding nor deleting a track sends
+mail, so correcting a number already e-mailed out usually means adding the right
+one rather than only removing the wrong one.
+
+**`update_order_address` reaches the address through the order**, by
+`address_type`, rather than by an address id the caller supplies. Magento's
+address repository saves whatever `parent_id` the object it is handed carries,
+so an id from another order would move that address rather than fail — the trap
+`update_rma_item` guards against in the same way. Only the fields passed are
+changed, it does not move a shipment or label that already exists, it does not
+recalculate shipping or tax, and the customer is told nothing. A virtual order
+has no shipping address and says so rather than falling back to the billing one.
+
+**`send_order_email` reports whether the mail actually went.** Magento declines
+quietly when order e-mails are switched off for the store or the order cannot be
+notified, so the result carries `sent: false` in that case rather than an error.
+
+There is deliberately no tool that sets an order's status directly.
+`add_order_comment` already takes a `status`, and Magento restricts it to the
+statuses belonging to the order's current state; a free setter would bypass that
+and leave an order in a status its state does not allow.
 
 ### Customer tools handle personal data
 
@@ -747,4 +805,3 @@ address.
 - **`get_config` needs at least a section and a group.** A bare section (or `/`)
   is refused: it would return the entire merged configuration, and redaction
   only catches values whose *path* names them as secret.
-- Product deletion is deliberately not exposed.

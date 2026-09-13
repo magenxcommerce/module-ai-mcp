@@ -138,9 +138,48 @@ namespace Magento\Integration\Helper\Oauth {
 
 namespace Magento\Sales\Api\Data {
     interface OrderAddressInterface {
+        public function getEntityId(); public function getEmail(); public function getRegionId();
         public function getFirstname(); public function getLastname(); public function getCompany();
         public function getStreet(); public function getCity(); public function getRegion();
         public function getPostcode(); public function getCountryId(); public function getTelephone();
+        public function setFirstname($v); public function setLastname($v); public function setCompany($v);
+        public function setStreet($v); public function setCity($v); public function setRegion($v);
+        public function setRegionId($v); public function setPostcode($v); public function setCountryId($v);
+        public function setTelephone($v); public function setEmail($v);
+    }
+    interface CommentInterface {
+        public function getComment(); public function getCreatedAt();
+        public function getIsCustomerNotified(); public function getIsVisibleOnFront();
+    }
+    interface InvoiceItemInterface {
+        public function getOrderItemId(); public function getSku(); public function getName();
+        public function getQty(); public function getPrice(); public function getRowTotal();
+    }
+    interface InvoiceInterface {
+        public function getEntityId(); public function getIncrementId(); public function getOrderId();
+        public function getStoreId(); public function getState(); public function getGrandTotal();
+        public function getBaseGrandTotal(); public function getTotalQty(); public function getBaseTotalRefunded();
+        public function getTransactionId(); public function getCreatedAt();
+        public function getOrderCurrencyCode(); public function getBaseCurrencyCode();
+        public function getSubtotal(); public function getShippingAmount(); public function getTaxAmount();
+        public function getDiscountAmount(); public function getShippingTaxAmount();
+        public function getItems(); public function getComments();
+    }
+    interface ShipmentTrackInterface {
+        public function getEntityId(); public function getParentId(); public function getOrderId();
+        public function getTrackNumber(); public function getCarrierCode(); public function getTitle();
+        public function setParentId($v); public function setOrderId($v); public function setTrackNumber($v);
+        public function setCarrierCode($v); public function setTitle($v);
+    }
+    interface ShipmentItemInterface {
+        public function getOrderItemId(); public function getSku(); public function getName();
+        public function getQty(); public function getWeight();
+    }
+    interface ShipmentInterface {
+        public function getEntityId(); public function getIncrementId(); public function getOrderId();
+        public function getStoreId(); public function getTotalQty(); public function getTotalWeight();
+        public function getShippingLabel(); public function getShippingAddressId(); public function getTracks();
+        public function getItems(); public function getComments(); public function getCreatedAt();
     }
     interface OrderItemInterface {
         public function getItemId(); public function getSku(); public function getName();
@@ -161,6 +200,53 @@ namespace Magento\Sales\Api\Data {
         public function getTotalOnlineRefunded(); public function getTotalQtyOrdered();
         public function getPayment(); public function getBillingAddress(); public function getItems();
         public function getExtensionAttributes();
+    }
+}
+
+namespace Magento\Sales\Api {
+    interface OrderAddressRepositoryInterface {
+        public function get($id); public function save(\Magento\Sales\Api\Data\OrderAddressInterface $entity);
+    }
+    interface ShipmentTrackRepositoryInterface {
+        public function get($id); public function getList($searchCriteria);
+        public function save(\Magento\Sales\Api\Data\ShipmentTrackInterface $entity);
+        public function delete(\Magento\Sales\Api\Data\ShipmentTrackInterface $entity);
+        public function deleteById($id);
+    }
+    interface InvoiceRepositoryInterface {
+        public function get($id); public function getList($searchCriteria);
+    }
+    interface ShipmentRepositoryInterface {
+        public function get($id); public function getList($searchCriteria);
+    }
+    interface CreditmemoRepositoryInterface {
+        public function get($id); public function getList($searchCriteria);
+    }
+    interface InvoiceManagementInterface {
+        public function setCapture($id); public function setVoid($id); public function notify($id);
+    }
+    interface OrderManagementInterface {
+        public function notify($id);
+    }
+}
+
+namespace Magento\Shipping\Model {
+    class Config {
+        public function getAllCarriers($store = null) { return []; }
+    }
+}
+
+namespace Magento\Framework\Api {
+    interface SearchCriteriaInterface {}
+    interface SearchResultsInterface {
+        public function getItems(); public function getTotalCount();
+    }
+    class SearchCriteriaBuilder {
+        public function addFilter($field, $value, $conditionType = 'eq') { return $this; }
+        public function setPageSize($size) { return $this; }
+        public function setCurrentPage($page) { return $this; }
+        public function addSortOrder($sortOrder) { return $this; }
+        public function create() { return null; }
     }
 }
 

@@ -6,6 +6,7 @@ declare(strict_types=1);
 
 namespace Magenx\AiMcp\Test\Unit\Model\Tool\Sales;
 
+use Magenx\AiMcp\Model\Tool\Sales\OrderAddresses;
 use Magenx\AiMcp\Model\Tool\Sales\OrderProjector;
 use Magento\Sales\Api\Data\OrderInterface;
 use Magento\Sales\Api\Data\OrderItemInterface;
@@ -31,7 +32,7 @@ class OrderProjectorTest extends TestCase
      */
     protected function setUp(): void
     {
-        $this->projector = new OrderProjector();
+        $this->projector = new OrderProjector(new OrderAddresses());
     }
 
     /**

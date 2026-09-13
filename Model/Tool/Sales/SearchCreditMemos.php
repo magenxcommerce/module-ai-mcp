@@ -11,7 +11,6 @@ use Magento\Framework\Api\SearchCriteriaInterface;
 use Magento\Framework\Api\SearchResultsInterface;
 use Magento\Framework\Api\SortOrderBuilder;
 use Magento\Sales\Api\CreditmemoRepositoryInterface;
-use Magento\Sales\Api\Data\CreditmemoInterface;
 
 /**
  * Find credit memos — the record of what has already been refunded.
@@ -22,11 +21,13 @@ class SearchCreditMemos extends AbstractDocumentSearch
      * @param SearchCriteriaBuilder $searchCriteriaBuilder
      * @param SortOrderBuilder $sortOrderBuilder
      * @param CreditmemoRepositoryInterface $creditmemoRepository
+     * @param CreditMemoProjector $creditMemoProjector
      */
     public function __construct(
         SearchCriteriaBuilder $searchCriteriaBuilder,
         SortOrderBuilder $sortOrderBuilder,
-        private readonly CreditmemoRepositoryInterface $creditmemoRepository
+        private readonly CreditmemoRepositoryInterface $creditmemoRepository,
+        private readonly CreditMemoProjector $creditMemoProjector
     ) {
         parent::__construct($searchCriteriaBuilder, $sortOrderBuilder);
     }
@@ -70,18 +71,6 @@ class SearchCreditMemos extends AbstractDocumentSearch
      */
     protected function projectDocument(object $document): array
     {
-        /** @var CreditmemoInterface $document */
-        return [
-            'entity_id' => (int) $document->getEntityId(),
-            'increment_id' => $document->getIncrementId(),
-            'order_id' => (int) $document->getOrderId(),
-            'store_id' => (int) $document->getStoreId(),
-            // 1 = open, 2 = refunded, 3 = canceled.
-            'state' => $document->getState() === null ? null : (int) $document->getState(),
-            'grand_total' => $this->money($document->getGrandTotal()),
-            'base_grand_total' => $this->money($document->getBaseGrandTotal()),
-            'transaction_id' => $document->getTransactionId(),
-            'created_at' => $document->getCreatedAt(),
-        ];
+        return $this->creditMemoProjector->toSummary($document);
     }
 }

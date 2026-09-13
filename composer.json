@@ -1,6 +1,6 @@
 {
     "name": "magenxcommerce/module-ai-mcp",
-    "description": "Serves a Model Context Protocol (MCP) endpoint from Magento so an AI agent such as Claude Code can inspect and manage the backend: products with their images, links and variants, categories, orders, invoices, shipments, credit memos, customers, stock, tier prices, cart and catalog price rules, CMS pages and blocks, product attributes and attribute sets, URL rewrites, return requests, help desk tickets, store configuration, cache and indexers. Authenticated with a Magento Integration access token and authorized against that integration's own ACL role; disabled by default, writes opt-in.",
+    "description": "Serves a Model Context Protocol (MCP) endpoint from Magento so an AI agent such as Claude Code can inspect and manage the backend: products with their images, links and variants, categories, orders with their addresses, invoices, shipments and their tracking numbers, credit memos, customers, stock, tier prices, cart and catalog price rules, CMS pages and blocks, product attributes and attribute sets, URL rewrites, return requests, help desk tickets, store configuration, cache and indexers. Authenticated with a Magento Integration access token and authorized against that integration's own ACL role; disabled by default, writes opt-in.",
     "config": {
         "sort-packages": true
     },
@@ -24,6 +24,7 @@
         "magento/module-newsletter": "*",
         "magento/module-sales": "*",
         "magento/module-sales-rule": "*",
+        "magento/module-shipping": "*",
         "magento/module-store": "*",
         "magento/module-user": "*",
         "magento/module-url-rewrite": "*"

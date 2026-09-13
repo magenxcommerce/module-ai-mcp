@@ -37,6 +37,15 @@
                 <item name="create_shipment" xsi:type="object">Magenx\AiMcp\Model\Tool\Sales\CreateShipment</item>
                 <item name="search_credit_memos" xsi:type="object">Magenx\AiMcp\Model\Tool\Sales\SearchCreditMemos</item>
                 <item name="create_credit_memo" xsi:type="object">Magenx\AiMcp\Model\Tool\Sales\CreateCreditMemo</item>
+                <item name="get_invoice" xsi:type="object">Magenx\AiMcp\Model\Tool\Sales\GetInvoice</item>
+                <item name="capture_invoice" xsi:type="object">Magenx\AiMcp\Model\Tool\Sales\CaptureInvoice</item>
+                <item name="void_invoice" xsi:type="object">Magenx\AiMcp\Model\Tool\Sales\VoidInvoice</item>
+                <item name="get_shipment" xsi:type="object">Magenx\AiMcp\Model\Tool\Sales\GetShipment</item>
+                <item name="add_shipment_track" xsi:type="object">Magenx\AiMcp\Model\Tool\Sales\AddShipmentTrack</item>
+                <item name="delete_shipment_track" xsi:type="object">Magenx\AiMcp\Model\Tool\Sales\DeleteShipmentTrack</item>
+                <item name="get_credit_memo" xsi:type="object">Magenx\AiMcp\Model\Tool\Sales\GetCreditMemo</item>
+                <item name="send_order_email" xsi:type="object">Magenx\AiMcp\Model\Tool\Sales\SendOrderEmail</item>
+                <item name="update_order_address" xsi:type="object">Magenx\AiMcp\Model\Tool\Sales\UpdateOrderAddress</item>
                 <item name="search_customers" xsi:type="object">Magenx\AiMcp\Model\Tool\Customer\SearchCustomers</item>
                 <item name="get_customer" xsi:type="object">Magenx\AiMcp\Model\Tool\Customer\GetCustomer</item>
                 <item name="list_customer_groups" xsi:type="object">Magenx\AiMcp\Model\Tool\Customer\ListCustomerGroups</item>
