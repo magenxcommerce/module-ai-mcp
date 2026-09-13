@@ -74,6 +74,20 @@ class Base64Payload
      */
     public function assertImageMatches(string $decoded, string $argumentName, string $mimeType): void
     {
+        $this->imageInfo($decoded, $argumentName, $mimeType);
+    }
+
+    /**
+     * The same check, reporting the dimensions the caller needs to record.
+     *
+     * @param string $decoded
+     * @param string $argumentName
+     * @param string $mimeType
+     * @return array{mime: string, width: int, height: int}
+     * @throws LocalizedException
+     */
+    public function imageInfo(string $decoded, string $argumentName, string $mimeType): array
+    {
         $info = $this->readImageHeader($decoded);
         if ($info === false) {
             throw new LocalizedException(__(
@@ -90,6 +104,12 @@ class Base64Payload
                 $mimeType
             ));
         }
+
+        return [
+            'mime' => $actual,
+            'width' => (int) ($info[0] ?? 0),
+            'height' => (int) ($info[1] ?? 0),
+        ];
     }
 
     /**

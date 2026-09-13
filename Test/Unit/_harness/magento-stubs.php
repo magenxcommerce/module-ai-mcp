@@ -603,7 +603,25 @@ namespace Magento\Downloadable\Api {
     }
 }
 
+namespace Magento\Cms\Api {
+    interface BlockRepositoryInterface {
+        public function save(\Magento\Cms\Api\Data\BlockInterface $block);
+        public function getById($blockId);
+        public function getList($searchCriteria);
+        public function delete(\Magento\Cms\Api\Data\BlockInterface $block);
+        public function deleteById($blockId);
+    }
+}
+
 namespace Magento\Cms\Api\Data {
+    interface BlockInterface {
+        public function getId(); public function setId($id);
+        public function getIdentifier(); public function setIdentifier($v);
+        public function getTitle(); public function setTitle($v);
+        public function getContent(); public function setContent($v);
+        public function getCreationTime(); public function getUpdateTime();
+        public function isActive(); public function setIsActive($v);
+    }
     interface PageInterface {
         public function getId(); public function setId($id);
         public function getIdentifier(); public function setIdentifier($v);

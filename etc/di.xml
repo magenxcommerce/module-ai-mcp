@@ -83,6 +83,7 @@
                 <item name="delete_cms_page" xsi:type="object">Magenx\AiMcp\Model\Tool\Cms\DeleteCmsPage</item>
                 <item name="create_cms_block" xsi:type="object">Magenx\AiMcp\Model\Tool\Cms\CreateCmsBlock</item>
                 <item name="delete_cms_block" xsi:type="object">Magenx\AiMcp\Model\Tool\Cms\DeleteCmsBlock</item>
+                <item name="get_cms_block" xsi:type="object">Magenx\AiMcp\Model\Tool\Cms\GetCmsBlock</item>
                 <item name="get_product_attribute" xsi:type="object">Magenx\AiMcp\Model\Tool\Attribute\GetProductAttribute</item>
                 <item name="create_product_attribute" xsi:type="object">Magenx\AiMcp\Model\Tool\Attribute\CreateProductAttribute</item>
                 <item name="update_product_attribute" xsi:type="object">Magenx\AiMcp\Model\Tool\Attribute\UpdateProductAttribute</item>
@@ -93,6 +94,15 @@
                 <item name="assign_product_attribute_to_set" xsi:type="object">Magenx\AiMcp\Model\Tool\Attribute\AssignProductAttributeToSet</item>
                 <item name="unassign_product_attribute_from_set" xsi:type="object">Magenx\AiMcp\Model\Tool\Attribute\UnassignProductAttributeFromSet</item>
                 <item name="search_url_rewrites" xsi:type="object">Magenx\AiMcp\Model\Tool\UrlRewrite\SearchUrlRewrites</item>
+                <item name="list_widget_instances" xsi:type="object">Magenx\AiMcp\Model\Tool\Widget\ListWidgetInstances</item>
+                <item name="get_widget_instance" xsi:type="object">Magenx\AiMcp\Model\Tool\Widget\GetWidgetInstance</item>
+                <item name="list_email_templates" xsi:type="object">Magenx\AiMcp\Model\Tool\Email\ListEmailTemplates</item>
+                <item name="get_email_template" xsi:type="object">Magenx\AiMcp\Model\Tool\Email\GetEmailTemplate</item>
+                <item name="update_email_template" xsi:type="object">Magenx\AiMcp\Model\Tool\Email\UpdateEmailTemplate</item>
+                <item name="get_design_config" xsi:type="object">Magenx\AiMcp\Model\Tool\Design\GetDesignConfig</item>
+                <item name="update_design_config" xsi:type="object">Magenx\AiMcp\Model\Tool\Design\UpdateDesignConfig</item>
+                <item name="search_media_gallery_assets" xsi:type="object">Magenx\AiMcp\Model\Tool\MediaGallery\SearchMediaGalleryAssets</item>
+                <item name="upload_media_gallery_asset" xsi:type="object">Magenx\AiMcp\Model\Tool\MediaGallery\UploadMediaGalleryAsset</item>
                 <item name="list_product_media" xsi:type="object">Magenx\AiMcp\Model\Tool\Media\ListProductMedia</item>
                 <item name="add_product_media" xsi:type="object">Magenx\AiMcp\Model\Tool\Media\AddProductMedia</item>
                 <item name="update_product_media" xsi:type="object">Magenx\AiMcp\Model\Tool\Media\UpdateProductMedia</item>

@@ -127,6 +127,7 @@ same ACL role, so nothing is lost but the serializer.
 | `delete_cms_page` | ✓ | `Magento_Cms::page_delete` |
 | `create_cms_block` | ✓ | `Magento_Cms::block` |
 | `delete_cms_block` | ✓ | `Magento_Cms::block` |
+| `get_cms_block` | | `Magento_Cms::block` |
 | `get_product_attribute` | | `Magento_Catalog::attributes_attributes` |
 | `create_product_attribute` | ✓ | `Magento_Catalog::attributes_attributes` |
 | `update_product_attribute` | ✓ | `Magento_Catalog::attributes_attributes` |
@@ -137,6 +138,15 @@ same ACL role, so nothing is lost but the serializer.
 | `assign_product_attribute_to_set` | ✓ | `Magento_Catalog::sets` |
 | `unassign_product_attribute_from_set` | ✓ | `Magento_Catalog::sets` |
 | `search_url_rewrites` | | `Magento_UrlRewrite::urlrewrite` |
+| `list_widget_instances` | | `Magento_Widget::widget_instance` |
+| `get_widget_instance` | | `Magento_Widget::widget_instance` |
+| `list_email_templates` | | `Magento_Email::template` |
+| `get_email_template` | | `Magento_Email::template` |
+| `update_email_template` | ✓ | `Magento_Email::template` |
+| `get_design_config` | | `Magento_Theme::design_config` |
+| `update_design_config` | ✓ | `Magento_Theme::design_config` |
+| `search_media_gallery_assets` | | `Magento_Cms::media_gallery` |
+| `upload_media_gallery_asset` | ✓ | `Magento_Cms::media_gallery` |
 | `list_product_media` | | `Magento_Catalog::products` |
 | `add_product_media` | ✓ | `Magento_Catalog::products` |
 | `update_product_media` | ✓ | `Magento_Catalog::products` |
@@ -411,6 +421,72 @@ to stop using one.
 rejects a label that already exists on the attribute, so the tool cannot create
 a duplicate; within a single `create_product_attribute` call it does not, so
 that tool checks for repeated labels itself.
+
+### Content the CMS tools do not cover
+
+CMS pages and blocks are the content an agent edits; these are the four places
+that decide where it appears and how it looks.
+
+**Blocks now resolve through one locator.** `get_cms_block`, `update_cms_block`
+and `delete_cms_block` share `BlockLocator`, so all three refuse an ambiguous
+identifier the same way and name the `block_id`s rather than acting on an
+arbitrary one. `get_cms_block` is the block-side counterpart of `get_cms_page`:
+`list_cms_blocks` finds an identifier, this reads the one block in full.
+
+**Widgets and e-mail templates have no `Api/` layer.** Both go through Magento's
+own models and collections — the same seam the admin grids use — which is a
+concrete-class dependency rather than an `@api` one, exactly as the help desk
+section below describes for `TicketManager`. A refactor upstream can break these
+in a way a service contract would not. The widget tools are read-only on
+purpose: a widget instance stores a layout handle and a serialised page-group
+blob, which is closer to `update_cms_page_design`'s layout XML than to editing
+content, and Magento gives it no separate grant to sit behind. Widgets are
+created and placed in the admin; `list_widget_instances` is usually the answer
+to "why is this block appearing on that page", because a widget places it rather
+than the page content referencing it.
+
+**`update_email_template` edits what customers receive**, on the next mail the
+store sends — there is no draft. Two things follow. Only templates that already
+exist as records can be edited: Magento's defaults ship as files and have no row
+until someone creates an override from one in the admin, so a built-in code is
+an error saying that rather than a template with no content. And a template body
+is Magento template markup, not HTML — its `{{...}}` directives are executed at
+render time, which makes it closer to code than to copy, and the tools say so.
+
+**Design configuration goes through its own repository**, not through
+`set_config`. Design values are validated and cached as a set, and a row written
+around that is a value the storefront may not pick up — so `update_design_config`
+loads the scope's own value objects and mutates them, and refuses a path that
+scope does not carry rather than accepting a write Magento would drop. It is a
+separate ACL resource from `Magento_Config::config` because Magento separates
+them, so an integration can be allowed to change the theme without being allowed
+to change payment settings. The scope rules in **Caveats** apply here too:
+omitting both codes writes the default that everything inherits.
+
+### Uploading into the media gallery
+
+`upload_media_gallery_asset` is the second tool in the module that takes real
+bytes, and the riskier of the two: `add_product_media` hands its file to
+Magento's gallery service, while this one writes into `pub/media`, which the web
+server hands out directly. A file there is a public URL the moment it exists.
+
+`Model/MediaPathPolicy.php` is what stands between a caller-supplied name and
+that URL, and it is hard-coded for the same reason `ConfigPathPolicy` is — the
+failure it prevents is not a trade-off a store should be able to opt into
+through a text field:
+
+- The destination is confined to the gallery root. A path that climbs out with
+  `..`, starts at `/`, hides a Windows separator, or carries a null byte is
+  refused rather than normalised into something plausible.
+- The extension has to match the mime type, and the mime type has to match the
+  bytes. `hero.phtml` holding a real JPEG is not a media file with the wrong
+  name; it is code in a directory the web server serves.
+- Nothing is ever overwritten. A name already in use is an error, because
+  replacing a file silently changes every page already pointing at it.
+
+`search_media_gallery_assets` requires at least one filter, for the same reason
+`search_url_rewrites` does — an unfiltered lookup returns every asset in the
+store.
 
 ### URL rewrites are read-only
 
