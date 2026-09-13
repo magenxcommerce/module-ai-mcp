@@ -189,6 +189,7 @@ class AddProductMedia extends AbstractTool
     {
         $encoded = $this->requireString($arguments, 'base64_encoded_data');
 
+        // phpcs:ignore Magento2.Functions.DiscouragedFunction.Discouraged -- the MCP payload is base64 by protocol, and strict mode is what turns a truncated one into a named error.
         $decoded = base64_decode($encoded, true);
         if ($decoded === false) {
             throw new LocalizedException(__(
@@ -209,7 +210,7 @@ class AddProductMedia extends AbstractTool
             ));
         }
 
-        $info = @getimagesizefromstring($decoded);
+        $info = $this->readImageHeader($decoded);
         if ($info === false) {
             throw new LocalizedException(__(
                 'The "base64_encoded_data" argument does not decode to an image Magento can read.'
@@ -226,6 +227,28 @@ class AddProductMedia extends AbstractTool
         }
 
         return $encoded;
+    }
+
+    /**
+     * Read an image header without letting the failure reach the caller as a warning.
+     *
+     * `getimagesizefromstring()` raises a PHP warning on bytes it cannot parse,
+     * which is the ordinary case here — an agent passing something that is not
+     * an image. The handler swallows only that call's diagnostics; the return
+     * value is what this method reports on, and it is restored either way.
+     *
+     * @param string $bytes
+     * @return array<int|string, mixed>|false
+     */
+    private function readImageHeader(string $bytes): array|false
+    {
+        set_error_handler(static fn (): bool => true);
+
+        try {
+            return getimagesizefromstring($bytes);
+        } finally {
+            restore_error_handler();
+        }
     }
 
     /**

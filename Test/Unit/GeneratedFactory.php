@@ -23,7 +23,7 @@ namespace Magenx\AiMcp\Test\Unit;
  * root — `class_exists()` triggers it and the real factory is used instead, so
  * the test exercises the same shape either way.
  */
-final class GeneratedFactory
+class GeneratedFactory
 {
     /**
      * Ensure the named factory class is loadable.
