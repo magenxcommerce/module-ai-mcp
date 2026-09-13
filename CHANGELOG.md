@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.0](https://github.com/magenxcommerce/module-ai-mcp/compare/v1.1.1...v1.2.0) (2026-09-13)
+
+
+### Features
+
+* add nine sales-document tools ([#12](https://github.com/magenxcommerce/module-ai-mcp/issues/12)) ([1df0518](https://github.com/magenxcommerce/module-ai-mcp/commit/1df0518991d9f221cf06dfa87f921d5db51dd6d2))
+
 ## [1.1.1](https://github.com/magenxcommerce/module-ai-mcp/compare/v1.1.0...v1.1.1) (2026-09-13)
 
 
