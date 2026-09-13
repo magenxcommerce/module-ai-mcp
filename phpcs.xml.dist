@@ -16,6 +16,16 @@
     <file>.</file>
 
     <exclude-pattern>*/vendor/*</exclude-pattern>
+    <!--
+        The unit suite's harness: a bootstrap that maps the module's PSR-4
+        prefix onto the checkout, and hand-written stand-ins for the Magento
+        types the tests touch, used when magento/framework is not installed.
+        Neither is module code — the bootstrap does the file manipulation the
+        standard exists to discourage inside a module, and the stand-ins copy
+        third-party signatures — so the Magento standard has nothing useful to
+        say about either.
+    -->
+    <exclude-pattern>*/Test/Unit/_harness/*</exclude-pattern>
     <exclude-pattern>*/.git/*</exclude-pattern>
     <exclude-pattern>*/.github/*</exclude-pattern>
 

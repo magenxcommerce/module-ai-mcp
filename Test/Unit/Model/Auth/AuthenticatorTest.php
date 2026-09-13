@@ -8,6 +8,7 @@ namespace Magenx\AiMcp\Test\Unit\Model\Auth;
 
 use Magenx\AiMcp\Model\Auth\Authenticator;
 use Magenx\AiMcp\Model\Config;
+use Magenx\AiMcp\Test\Unit\GeneratedFactory;
 use Magento\Authorization\Model\Acl\AclRetriever;
 use Magento\Framework\HTTP\PhpEnvironment\RemoteAddress;
 use Magento\Framework\Stdlib\DateTime\DateTime as CoreDate;
@@ -36,6 +37,10 @@ class AuthenticatorTest extends TestCase
      */
     protected function setUp(): void
     {
+        // Magento generates this factory rather than shipping it, so outside a
+        // Magento installation the name has no definition to mock.
+        GeneratedFactory::ensure(TokenFactory::class);
+
         $this->authenticator = new Authenticator(
             $this->createMock(TokenFactory::class),
             $this->createMock(IntegrationServiceInterface::class),

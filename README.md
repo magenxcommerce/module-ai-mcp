@@ -4,8 +4,11 @@
 > headless integration and is published as such.
 
 Serves a **Model Context Protocol (MCP)** endpoint from Magento, so an AI agent
-such as Claude Code can inspect and manage the backend directly: products,
-categories, CMS blocks, store configuration, caches and indexers.
+such as Claude Code can inspect and manage the backend directly: products with
+their images, linked products and variants, categories, orders, returns and support tickets, invoices, shipments and credit memos, customer
+accounts and their addresses, stock levels, tier prices, cart and catalog price
+rules, CMS pages and blocks, product attributes and attribute sets, store
+configuration, caches and indexers.
 
 This is a *management* surface, not a storefront feature. It is disabled by
 default, requires a Magento Integration access token, and authorizes every
@@ -65,6 +68,115 @@ same ACL role, so nothing is lost but the serializer.
 | `assign_product_to_category` | ✓ | `Magento_Catalog::categories` |
 | `list_cms_blocks` | | `Magento_Cms::block` |
 | `update_cms_block` | ✓ | `Magento_Cms::block` |
+| `search_orders` | | `Magento_Sales::actions_view` |
+| `get_order` | | `Magento_Sales::actions_view` |
+| `list_order_comments` | | `Magento_Sales::actions_view` |
+| `add_order_comment` | ✓ | `Magento_Sales::comment` |
+| `hold_order` | ✓ | `Magento_Sales::hold` |
+| `unhold_order` | ✓ | `Magento_Sales::unhold` |
+| `cancel_order` | ✓ | `Magento_Sales::cancel` |
+| `search_invoices` | | `Magento_Sales::sales_invoice` |
+| `create_invoice` | ✓ | `Magento_Sales::invoice` |
+| `search_shipments` | | `Magento_Sales::shipment` |
+| `create_shipment` | ✓ | `Magento_Sales::ship` |
+| `search_credit_memos` | | `Magento_Sales::sales_creditmemo` |
+| `create_credit_memo` | ✓ | `Magento_Sales::creditmemo` |
+| `search_customers` | | `Magento_Customer::manage` |
+| `get_customer` | | `Magento_Customer::manage` |
+| `list_customer_groups` | | `Magento_Customer::group` |
+| `create_customer` | ✓ | `Magento_Customer::manage` |
+| `update_customer` | ✓ | `Magento_Customer::manage` |
+| `delete_customer` | ✓ | `Magento_Customer::delete` |
+| `create_customer_address` | ✓ | `Magento_Customer::manage` |
+| `update_customer_address` | ✓ | `Magento_Customer::manage` |
+| `delete_customer_address` | ✓ | `Magento_Customer::manage` |
+| `initiate_password_reset` | ✓ | `Magento_Customer::reset_password` |
+| `invalidate_customer_tokens` | ✓ | `Magento_Customer::invalidate_tokens` |
+| `set_newsletter_subscription` | ✓ | `Magento_Newsletter::subscriber` |
+| `get_stock` | | `Magento_CatalogInventory::cataloginventory` |
+| `update_stock` | ✓ | `Magento_CatalogInventory::cataloginventory` |
+| `search_low_stock` | | `Magento_CatalogInventory::cataloginventory` |
+| `get_tier_prices` | | `Magento_Catalog::products` |
+| `set_tier_prices` | ✓ | `Magento_Catalog::products` |
+| `delete_tier_prices` | ✓ | `Magento_Catalog::products` |
+| `search_cart_price_rules` | | `Magento_SalesRule::quote` |
+| `get_cart_price_rule` | | `Magento_SalesRule::quote` |
+| `update_cart_price_rule` | ✓ | `Magento_SalesRule::quote` |
+| `generate_coupons` | ✓ | `Magento_SalesRule::quote` |
+| `search_coupons` | | `Magento_SalesRule::quote` |
+| `delete_coupons` | ✓ | `Magento_SalesRule::quote` |
+| `search_catalog_price_rules` | | `Magento_CatalogRule::promo_catalog` |
+| `get_catalog_price_rule` | | `Magento_CatalogRule::promo_catalog` |
+| `update_catalog_price_rule` | ✓ | `Magento_CatalogRule::promo_catalog` |
+| `search_cms_pages` | | `Magento_Cms::page` |
+| `get_cms_page` | | `Magento_Cms::page` |
+| `create_cms_page` | ✓ | `Magento_Cms::save` |
+| `update_cms_page` | ✓ | `Magento_Cms::save` |
+| `update_cms_page_design` | ✓ | `Magento_Cms::save_design` |
+| `delete_cms_page` | ✓ | `Magento_Cms::page_delete` |
+| `create_cms_block` | ✓ | `Magento_Cms::block` |
+| `delete_cms_block` | ✓ | `Magento_Cms::block` |
+| `get_product_attribute` | | `Magento_Catalog::attributes_attributes` |
+| `create_product_attribute` | ✓ | `Magento_Catalog::attributes_attributes` |
+| `update_product_attribute` | ✓ | `Magento_Catalog::attributes_attributes` |
+| `delete_product_attribute` | ✓ | `Magento_Catalog::attributes_attributes` |
+| `add_product_attribute_option` | ✓ | `Magento_Catalog::attributes_attributes` |
+| `delete_product_attribute_option` | ✓ | `Magento_Catalog::attributes_attributes` |
+| `list_attribute_sets` | | `Magento_Catalog::sets` |
+| `assign_product_attribute_to_set` | ✓ | `Magento_Catalog::sets` |
+| `unassign_product_attribute_from_set` | ✓ | `Magento_Catalog::sets` |
+| `search_url_rewrites` | | `Magento_UrlRewrite::urlrewrite` |
+| `list_product_media` | | `Magento_Catalog::products` |
+| `add_product_media` | ✓ | `Magento_Catalog::products` |
+| `update_product_media` | ✓ | `Magento_Catalog::products` |
+| `delete_product_media` | ✓ | `Magento_Catalog::products` |
+| `list_product_link_types` | | `Magento_Catalog::products` |
+| `get_product_links` | | `Magento_Catalog::products` |
+| `set_product_links` | ✓ | `Magento_Catalog::products` |
+| `delete_product_link` | ✓ | `Magento_Catalog::products` |
+| `list_configurable_children` | | `Magento_Catalog::products` |
+| `add_configurable_child` | ✓ | `Magento_Catalog::products` |
+| `remove_configurable_child` | ✓ | `Magento_Catalog::products` |
+| `assign_product_to_website` | ✓ | `Magento_Catalog::products` |
+| `delete_product` | ✓ | `Magento_Catalog::products` |
+| `delete_category` | ✓ | `Magento_Catalog::categories` |
+| `move_category` | ✓ | `Magento_Catalog::categories` |
+| `search_rma` | | `Magenx_Rma::rma_manage` |
+| `get_rma` | | `Magenx_Rma::rma_manage` |
+| `update_rma` | ✓ | `Magenx_Rma::rma_manage` |
+| `delete_rma` | ✓ | `Magenx_Rma::rma_manage` |
+| `list_rma_comments` | | `Magenx_Rma::rma_manage` |
+| `add_rma_comment` | ✓ | `Magenx_Rma::rma_manage` |
+| `list_rma_items` | | `Magenx_Rma::rma_manage` |
+| `update_rma_item` | ✓ | `Magenx_Rma::rma_manage` |
+| `list_rma_statuses` | | `Magenx_Rma::rma_status` |
+| `save_rma_status` | ✓ | `Magenx_Rma::rma_status` |
+| `delete_rma_status` | ✓ | `Magenx_Rma::rma_status` |
+| `list_rma_reasons` | | `Magenx_Rma::rma_reason` |
+| `save_rma_reason` | ✓ | `Magenx_Rma::rma_reason` |
+| `delete_rma_reason` | ✓ | `Magenx_Rma::rma_reason` |
+| `list_rma_resolution_types` | | `Magenx_Rma::rma_resolution_type` |
+| `save_rma_resolution_type` | ✓ | `Magenx_Rma::rma_resolution_type` |
+| `delete_rma_resolution_type` | ✓ | `Magenx_Rma::rma_resolution_type` |
+| `list_rma_item_conditions` | | `Magenx_Rma::rma_item_condition` |
+| `save_rma_item_condition` | ✓ | `Magenx_Rma::rma_item_condition` |
+| `delete_rma_item_condition` | ✓ | `Magenx_Rma::rma_item_condition` |
+| `search_helpdesk_tickets` | | `Magenx_Helpdesk::ticket` |
+| `get_helpdesk_ticket` | | `Magenx_Helpdesk::ticket` |
+| `create_helpdesk_ticket` | ✓ | `Magenx_Helpdesk::ticket` |
+| `list_helpdesk_ticket_messages` | | `Magenx_Helpdesk::ticket` |
+| `reply_to_helpdesk_ticket` | ✓ | `Magenx_Helpdesk::ticket` |
+| `add_helpdesk_internal_note` | ✓ | `Magenx_Helpdesk::ticket` |
+| `set_helpdesk_ticket_status` | ✓ | `Magenx_Helpdesk::ticket` |
+| `set_helpdesk_ticket_priority` | ✓ | `Magenx_Helpdesk::ticket` |
+| `assign_helpdesk_ticket` | ✓ | `Magenx_Helpdesk::ticket` |
+| `reopen_helpdesk_ticket` | ✓ | `Magenx_Helpdesk::ticket` |
+| `list_helpdesk_departments` | | `Magenx_Helpdesk::department` |
+| `list_helpdesk_statuses` | | `Magenx_Helpdesk::status` |
+| `list_helpdesk_priorities` | | `Magenx_Helpdesk::priority` |
+| `list_helpdesk_custom_fields` | | `Magenx_Helpdesk::field` |
+| `list_helpdesk_spam_patterns` | | `Magenx_Helpdesk::spam` |
+| `list_helpdesk_gateways` | | `Magenx_Helpdesk::gateway` |
 | `get_config` | | `Magento_Config::config` |
 | `set_config` | ✓ | `Magento_Config::config` |
 | `flush_cache` | ✓ | `Magento_Backend::cache` |
@@ -73,6 +185,300 @@ same ACL role, so nothing is lost but the serializer.
 
 A tool the caller may not use is not *listed*, so an agent never plans around a
 capability it does not have.
+
+### Sales tools and what they cost to get wrong
+
+Every sales resource above is one of Magento's own, so an integration role is
+the only thing deciding how far an agent reaches into orders. They are worth
+ticking deliberately, because three of these tools cannot be undone:
+
+- `create_credit_memo` with `invoice_id` and `refund_online` sends a refund to
+  the payment gateway and **real money leaves the merchant account**. Without
+  `refund_online` it records the credit memo offline and moves nothing. Magento
+  has no operation that reverses a credit memo either way, so
+  `Magento_Sales::creditmemo` is the resource to leave unticked on any
+  integration that should not be able to refund.
+- `create_invoice` and `create_shipment` create documents that cannot be
+  deleted. `create_invoice` with `capture: true` also captures payment through
+  the gateway.
+- `cancel_order` releases reserved stock and cannot be undone.
+
+The `confirm: true` gate applies to all of them, but it is a single argument an
+agent supplies itself — it protects against a half-formed call, not against a
+confident wrong one. ACL is the boundary that holds.
+
+`get_order` reports `qty_invoiceable`, `qty_shippable` and `qty_refundable` per
+line, derived from the five counters Magento actually stores. Those are the
+quantities the three creation tools accept; an agent should read them rather
+than assume the ordered quantity is still available.
+
+### Customer tools handle personal data
+
+Everything the customer tools return is personal data: names, email addresses,
+dates of birth, tax ids, postal addresses, phone numbers. Two things follow.
+
+**Reads are not audited.** The audit log in `var/log/magenx_ai_mcp.log` records
+every attempted *write* with the calling integration. It does not record reads,
+so there is no trail of which customer records an agent looked at. If that
+matters for your obligations, grant `Magento_Customer::manage` only to
+integrations that need it, and treat the endpoint as a system with access to the
+customer base rather than a read-only convenience.
+
+**Three tools are visible to the customer or irreversible:**
+
+- `delete_customer` permanently removes the account and its addresses. Past
+  orders survive and keep the personal data captured on them, so this alone does
+  not satisfy an erasure request. It sits behind `Magento_Customer::delete`, a
+  separate grant from the one that allows editing customers.
+- `create_customer` sends Magento's account-creation email, and
+  `initiate_password_reset` sends a password email. Both reach the customer's
+  inbox the moment the tool succeeds.
+- `set_newsletter_subscription` can subscribe someone. Consent is the store's to
+  obtain, not an agent's to assume; unsubscribing is always safe.
+
+There is no tool that sets a password directly. Magento's own contract for that
+requires the customer's current password, and writing a chosen password into an
+account would mean an agent holding a credential the customer is supposed to
+trust — `initiate_password_reset` leaves the new password between the store and
+its customer. `invalidate_customer_tokens` revokes API tokens without touching
+the password, which is the pairing for a compromised account.
+
+`update_customer` deliberately does not touch addresses. Magento treats the
+address list on a saved customer as authoritative and deletes any address
+missing from it, so addresses are only ever changed through the three dedicated
+address tools.
+
+### Stock and pricing: three things that are not obvious
+
+**Stock is the legacy single-stock API.** These tools use
+`CatalogInventory`'s `StockRegistryInterface`, which is the aggregate quantity
+and the default source. Multi-Source Inventory ships as a separate package set
+and is not a dependency here, so on a multi-source installation `get_stock` and
+`update_stock` read and write the legacy view that MSI keeps in sync — not
+per-source quantities. Managing individual sources still needs the admin.
+
+**Thresholds are stored as a value plus an inheritance flag.** Magento keeps
+`min_qty`, `backorders`, `notify_stock_qty` and the rest alongside a
+`use_config_*` flag saying to ignore the stored value in favour of the store
+default. Writing a threshold without clearing that flag stores a number Magento
+never reads — a change that reports success and does nothing. So `get_stock`
+reports each setting as `{value, uses_config_default}`, and `update_stock`
+clears the flag whenever you set one; pass the field as `null` to go back to
+inheriting.
+
+**Nothing here reindexes.** A stock change, a tier price or an activated
+catalog rule reaches the storefront only after the relevant indexer runs. The
+affected tools return `reindex_required: true`; `invalidate_indexers` is what
+marks the indexers to rerun.
+
+### Price rules: what these tools will not do
+
+Neither rule tool writes **conditions**. That is deliberate, and it is why both
+update tools load the existing rule and mutate it rather than building a new
+one: Magento's sales rule repository converts the whole data object back into
+the rule on save, so a rule rebuilt from only the fields being changed would be
+saved with no conditions — a cart discount that suddenly applies to every cart,
+or a catalog rule that re-prices the entire catalogue. A rule whose conditions
+need changing has to be edited in the admin.
+
+`get_cart_price_rule` does return both condition trees, read-only and
+depth-limited, because they are the usual answer to "why is this rule not
+applying". A catalog rule's condition is only an opaque serialized blob in
+Magento's API, so `get_catalog_price_rule` reports just whether it has one — a
+catalog rule with no condition applies to every product.
+
+`generate_coupons` refuses a rule that is not set to auto-generate coupons
+rather than failing obscurely, and `delete_coupons` is all-or-nothing: Magento's
+mass delete reports a bad code only as "Some coupons are invalid", so the codes
+are checked first and a missing one is named before anything is deleted.
+`set_tier_prices` and `delete_tier_prices` guard the matching trap — the tier
+price storage reports rejected rows by *returning* them instead of throwing, so
+an empty return is the only thing that means the prices were applied.
+
+### Content and attributes: Magento's own ACL split is followed
+
+CMS pages are the one place Magento splits permissions three ways, and the tools
+match it rather than collapsing it:
+
+| Tool | Resource | Why separate |
+|---|---|---|
+| `search_cms_pages`, `get_cms_page` | `Magento_Cms::page` | Reading |
+| `create_cms_page`, `update_cms_page` | `Magento_Cms::save` | Copy and metadata |
+| `update_cms_page_design` | `Magento_Cms::save_design` | Theme and layout XML |
+| `delete_cms_page` | `Magento_Cms::page_delete` | Irreversible |
+
+A tool declares exactly one ACL resource, so folding the design fields into
+`update_cms_page` would let an integration granted only "Save Page" inject
+layout XML. `PageContentArguments` therefore neither offers nor writes a design
+field, and there is a unit test asserting that for each of the six. The one
+exception is `page_layout`, which Magento itself saves under "Save Page".
+
+Blocks have only one resource, `Magento_Cms::block`, so all four block tools
+carry it.
+
+### Attributes change the catalogue's shape
+
+`create_product_attribute` adds a field to every product in the sets it is later
+assigned to, and an attribute is useless until
+`assign_product_attribute_to_set` puts it in one — so the create tool says so in
+its own result. Neither the attribute code nor the input type can be changed
+afterwards; Magento treats both as fixed, and `update_product_attribute` does
+not offer them.
+
+`delete_product_attribute` **refuses Magento's system attributes** even though
+the service contract would allow it. Deleting `name`, `price` or `status` does
+not fail loudly — it drops the column those values live in, taking every
+product's value with it, and nothing restores them. The admin does not offer
+that button either. Unassigning an attribute from its sets is the reversible way
+to stop using one.
+
+`add_product_attribute_option` returns the new option id, which is what
+`update_product` needs — that attribute takes option ids, not labels. Magento
+rejects a label that already exists on the attribute, so the tool cannot create
+a duplicate; within a single `create_product_attribute` call it does not, so
+that tool checks for repeated labels itself.
+
+### URL rewrites are read-only
+
+`search_url_rewrites` answers why a URL 404s or redirects. Creating and editing
+rewrites is deliberately not exposed: `UrlPersistInterface` is the mechanism
+Magento uses to regenerate its own entity rewrites, and a rewrite written
+through it is liable to be replaced the next time the product or category is
+saved. Custom rewrites belong in the admin. The lookup requires at least one
+filter, because an unfiltered one returns every rewrite in the store.
+
+### Catalog depth: replace, not merge
+
+Two of Magento's catalog operations replace where they read like they add, and
+both are wrapped accordingly.
+
+**`update_product_media` loads the entry it is changing.** Magento's gallery
+update assigns the entry it is handed straight into the existing list
+(`$entries[$key] = $entry`), so an entry built from only the fields being
+changed would blank the rest — including the `file` that points at the image on
+disk. The tool fetches the entry, mutates what you passed, and sends that back.
+Assigning a role also *moves* it: a role belongs to one image at a time, so
+giving `image` to one entry takes it from whichever held it.
+
+**`set_product_links` replaces the whole list for the type.** Any existing link
+of that type you do not list is removed. Because "set these links" reads like
+"add these links", the tool takes an explicit `mode`: `replace` (Magento's own
+behaviour, the default) or `append`, which reads the current links and carries
+them through. `delete_product_link` is the simpler way to drop one.
+
+`add_product_media` is the only tool in the module that needs real bytes. It
+takes base64 — there is no URL or file-path form — so in practice the image
+comes from a person. It checks the payload decodes, that it is genuinely an
+image, and that the bytes match the declared mime type *before* Magento is
+asked to store it, because Magento's own rejection arrives as a generic save
+failure after the upload attempt.
+
+### What the deletes take with them
+
+- `delete_product` also removes that product's images, tier prices, links and
+  category assignments, and drops it as a variant of any configurable. Past
+  orders keep their own copy of the line.
+- `delete_category` deletes **the whole subtree**, and the result names how many
+  categories went. Products are not deleted but lose the assignment. A store's
+  root category is refused.
+- `move_category` takes the subtree and the products with it, and changes the
+  URL of everything beneath — old links stop resolving without a redirect.
+- `remove_configurable_child` does not delete the simple product; it becomes
+  standalone. Removing the last variant leaves the configurable unbuyable.
+
+For each of these, the reversible alternative is in the tool's own description:
+disable rather than delete, unassign from a website rather than remove.
+
+### Returns (RMA) — the one non-stock domain, and a hard dependency
+
+These twenty tools cover `magenxcommerce/module-rma`, which is **not** a
+Magento module. That makes it the only part of this server that depends on
+something outside Magento core, and the dependency is hard: the tool classes
+reference `Magenx\Rma\Api\*`, so `setup:di:compile` fails if the RMA module
+is absent. `composer.json` therefore requires it.
+
+If that coupling is unwanted, the clean alternative is a bridge module —
+`Magenx_AiMcpRma`, requiring both, contributing its tools to the registry's
+`tools` argument the same way. Nothing in this module needs changing for that;
+the files move as they are.
+
+The RMA module ships its own granular ACL, and the tools follow it exactly:
+`rma_manage` for the requests, and a separate resource per lookup table
+(`rma_status`, `rma_reason`, `rma_resolution_type`, `rma_item_condition`), so an
+agent can be allowed to work returns without being able to redefine the
+workflow.
+
+**`update_rma` emails the customer.** `RMARepository::save()` compares the
+stored status against the one being saved and dispatches
+`rma_status_change_after` when they differ; the module's own observer turns that
+into a status-change e-mail. Setting the status to the value it already has
+changes nothing and sends nothing, and the result reports `customer_notified`
+either way.
+
+**`add_rma_comment` requires `visible_to_customer`, with no default.** Staff
+notes and customer replies live in the same table, separated only by that flag,
+so defaulting it either way would silently publish an internal note or bury a
+reply. Adding a comment sends no e-mail on its own.
+
+**`update_rma_item` checks the line belongs to the return.** The module's item
+service sets `rma_id` from its argument, so handing it a line from another
+return would move that line rather than fail.
+
+The lookup tools are create-or-update: omit `entity_id` to create, pass it to
+change. That mirrors the RMA module's own admin save. Deleting a lookup row is
+not blocked while returns still reference it — those are plain integer columns
+with no constraint — so the delete tools say so and point at deactivating
+instead.
+
+### Help desk — built on `TicketManager`, not a service contract
+
+`magenxcommerce/module-helpdesk` has no `Api/` layer. Writes therefore go
+through `Model\TicketManager`, which is the module's documented single write
+path and the seam its own admin controller and mailbox gateway already use;
+reads go through its collections, the way the admin grid does. That is a
+concrete-class dependency rather than an `@api` one, and the module carries no
+`@api` annotations at all — so a refactor there can break these tools in a way
+a service contract would not. Adding an `Api/` layer to helpdesk would fix that
+and change nothing about the tool surface: the tool names, schemas and ACL
+resources are the contract callers see, and only the bodies would move.
+
+**Replies and internal notes are separate tools, on purpose.** The module keeps
+both in one table, told apart only by `type`, and its own code warns that
+letting an unrecognised type through would downgrade a staff-only note into
+something the customer is e-mailed. Making that a choice of *tool* rather than a
+flag means the mistake is not available: `reply_to_helpdesk_ticket` is always
+public and e-mails by default, `add_helpdesk_internal_note` is never either.
+An internal note also deliberately does not move the ticket's last-reply
+markers, so an unanswered ticket still reads as unanswered.
+
+**What sends mail.** `create_helpdesk_ticket` sends the module's new-ticket
+notification and cannot suppress it. `reply_to_helpdesk_ticket` e-mails the
+customer unless `notify` is false. `assign_helpdesk_ticket` e-mails the
+*assignee*, not the customer, and only when the assignment actually moves.
+Status, priority and reopen send nothing.
+
+**A status change is not just a label.** The module reads the store's configured
+archive and lock status codes, so moving a ticket can file it into Archive and
+stop the customer replying; moving off an archiving status brings it back to the
+inbox. A ticket in Spam stays there. `set_helpdesk_ticket_status` reports the
+folder and lock state it ended up in.
+
+**Searches default to the inbox**, because a search that silently included Spam
+would report resolved noise as open work. Pass `folder` for archive, spam, or
+`any`.
+
+**The configuration tables are read-only.** Statuses are referenced by *code*
+from store configuration, which is what decides which of them archive and which
+lock a ticket — so creating or renaming one through a tool could change what
+closing a ticket does. That belongs in the admin, next to the settings it
+interacts with.
+
+**`list_helpdesk_gateways` never returns a password**, only whether one is set.
+Gateway rows hold live IMAP credentials; a read tool that handed them back would
+turn listing mailboxes into credential exfiltration, and nothing an agent does
+needs the password that `last_error` does not serve better. Creating or editing
+a gateway is not exposed at all — a tool that could set host and login could
+point the store's mail intake at someone else's mailbox.
 
 Add a tool from another module by contributing to the `tools` argument of
 `Magenx\AiMcp\Model\Tool\ToolRegistry` in `di.xml` and implementing

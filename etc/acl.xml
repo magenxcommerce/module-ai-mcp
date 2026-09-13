@@ -6,8 +6,11 @@
  * Magenx_AiMcp::server is what an Integration must be granted to reach the MCP
  * endpoint at all. Individual tools additionally require the stock ACL
  * resource for the data they touch (Magento_Catalog::products,
- * Magento_Cms::block, Magento_Config::config, ...), so an integration can be
- * scoped to exactly the surface it should manage.
+ * Magento_Cms::block, Magento_Config::config, Magento_Sales::invoice,
+ * Magento_Sales::creditmemo, ...), so an integration can be scoped to exactly
+ * the surface it should manage. The sales resources are the finest grained of
+ * these on purpose: refunding is a separate grant from invoicing, which is a
+ * separate grant from viewing an order.
  */
 -->
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:Acl/etc/acl.xsd">

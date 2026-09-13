@@ -126,10 +126,21 @@ class Server
             'protocolVersion' => self::PROTOCOL_VERSION,
             'capabilities' => ['tools' => ['listChanged' => false]],
             'serverInfo' => ['name' => self::SERVER_NAME, 'version' => $this->serverVersion],
-            'instructions' => 'Manage this Magento store: read and edit products, categories, CMS '
-                . 'content and store configuration, and flush caches or invalidate indexers. '
-                . 'Call list_stores first when a change should apply to one store view rather than '
-                . 'the default scope. Tools that change data require "confirm": true — calling them '
+            'instructions' => 'Manage this Magento store: read and edit products with their images, '
+                . 'linked products and configurable variants, categories, orders '
+                . 'and their invoices, shipments and credit memos, customer accounts and their '
+                . 'addresses, stock levels, tier prices, cart and catalog price rules, CMS '
+                . 'pages and blocks, product attributes and attribute sets, return requests, '
+                . 'help desk tickets, '
+                . 'and store configuration; look up URL rewrites; and flush caches or invalidate '
+                . 'indexers. '
+                . 'Customer tools return personal data, so read only what the task needs. A stock '
+                . 'or price change reaches the storefront only once the relevant indexer has run. '
+                . 'Only the tools in '
+                . 'tools/list are available to this caller — its integration role decides which, '
+                . 'so treat that list as the whole surface rather than this sentence. Call '
+                . 'list_stores first when a change should apply to one store view rather than the '
+                . 'default scope. Tools that change data require "confirm": true — calling them '
                 . 'without it returns a preview and changes nothing.',
         ];
     }

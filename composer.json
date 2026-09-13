@@ -1,22 +1,32 @@
 {
     "name": "magenxcommerce/module-ai-mcp",
-    "description": "Serves a Model Context Protocol (MCP) endpoint from Magento so an AI agent such as Claude Code can inspect and manage the backend: products, categories, CMS content, store configuration, cache and indexers. Authenticated with a Magento Integration access token and authorized against that integration's own ACL role; disabled by default, writes opt-in.",
+    "description": "Serves a Model Context Protocol (MCP) endpoint from Magento so an AI agent such as Claude Code can inspect and manage the backend: products with their images, links and variants, categories, orders, invoices, shipments, credit memos, customers, stock, tier prices, cart and catalog price rules, CMS pages and blocks, product attributes and attribute sets, URL rewrites, return requests, help desk tickets, store configuration, cache and indexers. Authenticated with a Magento Integration access token and authorized against that integration's own ACL role; disabled by default, writes opt-in.",
     "config": {
         "sort-packages": true
     },
     "require": {
         "php": "~8.3.0||~8.4.0||~8.5.0",
+        "magenxcommerce/module-helpdesk": "*",
+        "magenxcommerce/module-rma": "*",
         "magento/framework": "*",
         "magento/module-authorization": "*",
         "magento/module-backend": "*",
         "magento/module-catalog": "*",
         "magento/module-catalog-inventory": "*",
+        "magento/module-catalog-rule": "*",
         "magento/module-cms": "*",
         "magento/module-config": "*",
+        "magento/module-configurable-product": "*",
+        "magento/module-customer": "*",
         "magento/module-eav": "*",
         "magento/module-indexer": "*",
         "magento/module-integration": "*",
-        "magento/module-store": "*"
+        "magento/module-newsletter": "*",
+        "magento/module-sales": "*",
+        "magento/module-sales-rule": "*",
+        "magento/module-store": "*",
+        "magento/module-user": "*",
+        "magento/module-url-rewrite": "*"
     },
     "type": "magento2-module",
     "license": [
