@@ -603,6 +603,54 @@ namespace Magento\Downloadable\Api {
     }
 }
 
+namespace Magento\Framework\App\Filesystem {
+    class DirectoryList {
+        public const LOG = 'log';
+        public const MEDIA = 'media';
+    }
+}
+
+namespace Magento\Framework\Filesystem\Directory {
+    interface ReadInterface {
+        public function isExist($path = null); public function stat($path);
+        public function openFile($path, $flag = 'r'); public function readFile($path);
+    }
+}
+
+namespace Magento\Framework\Filesystem\File {
+    interface ReadInterface {
+        public function read($length); public function readLine($length, $ending = null);
+        public function seek($offset, $whence = SEEK_SET); public function eof(); public function close();
+    }
+}
+
+namespace Magento\Framework {
+    class DataObject {
+        public function __construct(protected array $data = []) {}
+        public function getCacheType() { return $this->data['cache_type'] ?? null; }
+        public function getDescription() { return $this->data['description'] ?? null; }
+        public function getId() { return $this->data['id'] ?? null; }
+    }
+}
+
+namespace Magento\Framework\App\Cache {
+    interface StateInterface {
+        public function isEnabled($cacheType); public function setEnabled($cacheType, $isEnabled);
+        public function persist();
+    }
+    interface TypeListInterface {
+        public function getTypes(); public function getInvalidated();
+        public function invalidate($typeCode); public function cleanType($typeCode);
+    }
+}
+
+namespace Magento\Framework {
+    class Filesystem {
+        public function getDirectoryRead($code, $driverCode = 'file') { return null; }
+        public function getDirectoryWrite($code, $driverCode = 'file') { return null; }
+    }
+}
+
 namespace Magento\Cms\Api {
     interface BlockRepositoryInterface {
         public function save(\Magento\Cms\Api\Data\BlockInterface $block);

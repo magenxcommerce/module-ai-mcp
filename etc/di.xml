@@ -171,8 +171,13 @@
                 <item name="get_config" xsi:type="object">Magenx\AiMcp\Model\Tool\Config\GetConfig</item>
                 <item name="set_config" xsi:type="object">Magenx\AiMcp\Model\Tool\Config\SetConfig</item>
                 <item name="flush_cache" xsi:type="object">Magenx\AiMcp\Model\Tool\Ops\FlushCache</item>
+                <item name="cache_status" xsi:type="object">Magenx\AiMcp\Model\Tool\Ops\CacheStatus</item>
+                <item name="set_cache_state" xsi:type="object">Magenx\AiMcp\Model\Tool\Ops\SetCacheState</item>
                 <item name="indexer_status" xsi:type="object">Magenx\AiMcp\Model\Tool\Ops\IndexerStatus</item>
                 <item name="invalidate_indexers" xsi:type="object">Magenx\AiMcp\Model\Tool\Ops\InvalidateIndexers</item>
+                <item name="cron_status" xsi:type="object">Magenx\AiMcp\Model\Tool\Ops\CronStatus</item>
+                <item name="list_modules" xsi:type="object">Magenx\AiMcp\Model\Tool\Ops\ListModules</item>
+                <item name="read_audit_log" xsi:type="object">Magenx\AiMcp\Model\Tool\Ops\ReadAuditLog</item>
             </argument>
         </arguments>
     </type>

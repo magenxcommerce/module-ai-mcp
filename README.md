@@ -215,8 +215,13 @@ same ACL role, so nothing is lost but the serializer.
 | `get_config` | | `Magento_Config::config` |
 | `set_config` | ✓ | `Magento_Config::config` |
 | `flush_cache` | ✓ | `Magento_Backend::cache` |
+| `cache_status` | | `Magento_Backend::cache` |
+| `set_cache_state` | ✓ | `Magento_Backend::cache` |
 | `indexer_status` | | `Magento_Indexer::index` |
 | `invalidate_indexers` | ✓ | `Magento_Indexer::index` |
+| `cron_status` | | `Magenx_AiMcp::ops` |
+| `list_modules` | | `Magenx_AiMcp::ops` |
+| `read_audit_log` | | `Magenx_AiMcp::ops` |
 
 A tool the caller may not use is not *listed*, so an agent never plans around a
 capability it does not have.
@@ -696,6 +701,42 @@ Add a tool from another module by contributing to the `tools` argument of
 `Magenx\AiMcp\Model\Tool\ToolRegistry` in `di.xml` and implementing
 `Magenx\AiMcp\Api\ToolInterface`. Every guard below applies to it automatically.
 
+### Diagnostics, and the one resource this module defines
+
+`cache_status` is the missing half of `flush_cache` and the cache-side
+counterpart of `indexer_status`. A change that "is not showing up" is nearly
+always one of three states it reports: a cache type that is invalidated and
+holding stale content, one that is enabled and simply not cleaned yet, or one
+that was switched off entirely — which is a performance problem rather than a
+staleness one, and invisible from the outside.
+
+`set_cache_state` is how a type is switched, and it counts as a write for the
+reason `flush_cache` does: no data changes, but a live site does. **The
+configuration cache cannot be disabled through this server.** Magento runs with
+any other type off, slowly; with `config` off it re-reads and re-merges every
+configuration file on every request, which on a live store is an outage — and
+re-enabling it through this same endpoint would be the first thing to time out.
+`bin/magento cache:disable` is still there for someone who means it.
+
+Three tools have no stock Magento resource that fits, because they describe the
+installation rather than the store, so they sit behind **`Magenx_AiMcp::ops`** —
+the only resource this module defines for tools of its own. It is declared under
+`Magenx_AiMcp::server` in `etc/acl.xml`, so ticking the server in a role's tree
+offers them together, and leaving it unticked means an integration can use the
+endpoint without reading any of them:
+
+- `cron_status` says whether cron is running at all. Several tools here hand
+  work to cron rather than doing it — `invalidate_indexers` marks indexers for a
+  rebuild only cron performs — so a store whose cron has stopped is a store
+  where those tools report success and nothing changes. An empty schedule
+  usually means cron has never run, not that every job succeeded.
+- `list_modules` reports what is installed and what is switched on. A disabled
+  module is installed and inert, which from the outside looks exactly like a
+  tool that silently does nothing.
+- `read_audit_log` reads this server's own log, and only that file: the name is
+  fixed and there is no path argument, because a log tool that can be pointed
+  elsewhere is a tool for reading any file the web server can.
+
 ## The four guards
 
 1. **The module switch.** `magenx_ai_mcp/general/enabled` is off by default; the
@@ -704,6 +745,9 @@ Add a tool from another module by contributing to the `tools` argument of
    endpoint, plus the tool's own resource to call it. The endpoint grant is
    checked in `Model/Protocol/Server.php` before any method is dispatched, so a
    token whose role lacks it cannot even complete `initialize`, and gets `403`.
+   Every tool's resource is one of Magento's own except `Magenx_AiMcp::ops`,
+   which this module declares for the three diagnostics Magento has no resource
+   for — see below.
 3. **The write switch.** `magenx_ai_mcp/security/allow_writes` is off by
    default. While off the endpoint is strictly read-only, whatever the ACL says.
 4. **The confirm gate.** A write tool called without `"confirm": true` returns a
@@ -718,7 +762,12 @@ the paths they want managed. `get_config` redacts secret values rather than
 returning them.
 
 Every attempted write is logged to `var/log/magenx_ai_mcp.log` with the calling
-integration, the arguments and the verdict.
+integration, the arguments and the verdict. `read_audit_log` reads the end of
+that file back, which is worth a deliberate decision rather than a reflex: the
+log cannot be erased or altered through this server, but an integration holding
+`Magenx_AiMcp::ops` can see which integration changed what. Grant it narrowly.
+That is the same argument as the "reads are not audited" note in the customer
+section, pointing the other way.
 
 ## Configuration
 
@@ -939,7 +988,8 @@ address.
 
 - **`invalidate_indexers` does not reindex.** A full reindex cannot finish
   inside an HTTP request, so the tool marks indexers invalid and cron rebuilds
-  them. Run `bin/magento indexer:reindex` for an immediate rebuild.
+  them. Run `bin/magento indexer:reindex` for an immediate rebuild, and
+  `cron_status` to check cron is running at all before waiting on it.
 - **`set_config` refreshes Magento's config cache but not a headless
   storefront's.** In this stack the Next.js app caches store config under its
   own ISR tag; purge it through the existing `/api/revalidate` path.
