@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.1](https://github.com/magenxcommerce/module-ai-mcp/compare/v1.1.0...v1.1.1) (2026-09-13)
+
+
+### Bug Fixes
+
+* advertise an argument-less tool's schema as an object ([#10](https://github.com/magenxcommerce/module-ai-mcp/issues/10)) ([483d87d](https://github.com/magenxcommerce/module-ai-mcp/commit/483d87d8b491fbfecd3043a003f420ad5e64bf55))
+
 ## [1.1.0](https://github.com/magenxcommerce/module-ai-mcp/compare/v1.0.1...v1.1.0) (2026-09-13)
 
 
