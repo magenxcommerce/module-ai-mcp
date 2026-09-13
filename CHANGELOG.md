@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.0](https://github.com/magenxcommerce/module-ai-mcp/compare/v1.0.1...v1.1.0) (2026-09-13)
+
+
+### Features
+
+* expand the MCP tool surface from 17 to 126 tools ([#8](https://github.com/magenxcommerce/module-ai-mcp/issues/8)) ([7664020](https://github.com/magenxcommerce/module-ai-mcp/commit/7664020c26160d7e97a6cf127782aaaa93e5378f))
+
 ## [1.0.1](https://github.com/magenxcommerce/module-ai-mcp/compare/v1.0.0...v1.0.1) (2026-08-14)
 
 
