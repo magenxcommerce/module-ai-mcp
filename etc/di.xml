@@ -22,6 +22,8 @@
                 <item name="create_category" xsi:type="object">Magenx\AiMcp\Model\Tool\Category\CreateCategory</item>
                 <item name="update_category" xsi:type="object">Magenx\AiMcp\Model\Tool\Category\UpdateCategory</item>
                 <item name="assign_product_to_category" xsi:type="object">Magenx\AiMcp\Model\Tool\Category\AssignProductToCategory</item>
+                <item name="get_category" xsi:type="object">Magenx\AiMcp\Model\Tool\Category\GetCategory</item>
+                <item name="list_category_products" xsi:type="object">Magenx\AiMcp\Model\Tool\Category\ListCategoryProducts</item>
                 <item name="list_cms_blocks" xsi:type="object">Magenx\AiMcp\Model\Tool\Cms\ListCmsBlocks</item>
                 <item name="update_cms_block" xsi:type="object">Magenx\AiMcp\Model\Tool\Cms\UpdateCmsBlock</item>
                 <item name="search_orders" xsi:type="object">Magenx\AiMcp\Model\Tool\Sales\SearchOrders</item>
@@ -102,6 +104,20 @@
                 <item name="list_configurable_children" xsi:type="object">Magenx\AiMcp\Model\Tool\Configurable\ListConfigurableChildren</item>
                 <item name="add_configurable_child" xsi:type="object">Magenx\AiMcp\Model\Tool\Configurable\AddConfigurableChild</item>
                 <item name="remove_configurable_child" xsi:type="object">Magenx\AiMcp\Model\Tool\Configurable\RemoveConfigurableChild</item>
+                <item name="list_bundle_options" xsi:type="object">Magenx\AiMcp\Model\Tool\Bundle\ListBundleOptions</item>
+                <item name="save_bundle_option" xsi:type="object">Magenx\AiMcp\Model\Tool\Bundle\SaveBundleOption</item>
+                <item name="delete_bundle_option" xsi:type="object">Magenx\AiMcp\Model\Tool\Bundle\DeleteBundleOption</item>
+                <item name="add_bundle_selection" xsi:type="object">Magenx\AiMcp\Model\Tool\Bundle\AddBundleSelection</item>
+                <item name="remove_bundle_selection" xsi:type="object">Magenx\AiMcp\Model\Tool\Bundle\RemoveBundleSelection</item>
+                <item name="list_downloadable_links" xsi:type="object">Magenx\AiMcp\Model\Tool\Downloadable\ListDownloadableLinks</item>
+                <item name="save_downloadable_link" xsi:type="object">Magenx\AiMcp\Model\Tool\Downloadable\SaveDownloadableLink</item>
+                <item name="delete_downloadable_link" xsi:type="object">Magenx\AiMcp\Model\Tool\Downloadable\DeleteDownloadableLink</item>
+                <item name="list_downloadable_samples" xsi:type="object">Magenx\AiMcp\Model\Tool\Downloadable\ListDownloadableSamples</item>
+                <item name="save_downloadable_sample" xsi:type="object">Magenx\AiMcp\Model\Tool\Downloadable\SaveDownloadableSample</item>
+                <item name="delete_downloadable_sample" xsi:type="object">Magenx\AiMcp\Model\Tool\Downloadable\DeleteDownloadableSample</item>
+                <item name="list_product_options" xsi:type="object">Magenx\AiMcp\Model\Tool\Catalog\Option\ListProductOptions</item>
+                <item name="save_product_option" xsi:type="object">Magenx\AiMcp\Model\Tool\Catalog\Option\SaveProductOption</item>
+                <item name="delete_product_option" xsi:type="object">Magenx\AiMcp\Model\Tool\Catalog\Option\DeleteProductOption</item>
                 <item name="assign_product_to_website" xsi:type="object">Magenx\AiMcp\Model\Tool\Catalog\AssignProductToWebsite</item>
                 <item name="delete_product" xsi:type="object">Magenx\AiMcp\Model\Tool\Catalog\DeleteProduct</item>
                 <item name="delete_category" xsi:type="object">Magenx\AiMcp\Model\Tool\Category\DeleteCategory</item>

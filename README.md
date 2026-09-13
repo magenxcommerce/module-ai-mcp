@@ -66,6 +66,8 @@ same ACL role, so nothing is lost but the serializer.
 | `create_category` | ✓ | `Magento_Catalog::categories` |
 | `update_category` | ✓ | `Magento_Catalog::categories` |
 | `assign_product_to_category` | ✓ | `Magento_Catalog::categories` |
+| `get_category` | | `Magento_Catalog::categories` |
+| `list_category_products` | | `Magento_Catalog::categories` |
 | `list_cms_blocks` | | `Magento_Cms::block` |
 | `update_cms_block` | ✓ | `Magento_Cms::block` |
 | `search_orders` | | `Magento_Sales::actions_view` |
@@ -146,6 +148,20 @@ same ACL role, so nothing is lost but the serializer.
 | `list_configurable_children` | | `Magento_Catalog::products` |
 | `add_configurable_child` | ✓ | `Magento_Catalog::products` |
 | `remove_configurable_child` | ✓ | `Magento_Catalog::products` |
+| `list_bundle_options` |  | `Magento_Catalog::products` |
+| `save_bundle_option` | ✓ | `Magento_Catalog::products` |
+| `delete_bundle_option` | ✓ | `Magento_Catalog::products` |
+| `add_bundle_selection` | ✓ | `Magento_Catalog::products` |
+| `remove_bundle_selection` | ✓ | `Magento_Catalog::products` |
+| `list_downloadable_links` |  | `Magento_Catalog::products` |
+| `save_downloadable_link` | ✓ | `Magento_Catalog::products` |
+| `delete_downloadable_link` | ✓ | `Magento_Catalog::products` |
+| `list_downloadable_samples` |  | `Magento_Catalog::products` |
+| `save_downloadable_sample` | ✓ | `Magento_Catalog::products` |
+| `delete_downloadable_sample` | ✓ | `Magento_Catalog::products` |
+| `list_product_options` |  | `Magento_Catalog::products` |
+| `save_product_option` | ✓ | `Magento_Catalog::products` |
+| `delete_product_option` | ✓ | `Magento_Catalog::products` |
 | `assign_product_to_website` | ✓ | `Magento_Catalog::products` |
 | `delete_product` | ✓ | `Magento_Catalog::products` |
 | `delete_category` | ✓ | `Magento_Catalog::categories` |
@@ -407,8 +423,8 @@ filter, because an unfiltered one returns every rewrite in the store.
 
 ### Catalog depth: replace, not merge
 
-Two of Magento's catalog operations replace where they read like they add, and
-both are wrapped accordingly.
+Four of Magento's catalog operations replace where they read like they add, and
+all four are wrapped accordingly.
 
 **`update_product_media` loads the entry it is changing.** Magento's gallery
 update assigns the entry it is handed straight into the existing list
@@ -424,12 +440,74 @@ of that type you do not list is removed. Because "set these links" reads like
 behaviour, the default) or `append`, which reads the current links and carries
 them through. `delete_product_link` is the simpler way to drop one.
 
-`add_product_media` is the only tool in the module that needs real bytes. It
-takes base64 — there is no URL or file-path form — so in practice the image
-comes from a person. It checks the payload decodes, that it is genuinely an
-image, and that the bytes match the declared mime type *before* Magento is
-asked to store it, because Magento's own rejection arrives as a generic save
-failure after the upload attempt.
+**`save_bundle_option` replaces the option's selections**, for the same reason
+and with the same escape: handing Magento a `product_links` list makes that list
+the whole set, so any selection left out stops being offered. It takes the same
+`mode` — `replace` by default, `append` to carry the existing selections
+through — and omitting `product_links` entirely is how a title or position is
+changed without touching what the option offers. `add_bundle_selection` and
+`remove_bundle_selection` are the one-at-a-time forms.
+
+**`save_product_option` replaces a select option's values.** A choice left out
+of `values` is removed from the option; customers who already picked it keep it
+only on orders already placed. The option's `type` cannot be changed afterwards
+either — Magento would accept it and leave the stored values behind an input
+that no longer reads them — so the tool refuses and says to delete and recreate.
+
+Tools that need **real bytes** take base64, with no URL or file-path form, so in
+practice the file comes from a person: `add_product_media`, and the downloadable
+link and sample tools. All of them check the payload decodes and is within 4 MB
+*before* Magento is asked to store it, because Magento's own rejection arrives
+as a generic save failure after the upload attempt; `add_product_media`
+additionally checks the bytes are genuinely an image of the declared mime type.
+
+### Product types beyond simple and configurable
+
+`create_product` and `update_product` reach any product's own fields, but a
+bundle, a downloadable and a product with custom options each keep the thing
+that makes them sellable somewhere `update_product` does not go. These tools are
+those three places.
+
+**A downloadable link is a file the store sells.** `save_downloadable_link` with
+`link_type: "file"` puts bytes on disk that Magento then serves to anyone who
+bought the product — so it is worth being sure the store is entitled to
+distribute what is being uploaded. `save_downloadable_sample` is the sharper
+edge: **a sample is downloadable by anyone, without buying anything**, so the
+file being sold must never be uploaded there. A link carries its own optional
+sample through the `sample_*` arguments, which is a different thing from the
+product-level samples `save_downloadable_sample` manages; both are visible in
+the respective list tools, and neither list ever returns the bytes.
+
+**The type is checked before anything else.** Both sets of services accept any
+sku and then fail somewhere inside the type model, or quietly do nothing — a
+bundle option on a simple product, a downloadable link on a configurable. A
+product listing does not put the type in front of an agent, so it is checked
+once and the error says what the product actually is.
+
+**Custom options are not attributes.** A custom option belongs to one product
+and exists only there; an attribute is catalogue-wide and goes through
+`create_product_attribute` and `assign_product_attribute_to_set`. An agent
+reaching for `save_product_option` to add a field to every product is reaching
+for the wrong tool, and each tool's description says so.
+
+These tools add `magento/module-bundle` and `magento/module-downloadable` to the
+module's requirements. Both are Magento core, but both can be disabled on an
+installation that does not sell those product types, and the tool classes
+reference their `Api\*` interfaces — so `setup:di:compile` fails where they are
+absent, the same coupling the RMA section below describes. The same escape
+applies: move these files into a bridge module requiring both, contributing to
+the registry's `tools` argument, and nothing in this module changes.
+
+### Reading a category
+
+`get_category_tree` is the map; **`get_category` is the category itself** — the
+fields `update_category` writes, resolved at a `store_code` the way `get_product`
+resolves a product's. `list_category_products` is the inverse of
+`assign_product_to_category`, and reports direct assignments only: a product
+sitting in a child category is not listed, even where an anchor parent shows it
+on the storefront. It returns sku and position rather than whole products,
+because Magento's contract has no paged form and answers with every assignment
+the category has.
 
 ### What the deletes take with them
 

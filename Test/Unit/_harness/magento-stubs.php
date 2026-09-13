@@ -488,6 +488,121 @@ namespace Magento\Catalog\Api {
     }
 }
 
+namespace Magento\Catalog\Api\Data {
+    interface ProductInterface {
+        public function getSku(); public function getName(); public function getTypeId();
+        public function getStoreId(); public function getId();
+    }
+    interface ProductCustomOptionValuesInterface {
+        public function getOptionTypeId(); public function getTitle(); public function getSortOrder();
+        public function getPrice(); public function getPriceType(); public function getSku();
+        public function setTitle($v); public function setSortOrder($v); public function setPrice($v);
+        public function setPriceType($v); public function setSku($v);
+    }
+    interface ProductCustomOptionInterface {
+        public function getProductSku(); public function getOptionId(); public function getTitle();
+        public function getType(); public function getSortOrder(); public function getIsRequire();
+        public function getPrice(); public function getPriceType(); public function getSku();
+        public function getValues();
+        public function setProductSku($v); public function setOptionId($v); public function setTitle($v);
+        public function setType($v); public function setSortOrder($v); public function setIsRequire($v);
+        public function setPrice($v); public function setPriceType($v); public function setSku($v);
+        public function setValues(?array $v = null);
+    }
+}
+
+namespace Magento\Catalog\Api {
+    interface ProductRepositoryInterface {
+        public function get($sku, $editMode = false, $storeId = null, $forceReload = false);
+        public function getById($id, $editMode = false, $storeId = null, $forceReload = false);
+        public function save(\Magento\Catalog\Api\Data\ProductInterface $product, $saveOptions = false);
+        public function delete(\Magento\Catalog\Api\Data\ProductInterface $product);
+        public function deleteById($sku);
+        public function getList($searchCriteria);
+    }
+    interface ProductCustomOptionRepositoryInterface {
+        public function getList($sku); public function get($sku, $optionId);
+        public function save(\Magento\Catalog\Api\Data\ProductCustomOptionInterface $option);
+        public function delete(\Magento\Catalog\Api\Data\ProductCustomOptionInterface $option);
+        public function deleteByIdentifier($sku, $optionId);
+    }
+}
+
+namespace Magento\Bundle\Api\Data {
+    interface LinkInterface {
+        public function getId(); public function getSku(); public function getOptionId();
+        public function getQty(); public function getPosition(); public function getIsDefault();
+        public function getPrice(); public function getPriceType(); public function getCanChangeQuantity();
+        public function setId($v); public function setSku($v); public function setOptionId($v);
+        public function setQty($v); public function setPosition($v); public function setIsDefault($v);
+        public function setPrice($v); public function setPriceType($v); public function setCanChangeQuantity($v);
+    }
+    interface OptionInterface {
+        public function getOptionId(); public function getTitle(); public function getRequired();
+        public function getType(); public function getPosition(); public function getSku();
+        public function getProductLinks();
+        public function setOptionId($v); public function setTitle($v); public function setRequired($v);
+        public function setType($v); public function setPosition($v); public function setSku($v);
+        public function setProductLinks(?array $v = null);
+    }
+}
+
+namespace Magento\Bundle\Api {
+    interface ProductOptionRepositoryInterface {
+        public function getList($sku); public function get($sku, $optionId);
+        public function deleteById($sku, $optionId);
+    }
+    interface ProductOptionManagementInterface {
+        public function save(\Magento\Bundle\Api\Data\OptionInterface $option);
+        public function getList($sku);
+    }
+    interface ProductLinkManagementInterface {
+        public function getChildren($productSku, $optionId = null);
+        public function addChild(\Magento\Catalog\Api\Data\ProductInterface $product, $optionId, \Magento\Bundle\Api\Data\LinkInterface $linkedProduct);
+        public function saveChild($sku, \Magento\Bundle\Api\Data\LinkInterface $linkedProduct);
+        public function removeChild($sku, $optionId, $childSku);
+    }
+}
+
+namespace Magento\Downloadable\Api\Data\File {
+    interface ContentInterface {
+        public function getFileData(); public function setFileData($v);
+        public function getName(); public function setName($v);
+    }
+}
+
+namespace Magento\Downloadable\Api\Data {
+    interface LinkInterface {
+        public function getId(); public function getTitle(); public function getSortOrder();
+        public function getIsShareable(); public function getPrice(); public function getNumberOfDownloads();
+        public function getLinkType(); public function getLinkFile(); public function getLinkUrl();
+        public function getSampleType(); public function getSampleFile(); public function getSampleUrl();
+        public function setId($v); public function setTitle($v); public function setSortOrder($v);
+        public function setIsShareable($v); public function setPrice($v); public function setNumberOfDownloads($v);
+        public function setLinkType($v); public function setLinkUrl($v); public function setLinkFileContent($v = null);
+        public function setSampleType($v); public function setSampleUrl($v); public function setSampleFileContent($v = null);
+    }
+    interface SampleInterface {
+        public function getId(); public function getTitle(); public function getSortOrder();
+        public function getSampleType(); public function getSampleFile(); public function getSampleUrl();
+        public function setId($v); public function setTitle($v); public function setSortOrder($v);
+        public function setSampleType($v); public function setSampleUrl($v); public function setSampleFileContent($v = null);
+    }
+}
+
+namespace Magento\Downloadable\Api {
+    interface LinkRepositoryInterface {
+        public function getList($sku);
+        public function save($sku, \Magento\Downloadable\Api\Data\LinkInterface $link, $isGlobalScopeLink = false);
+        public function delete($id);
+    }
+    interface SampleRepositoryInterface {
+        public function getList($sku);
+        public function save($sku, \Magento\Downloadable\Api\Data\SampleInterface $sample, $isGlobalScopeSample = false);
+        public function delete($id);
+    }
+}
+
 namespace Magento\Cms\Api\Data {
     interface PageInterface {
         public function getId(); public function setId($id);

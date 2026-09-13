@@ -30,20 +30,19 @@ class AddProductMedia extends AbstractTool
     /** What Magento's image validator accepts. */
     private const MIME_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
 
-    /** Decoded size cap. Base64 in a JSON-RPC body is already costly at this size. */
-    private const MAX_BYTES = 4194304;
-
     /**
      * @param ProductAttributeMediaGalleryManagementInterface $mediaGallery
      * @param ProductAttributeMediaGalleryEntryInterfaceFactory $entryFactory
      * @param ImageContentInterfaceFactory $contentFactory
      * @param MediaEntryProjector $projector
+     * @param Base64Payload $payload
      */
     public function __construct(
         private readonly ProductAttributeMediaGalleryManagementInterface $mediaGallery,
         private readonly ProductAttributeMediaGalleryEntryInterfaceFactory $entryFactory,
         private readonly ImageContentInterfaceFactory $contentFactory,
-        private readonly MediaEntryProjector $projector
+        private readonly MediaEntryProjector $projector,
+        private readonly Base64Payload $payload
     ) {
     }
 
@@ -141,7 +140,12 @@ class AddProductMedia extends AbstractTool
             );
         }
 
-        $encoded = $this->assertDecodableImage($arguments, $mimeType);
+        $encoded = $this->requireString($arguments, 'base64_encoded_data');
+        $this->payload->assertImageMatches(
+            $this->payload->decode($encoded, 'base64_encoded_data'),
+            'base64_encoded_data',
+            $mimeType
+        );
 
         $content = $this->contentFactory->create();
         $content->setBase64EncodedData($encoded);
@@ -171,84 +175,6 @@ class AddProductMedia extends AbstractTool
             'sku' => $sku,
             'entry' => $this->projector->toArray($this->mediaGallery->get($sku, $entryId)),
         ];
-    }
-
-    /**
-     * Check the payload really is an image of the type it claims.
-     *
-     * Magento validates this too, but its failure arrives as a generic save
-     * error after the upload has been attempted. Refusing here names the actual
-     * problem — truncated base64, or a mime type that does not match the bytes.
-     *
-     * @param array<string, mixed> $arguments
-     * @param string $mimeType
-     * @return string
-     * @throws LocalizedException
-     */
-    private function assertDecodableImage(array $arguments, string $mimeType): string
-    {
-        $encoded = $this->requireString($arguments, 'base64_encoded_data');
-
-        // phpcs:ignore Magento2.Functions.DiscouragedFunction.Discouraged -- the MCP payload is base64 by protocol, and strict mode is what turns a truncated one into a named error.
-        $decoded = base64_decode($encoded, true);
-        if ($decoded === false) {
-            throw new LocalizedException(__(
-                'The "base64_encoded_data" argument is not valid base64. A truncated or re-wrapped '
-                . 'payload is the usual cause.'
-            ));
-        }
-
-        if ($decoded === '') {
-            throw new LocalizedException(__('The "base64_encoded_data" argument decoded to nothing.'));
-        }
-
-        if (strlen($decoded) > self::MAX_BYTES) {
-            throw new LocalizedException(__(
-                'The image is %1 bytes decoded, over the %2 byte limit.',
-                strlen($decoded),
-                self::MAX_BYTES
-            ));
-        }
-
-        $info = $this->readImageHeader($decoded);
-        if ($info === false) {
-            throw new LocalizedException(__(
-                'The "base64_encoded_data" argument does not decode to an image Magento can read.'
-            ));
-        }
-
-        $actual = (string) ($info['mime'] ?? '');
-        if ($actual !== $mimeType) {
-            throw new LocalizedException(__(
-                'The bytes are %1 but mime_type says %2. Pass the type that matches the image.',
-                $actual,
-                $mimeType
-            ));
-        }
-
-        return $encoded;
-    }
-
-    /**
-     * Read an image header without letting the failure reach the caller as a warning.
-     *
-     * `getimagesizefromstring()` raises a PHP warning on bytes it cannot parse,
-     * which is the ordinary case here — an agent passing something that is not
-     * an image. The handler swallows only that call's diagnostics; the return
-     * value is what this method reports on, and it is restored either way.
-     *
-     * @param string $bytes
-     * @return array<int|string, mixed>|false
-     */
-    private function readImageHeader(string $bytes): array|false
-    {
-        set_error_handler(static fn (): bool => true);
-
-        try {
-            return getimagesizefromstring($bytes);
-        } finally {
-            restore_error_handler();
-        }
     }
 
     /**

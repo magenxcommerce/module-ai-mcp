@@ -7,6 +7,7 @@ declare(strict_types=1);
 namespace Magenx\AiMcp\Test\Unit\Model\Tool\Media;
 
 use Magenx\AiMcp\Model\Tool\Media\AddProductMedia;
+use Magenx\AiMcp\Model\Tool\Media\Base64Payload;
 use Magenx\AiMcp\Model\Tool\Media\MediaEntryProjector;
 use Magenx\AiMcp\Test\Unit\GeneratedFactory;
 use Magento\Catalog\Api\Data\ProductAttributeMediaGalleryEntryInterface as Entry;
@@ -60,7 +61,8 @@ class AddProductMediaTest extends TestCase
             $this->mediaGallery,
             $entryFactory,
             $contentFactory,
-            new MediaEntryProjector()
+            new MediaEntryProjector(),
+            new Base64Payload()
         );
     }
 
