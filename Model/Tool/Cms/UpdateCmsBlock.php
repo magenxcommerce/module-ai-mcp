@@ -8,8 +8,6 @@ namespace Magenx\AiMcp\Model\Tool\Cms;
 
 use Magenx\AiMcp\Model\Tool\AbstractTool;
 use Magento\Cms\Api\BlockRepositoryInterface;
-use Magento\Cms\Api\Data\BlockInterface;
-use Magento\Framework\Api\SearchCriteriaBuilder;
 use Magento\Framework\Exception\LocalizedException;
 
 /**
@@ -19,11 +17,11 @@ class UpdateCmsBlock extends AbstractTool
 {
     /**
      * @param BlockRepositoryInterface $blockRepository
-     * @param SearchCriteriaBuilder $searchCriteriaBuilder
+     * @param BlockLocator $locator
      */
     public function __construct(
         private readonly BlockRepositoryInterface $blockRepository,
-        private readonly SearchCriteriaBuilder $searchCriteriaBuilder
+        private readonly BlockLocator $locator
     ) {
     }
 
@@ -89,7 +87,7 @@ class UpdateCmsBlock extends AbstractTool
     public function execute(array $arguments): array
     {
         $identifier = $this->requireString($arguments, 'identifier');
-        $block = $this->resolveBlock($identifier, $this->optionalInt($arguments, 'block_id'));
+        $block = $this->locator->locate($identifier, $this->optionalInt($arguments, 'block_id'), 'change');
 
         $changed = [];
         if (array_key_exists('title', $arguments)) {
@@ -119,45 +117,5 @@ class UpdateCmsBlock extends AbstractTool
             'title' => $saved->getTitle(),
             'is_active' => (bool) $saved->isActive(),
         ];
-    }
-
-    /**
-     * Find the one block this call means.
-     *
-     * A CMS block identifier is not unique — Magento allows the same identifier
-     * on several blocks assigned to different store views. Taking the first row
-     * would edit an arbitrary one of them and report success naming only the
-     * identifier, leaving the agent with no way to know what it changed. So an
-     * ambiguous identifier is an error that names the candidates instead.
-     *
-     * @param string $identifier
-     * @param int|null $blockId
-     * @return BlockInterface
-     * @throws LocalizedException
-     */
-    private function resolveBlock(string $identifier, ?int $blockId): BlockInterface
-    {
-        $this->searchCriteriaBuilder->addFilter('identifier', $identifier);
-        if ($blockId !== null) {
-            $this->searchCriteriaBuilder->addFilter('block_id', $blockId);
-        }
-        $matches = array_values($this->blockRepository->getList($this->searchCriteriaBuilder->create())->getItems());
-
-        if ($matches === []) {
-            throw new LocalizedException($blockId === null
-                ? __('No CMS block exists with identifier "%1".', $identifier)
-                : __('No CMS block exists with identifier "%1" and block_id %2.', $identifier, $blockId));
-        }
-
-        if (count($matches) > 1) {
-            throw new LocalizedException(__(
-                'The identifier "%1" matches %2 CMS blocks (block_id %3). Pass block_id to say which one to change.',
-                $identifier,
-                count($matches),
-                implode(', ', array_map(static fn (BlockInterface $b): string => (string) $b->getId(), $matches))
-            ));
-        }
-
-        return $matches[0];
     }
 }

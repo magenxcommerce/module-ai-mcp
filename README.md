@@ -66,6 +66,8 @@ same ACL role, so nothing is lost but the serializer.
 | `create_category` | ✓ | `Magento_Catalog::categories` |
 | `update_category` | ✓ | `Magento_Catalog::categories` |
 | `assign_product_to_category` | ✓ | `Magento_Catalog::categories` |
+| `get_category` | | `Magento_Catalog::categories` |
+| `list_category_products` | | `Magento_Catalog::categories` |
 | `list_cms_blocks` | | `Magento_Cms::block` |
 | `update_cms_block` | ✓ | `Magento_Cms::block` |
 | `search_orders` | | `Magento_Sales::actions_view` |
@@ -81,6 +83,15 @@ same ACL role, so nothing is lost but the serializer.
 | `create_shipment` | ✓ | `Magento_Sales::ship` |
 | `search_credit_memos` | | `Magento_Sales::sales_creditmemo` |
 | `create_credit_memo` | ✓ | `Magento_Sales::creditmemo` |
+| `get_invoice` | | `Magento_Sales::sales_invoice` |
+| `capture_invoice` | ✓ | `Magento_Sales::capture` |
+| `void_invoice` | ✓ | `Magento_Sales::capture` |
+| `get_shipment` | | `Magento_Sales::shipment` |
+| `add_shipment_track` | ✓ | `Magento_Sales::ship` |
+| `delete_shipment_track` | ✓ | `Magento_Sales::ship` |
+| `get_credit_memo` | | `Magento_Sales::sales_creditmemo` |
+| `send_order_email` | ✓ | `Magento_Sales::email` |
+| `update_order_address` | ✓ | `Magento_Sales::actions_edit` |
 | `search_customers` | | `Magento_Customer::manage` |
 | `get_customer` | | `Magento_Customer::manage` |
 | `list_customer_groups` | | `Magento_Customer::group` |
@@ -116,6 +127,7 @@ same ACL role, so nothing is lost but the serializer.
 | `delete_cms_page` | ✓ | `Magento_Cms::page_delete` |
 | `create_cms_block` | ✓ | `Magento_Cms::block` |
 | `delete_cms_block` | ✓ | `Magento_Cms::block` |
+| `get_cms_block` | | `Magento_Cms::block` |
 | `get_product_attribute` | | `Magento_Catalog::attributes_attributes` |
 | `create_product_attribute` | ✓ | `Magento_Catalog::attributes_attributes` |
 | `update_product_attribute` | ✓ | `Magento_Catalog::attributes_attributes` |
@@ -126,6 +138,15 @@ same ACL role, so nothing is lost but the serializer.
 | `assign_product_attribute_to_set` | ✓ | `Magento_Catalog::sets` |
 | `unassign_product_attribute_from_set` | ✓ | `Magento_Catalog::sets` |
 | `search_url_rewrites` | | `Magento_UrlRewrite::urlrewrite` |
+| `list_widget_instances` | | `Magento_Widget::widget_instance` |
+| `get_widget_instance` | | `Magento_Widget::widget_instance` |
+| `list_email_templates` | | `Magento_Email::template` |
+| `get_email_template` | | `Magento_Email::template` |
+| `update_email_template` | ✓ | `Magento_Email::template` |
+| `get_design_config` | | `Magento_Theme::design_config` |
+| `update_design_config` | ✓ | `Magento_Theme::design_config` |
+| `search_media_gallery_assets` | | `Magento_Cms::media_gallery` |
+| `upload_media_gallery_asset` | ✓ | `Magento_Cms::media_gallery` |
 | `list_product_media` | | `Magento_Catalog::products` |
 | `add_product_media` | ✓ | `Magento_Catalog::products` |
 | `update_product_media` | ✓ | `Magento_Catalog::products` |
@@ -137,6 +158,20 @@ same ACL role, so nothing is lost but the serializer.
 | `list_configurable_children` | | `Magento_Catalog::products` |
 | `add_configurable_child` | ✓ | `Magento_Catalog::products` |
 | `remove_configurable_child` | ✓ | `Magento_Catalog::products` |
+| `list_bundle_options` |  | `Magento_Catalog::products` |
+| `save_bundle_option` | ✓ | `Magento_Catalog::products` |
+| `delete_bundle_option` | ✓ | `Magento_Catalog::products` |
+| `add_bundle_selection` | ✓ | `Magento_Catalog::products` |
+| `remove_bundle_selection` | ✓ | `Magento_Catalog::products` |
+| `list_downloadable_links` |  | `Magento_Catalog::products` |
+| `save_downloadable_link` | ✓ | `Magento_Catalog::products` |
+| `delete_downloadable_link` | ✓ | `Magento_Catalog::products` |
+| `list_downloadable_samples` |  | `Magento_Catalog::products` |
+| `save_downloadable_sample` | ✓ | `Magento_Catalog::products` |
+| `delete_downloadable_sample` | ✓ | `Magento_Catalog::products` |
+| `list_product_options` |  | `Magento_Catalog::products` |
+| `save_product_option` | ✓ | `Magento_Catalog::products` |
+| `delete_product_option` | ✓ | `Magento_Catalog::products` |
 | `assign_product_to_website` | ✓ | `Magento_Catalog::products` |
 | `delete_product` | ✓ | `Magento_Catalog::products` |
 | `delete_category` | ✓ | `Magento_Catalog::categories` |
@@ -180,8 +215,13 @@ same ACL role, so nothing is lost but the serializer.
 | `get_config` | | `Magento_Config::config` |
 | `set_config` | ✓ | `Magento_Config::config` |
 | `flush_cache` | ✓ | `Magento_Backend::cache` |
+| `cache_status` | | `Magento_Backend::cache` |
+| `set_cache_state` | ✓ | `Magento_Backend::cache` |
 | `indexer_status` | | `Magento_Indexer::index` |
 | `invalidate_indexers` | ✓ | `Magento_Indexer::index` |
+| `cron_status` | | `Magenx_AiMcp::ops` |
+| `list_modules` | | `Magenx_AiMcp::ops` |
+| `read_audit_log` | | `Magenx_AiMcp::ops` |
 
 A tool the caller may not use is not *listed*, so an agent never plans around a
 capability it does not have.
@@ -190,7 +230,7 @@ capability it does not have.
 
 Every sales resource above is one of Magento's own, so an integration role is
 the only thing deciding how far an agent reaches into orders. They are worth
-ticking deliberately, because three of these tools cannot be undone:
+ticking deliberately, because five of these tools cannot be undone:
 
 - `create_credit_memo` with `invoice_id` and `refund_online` sends a refund to
   the payment gateway and **real money leaves the merchant account**. Without
@@ -201,6 +241,15 @@ ticking deliberately, because three of these tools cannot be undone:
 - `create_invoice` and `create_shipment` create documents that cannot be
   deleted. `create_invoice` with `capture: true` also captures payment through
   the gateway.
+- `capture_invoice` captures an invoice that was created without capturing, so
+  **real money leaves the customer's account**. Nothing reverses a capture:
+  undoing one means `create_credit_memo`, which is the other irreversible tool
+  on this list. It sits behind `Magento_Sales::capture`, the same resource
+  Magento's own capture and void buttons check — which is the resource to leave
+  unticked on an integration that should be able to invoice but not take money.
+- `void_invoice` tells the gateway to release the authorization instead. The
+  invoice document survives, canceled, because Magento never deletes one, and
+  billing that order again means creating a second invoice.
 - `cancel_order` releases reserved stock and cannot be undone.
 
 The `confirm: true` gate applies to all of them, but it is a single argument an
@@ -211,6 +260,46 @@ confident wrong one. ACL is the boundary that holds.
 line, derived from the five counters Magento actually stores. Those are the
 quantities the three creation tools accept; an agent should read them rather
 than assume the ordered quantity is still available.
+
+`get_invoice`, `get_shipment` and `get_credit_memo` are the same split applied
+to the documents an order produces: the `search_*` tools return the row, these
+return the lines, totals and comments. Each takes the document's own
+`entity_id` or its own `increment_id` — which is not the order's — and an
+increment id that matches more than one document is an error naming the
+candidates rather than an arbitrary pick, exactly as `get_order` handles it.
+An invoice's `state_label` is worth reading first: it is what decides whether
+`capture_invoice` and `void_invoice` will accept it, and both refuse an invoice
+that is not open rather than letting the gateway produce a generic save failure
+after the attempt.
+
+**A tracking number is a separate write from the shipment.** `create_shipment`
+does not require one, and a shipment without one leaves the customer with a
+dispatch e-mail and nothing to follow. `add_shipment_track` fills that in, and
+refuses a `carrier_code` this store has not configured with tracking enabled —
+Magento would otherwise store it happily and render a "Track this shipment"
+link that goes nowhere. The error names the codes the store does accept; `custom`
+is always one of them, and then `title` is required because it is the only thing
+naming the carrier to the customer. Neither adding nor deleting a track sends
+mail, so correcting a number already e-mailed out usually means adding the right
+one rather than only removing the wrong one.
+
+**`update_order_address` reaches the address through the order**, by
+`address_type`, rather than by an address id the caller supplies. Magento's
+address repository saves whatever `parent_id` the object it is handed carries,
+so an id from another order would move that address rather than fail — the trap
+`update_rma_item` guards against in the same way. Only the fields passed are
+changed, it does not move a shipment or label that already exists, it does not
+recalculate shipping or tax, and the customer is told nothing. A virtual order
+has no shipping address and says so rather than falling back to the billing one.
+
+**`send_order_email` reports whether the mail actually went.** Magento declines
+quietly when order e-mails are switched off for the store or the order cannot be
+notified, so the result carries `sent: false` in that case rather than an error.
+
+There is deliberately no tool that sets an order's status directly.
+`add_order_comment` already takes a `status`, and Magento restricts it to the
+statuses belonging to the order's current state; a free setter would bypass that
+and leave an order in a status its state does not allow.
 
 ### Customer tools handle personal data
 
@@ -338,6 +427,72 @@ rejects a label that already exists on the attribute, so the tool cannot create
 a duplicate; within a single `create_product_attribute` call it does not, so
 that tool checks for repeated labels itself.
 
+### Content the CMS tools do not cover
+
+CMS pages and blocks are the content an agent edits; these are the four places
+that decide where it appears and how it looks.
+
+**Blocks now resolve through one locator.** `get_cms_block`, `update_cms_block`
+and `delete_cms_block` share `BlockLocator`, so all three refuse an ambiguous
+identifier the same way and name the `block_id`s rather than acting on an
+arbitrary one. `get_cms_block` is the block-side counterpart of `get_cms_page`:
+`list_cms_blocks` finds an identifier, this reads the one block in full.
+
+**Widgets and e-mail templates have no `Api/` layer.** Both go through Magento's
+own models and collections — the same seam the admin grids use — which is a
+concrete-class dependency rather than an `@api` one, exactly as the help desk
+section below describes for `TicketManager`. A refactor upstream can break these
+in a way a service contract would not. The widget tools are read-only on
+purpose: a widget instance stores a layout handle and a serialised page-group
+blob, which is closer to `update_cms_page_design`'s layout XML than to editing
+content, and Magento gives it no separate grant to sit behind. Widgets are
+created and placed in the admin; `list_widget_instances` is usually the answer
+to "why is this block appearing on that page", because a widget places it rather
+than the page content referencing it.
+
+**`update_email_template` edits what customers receive**, on the next mail the
+store sends — there is no draft. Two things follow. Only templates that already
+exist as records can be edited: Magento's defaults ship as files and have no row
+until someone creates an override from one in the admin, so a built-in code is
+an error saying that rather than a template with no content. And a template body
+is Magento template markup, not HTML — its `{{...}}` directives are executed at
+render time, which makes it closer to code than to copy, and the tools say so.
+
+**Design configuration goes through its own repository**, not through
+`set_config`. Design values are validated and cached as a set, and a row written
+around that is a value the storefront may not pick up — so `update_design_config`
+loads the scope's own value objects and mutates them, and refuses a path that
+scope does not carry rather than accepting a write Magento would drop. It is a
+separate ACL resource from `Magento_Config::config` because Magento separates
+them, so an integration can be allowed to change the theme without being allowed
+to change payment settings. The scope rules in **Caveats** apply here too:
+omitting both codes writes the default that everything inherits.
+
+### Uploading into the media gallery
+
+`upload_media_gallery_asset` is the second tool in the module that takes real
+bytes, and the riskier of the two: `add_product_media` hands its file to
+Magento's gallery service, while this one writes into `pub/media`, which the web
+server hands out directly. A file there is a public URL the moment it exists.
+
+`Model/MediaPathPolicy.php` is what stands between a caller-supplied name and
+that URL, and it is hard-coded for the same reason `ConfigPathPolicy` is — the
+failure it prevents is not a trade-off a store should be able to opt into
+through a text field:
+
+- The destination is confined to the gallery root. A path that climbs out with
+  `..`, starts at `/`, hides a Windows separator, or carries a null byte is
+  refused rather than normalised into something plausible.
+- The extension has to match the mime type, and the mime type has to match the
+  bytes. `hero.phtml` holding a real JPEG is not a media file with the wrong
+  name; it is code in a directory the web server serves.
+- Nothing is ever overwritten. A name already in use is an error, because
+  replacing a file silently changes every page already pointing at it.
+
+`search_media_gallery_assets` requires at least one filter, for the same reason
+`search_url_rewrites` does — an unfiltered lookup returns every asset in the
+store.
+
 ### URL rewrites are read-only
 
 `search_url_rewrites` answers why a URL 404s or redirects. Creating and editing
@@ -349,8 +504,8 @@ filter, because an unfiltered one returns every rewrite in the store.
 
 ### Catalog depth: replace, not merge
 
-Two of Magento's catalog operations replace where they read like they add, and
-both are wrapped accordingly.
+Four of Magento's catalog operations replace where they read like they add, and
+all four are wrapped accordingly.
 
 **`update_product_media` loads the entry it is changing.** Magento's gallery
 update assigns the entry it is handed straight into the existing list
@@ -366,12 +521,74 @@ of that type you do not list is removed. Because "set these links" reads like
 behaviour, the default) or `append`, which reads the current links and carries
 them through. `delete_product_link` is the simpler way to drop one.
 
-`add_product_media` is the only tool in the module that needs real bytes. It
-takes base64 — there is no URL or file-path form — so in practice the image
-comes from a person. It checks the payload decodes, that it is genuinely an
-image, and that the bytes match the declared mime type *before* Magento is
-asked to store it, because Magento's own rejection arrives as a generic save
-failure after the upload attempt.
+**`save_bundle_option` replaces the option's selections**, for the same reason
+and with the same escape: handing Magento a `product_links` list makes that list
+the whole set, so any selection left out stops being offered. It takes the same
+`mode` — `replace` by default, `append` to carry the existing selections
+through — and omitting `product_links` entirely is how a title or position is
+changed without touching what the option offers. `add_bundle_selection` and
+`remove_bundle_selection` are the one-at-a-time forms.
+
+**`save_product_option` replaces a select option's values.** A choice left out
+of `values` is removed from the option; customers who already picked it keep it
+only on orders already placed. The option's `type` cannot be changed afterwards
+either — Magento would accept it and leave the stored values behind an input
+that no longer reads them — so the tool refuses and says to delete and recreate.
+
+Tools that need **real bytes** take base64, with no URL or file-path form, so in
+practice the file comes from a person: `add_product_media`, and the downloadable
+link and sample tools. All of them check the payload decodes and is within 4 MB
+*before* Magento is asked to store it, because Magento's own rejection arrives
+as a generic save failure after the upload attempt; `add_product_media`
+additionally checks the bytes are genuinely an image of the declared mime type.
+
+### Product types beyond simple and configurable
+
+`create_product` and `update_product` reach any product's own fields, but a
+bundle, a downloadable and a product with custom options each keep the thing
+that makes them sellable somewhere `update_product` does not go. These tools are
+those three places.
+
+**A downloadable link is a file the store sells.** `save_downloadable_link` with
+`link_type: "file"` puts bytes on disk that Magento then serves to anyone who
+bought the product — so it is worth being sure the store is entitled to
+distribute what is being uploaded. `save_downloadable_sample` is the sharper
+edge: **a sample is downloadable by anyone, without buying anything**, so the
+file being sold must never be uploaded there. A link carries its own optional
+sample through the `sample_*` arguments, which is a different thing from the
+product-level samples `save_downloadable_sample` manages; both are visible in
+the respective list tools, and neither list ever returns the bytes.
+
+**The type is checked before anything else.** Both sets of services accept any
+sku and then fail somewhere inside the type model, or quietly do nothing — a
+bundle option on a simple product, a downloadable link on a configurable. A
+product listing does not put the type in front of an agent, so it is checked
+once and the error says what the product actually is.
+
+**Custom options are not attributes.** A custom option belongs to one product
+and exists only there; an attribute is catalogue-wide and goes through
+`create_product_attribute` and `assign_product_attribute_to_set`. An agent
+reaching for `save_product_option` to add a field to every product is reaching
+for the wrong tool, and each tool's description says so.
+
+These tools add `magento/module-bundle` and `magento/module-downloadable` to the
+module's requirements. Both are Magento core, but both can be disabled on an
+installation that does not sell those product types, and the tool classes
+reference their `Api\*` interfaces — so `setup:di:compile` fails where they are
+absent, the same coupling the RMA section below describes. The same escape
+applies: move these files into a bridge module requiring both, contributing to
+the registry's `tools` argument, and nothing in this module changes.
+
+### Reading a category
+
+`get_category_tree` is the map; **`get_category` is the category itself** — the
+fields `update_category` writes, resolved at a `store_code` the way `get_product`
+resolves a product's. `list_category_products` is the inverse of
+`assign_product_to_category`, and reports direct assignments only: a product
+sitting in a child category is not listed, even where an anchor parent shows it
+on the storefront. It returns sku and position rather than whole products,
+because Magento's contract has no paged form and answers with every assignment
+the category has.
 
 ### What the deletes take with them
 
@@ -484,6 +701,42 @@ Add a tool from another module by contributing to the `tools` argument of
 `Magenx\AiMcp\Model\Tool\ToolRegistry` in `di.xml` and implementing
 `Magenx\AiMcp\Api\ToolInterface`. Every guard below applies to it automatically.
 
+### Diagnostics, and the one resource this module defines
+
+`cache_status` is the missing half of `flush_cache` and the cache-side
+counterpart of `indexer_status`. A change that "is not showing up" is nearly
+always one of three states it reports: a cache type that is invalidated and
+holding stale content, one that is enabled and simply not cleaned yet, or one
+that was switched off entirely — which is a performance problem rather than a
+staleness one, and invisible from the outside.
+
+`set_cache_state` is how a type is switched, and it counts as a write for the
+reason `flush_cache` does: no data changes, but a live site does. **The
+configuration cache cannot be disabled through this server.** Magento runs with
+any other type off, slowly; with `config` off it re-reads and re-merges every
+configuration file on every request, which on a live store is an outage — and
+re-enabling it through this same endpoint would be the first thing to time out.
+`bin/magento cache:disable` is still there for someone who means it.
+
+Three tools have no stock Magento resource that fits, because they describe the
+installation rather than the store, so they sit behind **`Magenx_AiMcp::ops`** —
+the only resource this module defines for tools of its own. It is declared under
+`Magenx_AiMcp::server` in `etc/acl.xml`, so ticking the server in a role's tree
+offers them together, and leaving it unticked means an integration can use the
+endpoint without reading any of them:
+
+- `cron_status` says whether cron is running at all. Several tools here hand
+  work to cron rather than doing it — `invalidate_indexers` marks indexers for a
+  rebuild only cron performs — so a store whose cron has stopped is a store
+  where those tools report success and nothing changes. An empty schedule
+  usually means cron has never run, not that every job succeeded.
+- `list_modules` reports what is installed and what is switched on. A disabled
+  module is installed and inert, which from the outside looks exactly like a
+  tool that silently does nothing.
+- `read_audit_log` reads this server's own log, and only that file: the name is
+  fixed and there is no path argument, because a log tool that can be pointed
+  elsewhere is a tool for reading any file the web server can.
+
 ## The four guards
 
 1. **The module switch.** `magenx_ai_mcp/general/enabled` is off by default; the
@@ -492,6 +745,9 @@ Add a tool from another module by contributing to the `tools` argument of
    endpoint, plus the tool's own resource to call it. The endpoint grant is
    checked in `Model/Protocol/Server.php` before any method is dispatched, so a
    token whose role lacks it cannot even complete `initialize`, and gets `403`.
+   Every tool's resource is one of Magento's own except `Magenx_AiMcp::ops`,
+   which this module declares for the three diagnostics Magento has no resource
+   for — see below.
 3. **The write switch.** `magenx_ai_mcp/security/allow_writes` is off by
    default. While off the endpoint is strictly read-only, whatever the ACL says.
 4. **The confirm gate.** A write tool called without `"confirm": true` returns a
@@ -506,7 +762,12 @@ the paths they want managed. `get_config` redacts secret values rather than
 returning them.
 
 Every attempted write is logged to `var/log/magenx_ai_mcp.log` with the calling
-integration, the arguments and the verdict.
+integration, the arguments and the verdict. `read_audit_log` reads the end of
+that file back, which is worth a deliberate decision rather than a reflex: the
+log cannot be erased or altered through this server, but an integration holding
+`Magenx_AiMcp::ops` can see which integration changed what. Grant it narrowly.
+That is the same argument as the "reads are not audited" note in the customer
+section, pointing the other way.
 
 ## Configuration
 
@@ -727,7 +988,8 @@ address.
 
 - **`invalidate_indexers` does not reindex.** A full reindex cannot finish
   inside an HTTP request, so the tool marks indexers invalid and cron rebuilds
-  them. Run `bin/magento indexer:reindex` for an immediate rebuild.
+  them. Run `bin/magento indexer:reindex` for an immediate rebuild, and
+  `cron_status` to check cron is running at all before waiting on it.
 - **`set_config` refreshes Magento's config cache but not a headless
   storefront's.** In this stack the Next.js app caches store config under its
   own ISR tag; purge it through the existing `/api/revalidate` path.
@@ -747,4 +1009,3 @@ address.
 - **`get_config` needs at least a section and a group.** A bare section (or `/`)
   is refused: it would return the entire merged configuration, and redaction
   only catches values whose *path* names them as secret.
-- Product deletion is deliberately not exposed.

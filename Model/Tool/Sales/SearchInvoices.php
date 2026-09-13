@@ -10,7 +10,6 @@ use Magento\Framework\Api\SearchCriteriaBuilder;
 use Magento\Framework\Api\SearchCriteriaInterface;
 use Magento\Framework\Api\SearchResultsInterface;
 use Magento\Framework\Api\SortOrderBuilder;
-use Magento\Sales\Api\Data\InvoiceInterface;
 use Magento\Sales\Api\InvoiceRepositoryInterface;
 
 /**
@@ -22,11 +21,13 @@ class SearchInvoices extends AbstractDocumentSearch
      * @param SearchCriteriaBuilder $searchCriteriaBuilder
      * @param SortOrderBuilder $sortOrderBuilder
      * @param InvoiceRepositoryInterface $invoiceRepository
+     * @param InvoiceProjector $invoiceProjector
      */
     public function __construct(
         SearchCriteriaBuilder $searchCriteriaBuilder,
         SortOrderBuilder $sortOrderBuilder,
-        private readonly InvoiceRepositoryInterface $invoiceRepository
+        private readonly InvoiceRepositoryInterface $invoiceRepository,
+        private readonly InvoiceProjector $invoiceProjector
     ) {
         parent::__construct($searchCriteriaBuilder, $sortOrderBuilder);
     }
@@ -69,20 +70,6 @@ class SearchInvoices extends AbstractDocumentSearch
      */
     protected function projectDocument(object $document): array
     {
-        /** @var InvoiceInterface $document */
-        return [
-            'entity_id' => (int) $document->getEntityId(),
-            'increment_id' => $document->getIncrementId(),
-            'order_id' => (int) $document->getOrderId(),
-            'store_id' => (int) $document->getStoreId(),
-            // 1 = open, 2 = paid, 3 = canceled.
-            'state' => $document->getState() === null ? null : (int) $document->getState(),
-            'grand_total' => $this->money($document->getGrandTotal()),
-            'base_grand_total' => $this->money($document->getBaseGrandTotal()),
-            'total_qty' => $this->money($document->getTotalQty()),
-            'total_refunded' => $this->money($document->getBaseTotalRefunded()),
-            'transaction_id' => $document->getTransactionId(),
-            'created_at' => $document->getCreatedAt(),
-        ];
+        return $this->invoiceProjector->toSummary($document);
     }
 }

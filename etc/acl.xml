@@ -10,14 +10,25 @@
  * Magento_Sales::creditmemo, ...), so an integration can be scoped to exactly
  * the surface it should manage. The sales resources are the finest grained of
  * these on purpose: refunding is a separate grant from invoicing, which is a
- * separate grant from viewing an order.
+ * separate grant from viewing an order. Magenx_AiMcp::ops is the one resource this module
+ * defines for tools of its own: the diagnostics that describe the installation rather than
+ * the store, which Magento has no resource for.
  */
 -->
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:Acl/etc/acl.xsd">
     <acl>
         <resources>
             <resource id="Magento_Backend::admin">
-                <resource id="Magenx_AiMcp::server" title="AI MCP Server" translate="title" sortOrder="200"/>
+                <resource id="Magenx_AiMcp::server" title="AI MCP Server" translate="title" sortOrder="200">
+                    <!--
+                        Cron state, the module list and this server's own audit log have no stock
+                        Magento resource that fits them. Defaulting those to the endpoint grant
+                        would mean any integration able to reach the server could read them, so
+                        they get a resource of their own, nested here because they describe this
+                        server rather than any part of the catalogue or the store.
+                    -->
+                    <resource id="Magenx_AiMcp::ops" title="AI MCP Server Diagnostics" translate="title" sortOrder="10"/>
+                </resource>
                 <resource id="Magento_Backend::stores">
                     <resource id="Magento_Backend::stores_settings">
                         <resource id="Magento_Config::config">

@@ -10,8 +10,6 @@ use Magento\Framework\Api\SearchCriteriaBuilder;
 use Magento\Framework\Api\SearchCriteriaInterface;
 use Magento\Framework\Api\SearchResultsInterface;
 use Magento\Framework\Api\SortOrderBuilder;
-use Magento\Sales\Api\Data\ShipmentInterface;
-use Magento\Sales\Api\Data\ShipmentTrackInterface;
 use Magento\Sales\Api\ShipmentRepositoryInterface;
 
 /**
@@ -23,11 +21,13 @@ class SearchShipments extends AbstractDocumentSearch
      * @param SearchCriteriaBuilder $searchCriteriaBuilder
      * @param SortOrderBuilder $sortOrderBuilder
      * @param ShipmentRepositoryInterface $shipmentRepository
+     * @param ShipmentProjector $shipmentProjector
      */
     public function __construct(
         SearchCriteriaBuilder $searchCriteriaBuilder,
         SortOrderBuilder $sortOrderBuilder,
-        private readonly ShipmentRepositoryInterface $shipmentRepository
+        private readonly ShipmentRepositoryInterface $shipmentRepository,
+        private readonly ShipmentProjector $shipmentProjector
     ) {
         parent::__construct($searchCriteriaBuilder, $sortOrderBuilder);
     }
@@ -70,24 +70,6 @@ class SearchShipments extends AbstractDocumentSearch
      */
     protected function projectDocument(object $document): array
     {
-        /** @var ShipmentInterface $document */
-        return [
-            'entity_id' => (int) $document->getEntityId(),
-            'increment_id' => $document->getIncrementId(),
-            'order_id' => (int) $document->getOrderId(),
-            'store_id' => (int) $document->getStoreId(),
-            'total_qty' => $this->money($document->getTotalQty()),
-            'has_shipping_label' => $document->getShippingLabel() !== null,
-            'tracks' => array_map(
-                static fn (ShipmentTrackInterface $track): array => [
-                    'entity_id' => (int) $track->getEntityId(),
-                    'track_number' => $track->getTrackNumber(),
-                    'carrier_code' => $track->getCarrierCode(),
-                    'title' => $track->getTitle(),
-                ],
-                array_values($document->getTracks() ?? [])
-            ),
-            'created_at' => $document->getCreatedAt(),
-        ];
+        return $this->shipmentProjector->toSummary($document);
     }
 }

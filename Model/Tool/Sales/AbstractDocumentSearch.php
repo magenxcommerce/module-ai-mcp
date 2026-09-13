@@ -131,16 +131,4 @@ abstract class AbstractDocumentSearch extends AbstractTool
             ),
         ];
     }
-
-    /**
-     * Magento returns monetary columns as strings; a model reads a number more
-     * reliably than "15.0000", and null must survive as null rather than 0.0.
-     *
-     * @param string|float|int|null $value
-     * @return float|null
-     */
-    protected function money(string|float|int|null $value): ?float
-    {
-        return $value === null ? null : (float) $value;
-    }
 }

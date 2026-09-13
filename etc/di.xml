@@ -22,6 +22,8 @@
                 <item name="create_category" xsi:type="object">Magenx\AiMcp\Model\Tool\Category\CreateCategory</item>
                 <item name="update_category" xsi:type="object">Magenx\AiMcp\Model\Tool\Category\UpdateCategory</item>
                 <item name="assign_product_to_category" xsi:type="object">Magenx\AiMcp\Model\Tool\Category\AssignProductToCategory</item>
+                <item name="get_category" xsi:type="object">Magenx\AiMcp\Model\Tool\Category\GetCategory</item>
+                <item name="list_category_products" xsi:type="object">Magenx\AiMcp\Model\Tool\Category\ListCategoryProducts</item>
                 <item name="list_cms_blocks" xsi:type="object">Magenx\AiMcp\Model\Tool\Cms\ListCmsBlocks</item>
                 <item name="update_cms_block" xsi:type="object">Magenx\AiMcp\Model\Tool\Cms\UpdateCmsBlock</item>
                 <item name="search_orders" xsi:type="object">Magenx\AiMcp\Model\Tool\Sales\SearchOrders</item>
@@ -37,6 +39,15 @@
                 <item name="create_shipment" xsi:type="object">Magenx\AiMcp\Model\Tool\Sales\CreateShipment</item>
                 <item name="search_credit_memos" xsi:type="object">Magenx\AiMcp\Model\Tool\Sales\SearchCreditMemos</item>
                 <item name="create_credit_memo" xsi:type="object">Magenx\AiMcp\Model\Tool\Sales\CreateCreditMemo</item>
+                <item name="get_invoice" xsi:type="object">Magenx\AiMcp\Model\Tool\Sales\GetInvoice</item>
+                <item name="capture_invoice" xsi:type="object">Magenx\AiMcp\Model\Tool\Sales\CaptureInvoice</item>
+                <item name="void_invoice" xsi:type="object">Magenx\AiMcp\Model\Tool\Sales\VoidInvoice</item>
+                <item name="get_shipment" xsi:type="object">Magenx\AiMcp\Model\Tool\Sales\GetShipment</item>
+                <item name="add_shipment_track" xsi:type="object">Magenx\AiMcp\Model\Tool\Sales\AddShipmentTrack</item>
+                <item name="delete_shipment_track" xsi:type="object">Magenx\AiMcp\Model\Tool\Sales\DeleteShipmentTrack</item>
+                <item name="get_credit_memo" xsi:type="object">Magenx\AiMcp\Model\Tool\Sales\GetCreditMemo</item>
+                <item name="send_order_email" xsi:type="object">Magenx\AiMcp\Model\Tool\Sales\SendOrderEmail</item>
+                <item name="update_order_address" xsi:type="object">Magenx\AiMcp\Model\Tool\Sales\UpdateOrderAddress</item>
                 <item name="search_customers" xsi:type="object">Magenx\AiMcp\Model\Tool\Customer\SearchCustomers</item>
                 <item name="get_customer" xsi:type="object">Magenx\AiMcp\Model\Tool\Customer\GetCustomer</item>
                 <item name="list_customer_groups" xsi:type="object">Magenx\AiMcp\Model\Tool\Customer\ListCustomerGroups</item>
@@ -72,6 +83,7 @@
                 <item name="delete_cms_page" xsi:type="object">Magenx\AiMcp\Model\Tool\Cms\DeleteCmsPage</item>
                 <item name="create_cms_block" xsi:type="object">Magenx\AiMcp\Model\Tool\Cms\CreateCmsBlock</item>
                 <item name="delete_cms_block" xsi:type="object">Magenx\AiMcp\Model\Tool\Cms\DeleteCmsBlock</item>
+                <item name="get_cms_block" xsi:type="object">Magenx\AiMcp\Model\Tool\Cms\GetCmsBlock</item>
                 <item name="get_product_attribute" xsi:type="object">Magenx\AiMcp\Model\Tool\Attribute\GetProductAttribute</item>
                 <item name="create_product_attribute" xsi:type="object">Magenx\AiMcp\Model\Tool\Attribute\CreateProductAttribute</item>
                 <item name="update_product_attribute" xsi:type="object">Magenx\AiMcp\Model\Tool\Attribute\UpdateProductAttribute</item>
@@ -82,6 +94,15 @@
                 <item name="assign_product_attribute_to_set" xsi:type="object">Magenx\AiMcp\Model\Tool\Attribute\AssignProductAttributeToSet</item>
                 <item name="unassign_product_attribute_from_set" xsi:type="object">Magenx\AiMcp\Model\Tool\Attribute\UnassignProductAttributeFromSet</item>
                 <item name="search_url_rewrites" xsi:type="object">Magenx\AiMcp\Model\Tool\UrlRewrite\SearchUrlRewrites</item>
+                <item name="list_widget_instances" xsi:type="object">Magenx\AiMcp\Model\Tool\Widget\ListWidgetInstances</item>
+                <item name="get_widget_instance" xsi:type="object">Magenx\AiMcp\Model\Tool\Widget\GetWidgetInstance</item>
+                <item name="list_email_templates" xsi:type="object">Magenx\AiMcp\Model\Tool\Email\ListEmailTemplates</item>
+                <item name="get_email_template" xsi:type="object">Magenx\AiMcp\Model\Tool\Email\GetEmailTemplate</item>
+                <item name="update_email_template" xsi:type="object">Magenx\AiMcp\Model\Tool\Email\UpdateEmailTemplate</item>
+                <item name="get_design_config" xsi:type="object">Magenx\AiMcp\Model\Tool\Design\GetDesignConfig</item>
+                <item name="update_design_config" xsi:type="object">Magenx\AiMcp\Model\Tool\Design\UpdateDesignConfig</item>
+                <item name="search_media_gallery_assets" xsi:type="object">Magenx\AiMcp\Model\Tool\MediaGallery\SearchMediaGalleryAssets</item>
+                <item name="upload_media_gallery_asset" xsi:type="object">Magenx\AiMcp\Model\Tool\MediaGallery\UploadMediaGalleryAsset</item>
                 <item name="list_product_media" xsi:type="object">Magenx\AiMcp\Model\Tool\Media\ListProductMedia</item>
                 <item name="add_product_media" xsi:type="object">Magenx\AiMcp\Model\Tool\Media\AddProductMedia</item>
                 <item name="update_product_media" xsi:type="object">Magenx\AiMcp\Model\Tool\Media\UpdateProductMedia</item>
@@ -93,6 +114,20 @@
                 <item name="list_configurable_children" xsi:type="object">Magenx\AiMcp\Model\Tool\Configurable\ListConfigurableChildren</item>
                 <item name="add_configurable_child" xsi:type="object">Magenx\AiMcp\Model\Tool\Configurable\AddConfigurableChild</item>
                 <item name="remove_configurable_child" xsi:type="object">Magenx\AiMcp\Model\Tool\Configurable\RemoveConfigurableChild</item>
+                <item name="list_bundle_options" xsi:type="object">Magenx\AiMcp\Model\Tool\Bundle\ListBundleOptions</item>
+                <item name="save_bundle_option" xsi:type="object">Magenx\AiMcp\Model\Tool\Bundle\SaveBundleOption</item>
+                <item name="delete_bundle_option" xsi:type="object">Magenx\AiMcp\Model\Tool\Bundle\DeleteBundleOption</item>
+                <item name="add_bundle_selection" xsi:type="object">Magenx\AiMcp\Model\Tool\Bundle\AddBundleSelection</item>
+                <item name="remove_bundle_selection" xsi:type="object">Magenx\AiMcp\Model\Tool\Bundle\RemoveBundleSelection</item>
+                <item name="list_downloadable_links" xsi:type="object">Magenx\AiMcp\Model\Tool\Downloadable\ListDownloadableLinks</item>
+                <item name="save_downloadable_link" xsi:type="object">Magenx\AiMcp\Model\Tool\Downloadable\SaveDownloadableLink</item>
+                <item name="delete_downloadable_link" xsi:type="object">Magenx\AiMcp\Model\Tool\Downloadable\DeleteDownloadableLink</item>
+                <item name="list_downloadable_samples" xsi:type="object">Magenx\AiMcp\Model\Tool\Downloadable\ListDownloadableSamples</item>
+                <item name="save_downloadable_sample" xsi:type="object">Magenx\AiMcp\Model\Tool\Downloadable\SaveDownloadableSample</item>
+                <item name="delete_downloadable_sample" xsi:type="object">Magenx\AiMcp\Model\Tool\Downloadable\DeleteDownloadableSample</item>
+                <item name="list_product_options" xsi:type="object">Magenx\AiMcp\Model\Tool\Catalog\Option\ListProductOptions</item>
+                <item name="save_product_option" xsi:type="object">Magenx\AiMcp\Model\Tool\Catalog\Option\SaveProductOption</item>
+                <item name="delete_product_option" xsi:type="object">Magenx\AiMcp\Model\Tool\Catalog\Option\DeleteProductOption</item>
                 <item name="assign_product_to_website" xsi:type="object">Magenx\AiMcp\Model\Tool\Catalog\AssignProductToWebsite</item>
                 <item name="delete_product" xsi:type="object">Magenx\AiMcp\Model\Tool\Catalog\DeleteProduct</item>
                 <item name="delete_category" xsi:type="object">Magenx\AiMcp\Model\Tool\Category\DeleteCategory</item>
@@ -136,8 +171,13 @@
                 <item name="get_config" xsi:type="object">Magenx\AiMcp\Model\Tool\Config\GetConfig</item>
                 <item name="set_config" xsi:type="object">Magenx\AiMcp\Model\Tool\Config\SetConfig</item>
                 <item name="flush_cache" xsi:type="object">Magenx\AiMcp\Model\Tool\Ops\FlushCache</item>
+                <item name="cache_status" xsi:type="object">Magenx\AiMcp\Model\Tool\Ops\CacheStatus</item>
+                <item name="set_cache_state" xsi:type="object">Magenx\AiMcp\Model\Tool\Ops\SetCacheState</item>
                 <item name="indexer_status" xsi:type="object">Magenx\AiMcp\Model\Tool\Ops\IndexerStatus</item>
                 <item name="invalidate_indexers" xsi:type="object">Magenx\AiMcp\Model\Tool\Ops\InvalidateIndexers</item>
+                <item name="cron_status" xsi:type="object">Magenx\AiMcp\Model\Tool\Ops\CronStatus</item>
+                <item name="list_modules" xsi:type="object">Magenx\AiMcp\Model\Tool\Ops\ListModules</item>
+                <item name="read_audit_log" xsi:type="object">Magenx\AiMcp\Model\Tool\Ops\ReadAuditLog</item>
             </argument>
         </arguments>
     </type>

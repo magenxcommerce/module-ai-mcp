@@ -27,6 +27,14 @@ use Magento\Sales\Api\Data\OrderItemInterface;
 class OrderProjector
 {
     /**
+     * @param OrderAddresses $addresses
+     */
+    public function __construct(
+        private readonly OrderAddresses $addresses
+    ) {
+    }
+
+    /**
      * The identifying and financial headline of an order.
      *
      * @param OrderInterface $order
@@ -91,8 +99,8 @@ class OrderProjector
             ];
         }
 
-        $detail['billing_address'] = $this->address($order->getBillingAddress());
-        $detail['shipping_address'] = $this->address($this->findShippingAddress($order));
+        $detail['billing_address'] = $this->address($this->addresses->billing($order));
+        $detail['shipping_address'] = $this->address($this->addresses->shipping($order));
 
         $items = [];
         foreach ($order->getItems() ?? [] as $item) {
@@ -163,30 +171,6 @@ class OrderProjector
             'country_id' => $address->getCountryId(),
             'telephone' => $address->getTelephone(),
         ];
-    }
-
-    /**
-     * The shipping address, which OrderInterface does not expose directly.
-     *
-     * It lives on the shipping assignment extension attribute, and a virtual
-     * order has none at all, so every step here is guarded.
-     *
-     * @param OrderInterface $order
-     * @return OrderAddressInterface|null
-     */
-    private function findShippingAddress(OrderInterface $order): ?OrderAddressInterface
-    {
-        $extension = $order->getExtensionAttributes();
-        if ($extension === null || !method_exists($extension, 'getShippingAssignments')) {
-            return null;
-        }
-
-        $assignments = $extension->getShippingAssignments();
-        if (!is_array($assignments) || $assignments === []) {
-            return null;
-        }
-
-        return $assignments[0]->getShipping()?->getAddress();
     }
 
     /**

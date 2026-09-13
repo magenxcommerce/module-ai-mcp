@@ -8,9 +8,6 @@ namespace Magenx\AiMcp\Model\Tool\Cms;
 
 use Magenx\AiMcp\Model\Tool\AbstractTool;
 use Magento\Cms\Api\BlockRepositoryInterface;
-use Magento\Cms\Api\Data\BlockInterface;
-use Magento\Framework\Api\SearchCriteriaBuilder;
-use Magento\Framework\Exception\LocalizedException;
 
 /**
  * Delete a CMS block.
@@ -19,11 +16,11 @@ class DeleteCmsBlock extends AbstractTool
 {
     /**
      * @param BlockRepositoryInterface $blockRepository
-     * @param SearchCriteriaBuilder $searchCriteriaBuilder
+     * @param BlockLocator $locator
      */
     public function __construct(
         private readonly BlockRepositoryInterface $blockRepository,
-        private readonly SearchCriteriaBuilder $searchCriteriaBuilder
+        private readonly BlockLocator $locator
     ) {
     }
 
@@ -89,32 +86,11 @@ class DeleteCmsBlock extends AbstractTool
     public function execute(array $arguments): array
     {
         $identifier = $this->requireString($arguments, 'identifier');
-        $blockId = $this->optionalInt($arguments, 'block_id');
-
-        $this->searchCriteriaBuilder->addFilter('identifier', $identifier);
-        if ($blockId !== null) {
-            $this->searchCriteriaBuilder->addFilter('block_id', $blockId);
-        }
-        $matches = array_values($this->blockRepository->getList($this->searchCriteriaBuilder->create())->getItems());
-
-        if ($matches === []) {
-            throw new LocalizedException($blockId === null
-                ? __('No CMS block exists with identifier "%1".', $identifier)
-                : __('No CMS block exists with identifier "%1" and block_id %2.', $identifier, $blockId));
-        }
 
         // Deleting an arbitrary one of several same-named blocks is worse here
-        // than when updating: there is nothing to undo.
-        if (count($matches) > 1) {
-            throw new LocalizedException(__(
-                'The identifier "%1" matches %2 CMS blocks (block_id %3). Pass block_id to say which one to delete.',
-                $identifier,
-                count($matches),
-                implode(', ', array_map(static fn (BlockInterface $b): string => (string) $b->getId(), $matches))
-            ));
-        }
-
-        $block = $matches[0];
+        // than when updating: there is nothing to undo. The locator refuses an
+        // ambiguous identifier for both.
+        $block = $this->locator->locate($identifier, $this->optionalInt($arguments, 'block_id'), 'delete');
         $deleted = [
             'block_id' => (int) $block->getId(),
             'identifier' => $block->getIdentifier(),
