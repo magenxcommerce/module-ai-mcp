@@ -262,15 +262,22 @@ class Server
     private function buildInputSchema(ToolInterface $tool): array
     {
         $schema = $tool->getInputSchema();
-        if (!$tool->isWrite()) {
-            return $schema;
+        $properties = (array) ($schema['properties'] ?? []);
+
+        if ($tool->isWrite()) {
+            $properties['confirm'] = [
+                'type' => 'boolean',
+                'description' => 'Set true to apply the change. Omit or set false to receive a preview '
+                    . 'of exactly what would be changed, without changing anything.',
+            ];
         }
 
-        $schema['properties']['confirm'] = [
-            'type' => 'boolean',
-            'description' => 'Set true to apply the change. Omit or set false to receive a preview '
-                . 'of exactly what would be changed, without changing anything.',
-        ];
+        // A tool that takes no arguments still has to advertise `properties` as
+        // an empty *object*. PHP's empty array serializes as `[]`, which is not
+        // a valid JSON Schema value there, and a client that validates the
+        // whole `tools/list` response can drop every tool over the one bad
+        // schema. Normalizing here means no tool can reintroduce that.
+        $schema['properties'] = $properties === [] ? new \stdClass() : $properties;
 
         return $schema;
     }
