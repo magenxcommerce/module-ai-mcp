@@ -47,7 +47,7 @@ class ListProductLinkTypes extends AbstractTool
      */
     public function getInputSchema(): array
     {
-        return ['type' => 'object', 'properties' => [], 'additionalProperties' => false];
+        return ['type' => 'object', 'properties' => (object) [], 'additionalProperties' => false];
     }
 
     /**

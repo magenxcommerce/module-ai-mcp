@@ -451,3 +451,17 @@ namespace Magento\Framework\Api\Data {
         public function getName(); public function setName($n);
     }
 }
+
+namespace Magento\Framework\App\Config {
+    interface ScopeConfigInterface {
+        public function getValue($path, $scopeType = 'default', $scopeCode = null);
+        public function isSetFlag($path, $scopeType = 'default', $scopeCode = null);
+    }
+}
+
+namespace Magento\Framework\Serialize\Serializer {
+    class Json {
+        public function serialize($data) { return json_encode($data); }
+        public function unserialize($string) { return json_decode($string, true); }
+    }
+}
