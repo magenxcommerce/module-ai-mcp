@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.0](https://github.com/magenxcommerce/module-ai-mcp/compare/v1.2.0...v1.3.0) (2026-09-14)
+
+
+### Features
+
+* add search_admin_users so assignment ids can be discovered ([#14](https://github.com/magenxcommerce/module-ai-mcp/issues/14)) ([fa94a66](https://github.com/magenxcommerce/module-ai-mcp/commit/fa94a66c0cec8dbda7991933d23885f5768e3de5))
+
 ## [1.2.0](https://github.com/magenxcommerce/module-ai-mcp/compare/v1.1.1...v1.2.0) (2026-09-13)
 
 
