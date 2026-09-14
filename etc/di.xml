@@ -60,6 +60,7 @@
                 <item name="initiate_password_reset" xsi:type="object">Magenx\AiMcp\Model\Tool\Customer\InitiatePasswordReset</item>
                 <item name="invalidate_customer_tokens" xsi:type="object">Magenx\AiMcp\Model\Tool\Customer\InvalidateCustomerTokens</item>
                 <item name="set_newsletter_subscription" xsi:type="object">Magenx\AiMcp\Model\Tool\Customer\SetNewsletterSubscription</item>
+                <item name="search_admin_users" xsi:type="object">Magenx\AiMcp\Model\Tool\User\SearchAdminUsers</item>
                 <item name="get_stock" xsi:type="object">Magenx\AiMcp\Model\Tool\Inventory\GetStock</item>
                 <item name="update_stock" xsi:type="object">Magenx\AiMcp\Model\Tool\Inventory\UpdateStock</item>
                 <item name="search_low_stock" xsi:type="object">Magenx\AiMcp\Model\Tool\Inventory\SearchLowStock</item>

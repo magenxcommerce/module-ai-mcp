@@ -732,3 +732,24 @@ namespace Magento\Framework\Serialize\Serializer {
         public function unserialize($string) { return json_decode($string, true); }
     }
 }
+
+namespace Magento\User\Model {
+    class User {
+        public function getId() {}
+        public function getData($key = null, $index = null) {}
+    }
+}
+
+namespace Magento\User\Model\ResourceModel\User {
+    class Collection implements \IteratorAggregate {
+        public function addFieldToFilter($field, $condition = null) { return $this; }
+        public function setOrder($field, $direction = 'DESC') { return $this; }
+        public function setPageSize($size) { return $this; }
+        public function setCurPage($page) { return $this; }
+        public function getSize() { return 0; }
+        public function getIterator(): \Traversable { return new \ArrayIterator([]); }
+    }
+    class CollectionFactory {
+        public function create(array $data = []) { return null; }
+    }
+}
