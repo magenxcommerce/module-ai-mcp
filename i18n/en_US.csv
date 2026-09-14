@@ -34,7 +34,7 @@
 "No CMS page exists with identifier ""%1"".","No CMS page exists with identifier ""%1""."
 "No CMS page exists with page_id %1.","No CMS page exists with page_id %1."
 "No RMA %1 exists with entity_id %2.","No RMA %1 exists with entity_id %2."
-"No admin user exists with admin_user_id %1.","No admin user exists with admin_user_id %1."
+"No admin user exists with admin_user_id %1. search_admin_users reports the ids.","No admin user exists with admin_user_id %1. search_admin_users reports the ids."
 "No attribute set exists with attribute_set_id %1.","No attribute set exists with attribute_set_id %1."
 "No cart price rule exists with rule_id %1.","No cart price rule exists with rule_id %1."
 "No catalog price rule exists with rule_id %1.","No catalog price rule exists with rule_id %1."

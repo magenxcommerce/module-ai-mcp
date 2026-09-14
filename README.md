@@ -104,6 +104,7 @@ same ACL role, so nothing is lost but the serializer.
 | `initiate_password_reset` | ✓ | `Magento_Customer::reset_password` |
 | `invalidate_customer_tokens` | ✓ | `Magento_Customer::invalidate_tokens` |
 | `set_newsletter_subscription` | ✓ | `Magento_Newsletter::subscriber` |
+| `search_admin_users` | | `Magento_User::acl_users` |
 | `get_stock` | | `Magento_CatalogInventory::cataloginventory` |
 | `update_stock` | ✓ | `Magento_CatalogInventory::cataloginventory` |
 | `search_low_stock` | | `Magento_CatalogInventory::cataloginventory` |
@@ -700,6 +701,32 @@ point the store's mail intake at someone else's mailbox.
 Add a tool from another module by contributing to the `tools` argument of
 `Magenx\AiMcp\Model\Tool\ToolRegistry` in `di.xml` and implementing
 `Magenx\AiMcp\Api\ToolInterface`. Every guard below applies to it automatically.
+
+### Admin users: enough to assign work, and no more
+
+`assign_helpdesk_ticket` refuses an `admin_user_id` that does not exist, which
+left assignment as the one workflow an agent could not complete on its own: the
+id had to come from outside the conversation. `search_admin_users` is the lookup
+that closes that — help desk tickets assign to core admin users, so it serves
+Magento-proper assignment and the help desk alike, and there is no separate
+help desk agent table behind it.
+
+It is a **whitelist projection, not a filtered row**. `admin_user` also holds
+the password hash, the password-reset token and the lockout counters; the tool
+returns the id, username, name, email, active flag and last login, and nothing
+that could be replayed as a credential. It sits behind Magento's own
+`Magento_User::acl_users` — the "All Users" resource — so an integration that
+should not enumerate staff simply does not get it, and the tool is then neither
+listed nor callable.
+
+Admin identities are personal data too, and the note about customer reads
+applies unchanged here: reads are not audited, so grant the resource to the
+integrations that need it rather than by default.
+
+There is deliberately no tool that creates, edits or disables an admin user, and
+none that touches roles. An endpoint that could mint an admin account, or widen
+the role its own token authorizes against, would make every other guard in this
+module advisory.
 
 ### Diagnostics, and the one resource this module defines
 

@@ -47,7 +47,8 @@ class AssignHelpdeskTicket extends AbstractTool
     {
         return 'Assign a ticket to an admin user, or pass null to leave it unassigned. Assigning '
             . 'it to someone new emails that person — staff, not the customer, who sees nothing. '
-            . 'Re-assigning to whoever already holds it sends nothing.';
+            . 'Re-assigning to whoever already holds it sends nothing. search_admin_users reports '
+            . 'the ids.';
     }
 
     /**
@@ -62,8 +63,9 @@ class AssignHelpdeskTicket extends AbstractTool
                 [
                     'admin_user_id' => [
                         'type' => ['integer', 'null'],
-                        'description' => 'The admin user to assign it to. Null clears the '
-                            . 'assignment and returns the ticket to the unassigned queue.',
+                        'description' => 'The admin user to assign it to; search_admin_users '
+                            . 'reports the ids. Null clears the assignment and returns the ticket '
+                            . 'to the unassigned queue.',
                     ],
                 ]
             ),
@@ -149,7 +151,7 @@ class AssignHelpdeskTicket extends AbstractTool
 
         if ($user === null || !$user->getId()) {
             throw new LocalizedException(
-                __('No admin user exists with admin_user_id %1.', $userId)
+                __('No admin user exists with admin_user_id %1. search_admin_users reports the ids.', $userId)
             );
         }
 
