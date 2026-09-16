@@ -51,6 +51,9 @@
                 <item name="search_customers" xsi:type="object">Magenx\AiMcp\Model\Tool\Customer\SearchCustomers</item>
                 <item name="get_customer" xsi:type="object">Magenx\AiMcp\Model\Tool\Customer\GetCustomer</item>
                 <item name="list_customer_groups" xsi:type="object">Magenx\AiMcp\Model\Tool\Customer\ListCustomerGroups</item>
+                <item name="create_customer_group" xsi:type="object">Magenx\AiMcp\Model\Tool\Customer\CreateCustomerGroup</item>
+                <item name="update_customer_group" xsi:type="object">Magenx\AiMcp\Model\Tool\Customer\UpdateCustomerGroup</item>
+                <item name="delete_customer_group" xsi:type="object">Magenx\AiMcp\Model\Tool\Customer\DeleteCustomerGroup</item>
                 <item name="create_customer" xsi:type="object">Magenx\AiMcp\Model\Tool\Customer\CreateCustomer</item>
                 <item name="update_customer" xsi:type="object">Magenx\AiMcp\Model\Tool\Customer\UpdateCustomer</item>
                 <item name="delete_customer" xsi:type="object">Magenx\AiMcp\Model\Tool\Customer\DeleteCustomer</item>
@@ -70,12 +73,17 @@
                 <item name="search_cart_price_rules" xsi:type="object">Magenx\AiMcp\Model\Tool\Promotion\SearchCartPriceRules</item>
                 <item name="get_cart_price_rule" xsi:type="object">Magenx\AiMcp\Model\Tool\Promotion\GetCartPriceRule</item>
                 <item name="update_cart_price_rule" xsi:type="object">Magenx\AiMcp\Model\Tool\Promotion\UpdateCartPriceRule</item>
+                <item name="create_cart_price_rule" xsi:type="object">Magenx\AiMcp\Model\Tool\Promotion\CreateCartPriceRule</item>
+                <item name="delete_cart_price_rule" xsi:type="object">Magenx\AiMcp\Model\Tool\Promotion\DeleteCartPriceRule</item>
                 <item name="generate_coupons" xsi:type="object">Magenx\AiMcp\Model\Tool\Promotion\GenerateCoupons</item>
                 <item name="search_coupons" xsi:type="object">Magenx\AiMcp\Model\Tool\Promotion\SearchCoupons</item>
                 <item name="delete_coupons" xsi:type="object">Magenx\AiMcp\Model\Tool\Promotion\DeleteCoupons</item>
                 <item name="search_catalog_price_rules" xsi:type="object">Magenx\AiMcp\Model\Tool\Promotion\SearchCatalogPriceRules</item>
                 <item name="get_catalog_price_rule" xsi:type="object">Magenx\AiMcp\Model\Tool\Promotion\GetCatalogPriceRule</item>
                 <item name="update_catalog_price_rule" xsi:type="object">Magenx\AiMcp\Model\Tool\Promotion\UpdateCatalogPriceRule</item>
+                <item name="create_catalog_price_rule" xsi:type="object">Magenx\AiMcp\Model\Tool\Promotion\CreateCatalogPriceRule</item>
+                <item name="delete_catalog_price_rule" xsi:type="object">Magenx\AiMcp\Model\Tool\Promotion\DeleteCatalogPriceRule</item>
+                <item name="apply_catalog_price_rules" xsi:type="object">Magenx\AiMcp\Model\Tool\Promotion\ApplyCatalogPriceRules</item>
                 <item name="search_cms_pages" xsi:type="object">Magenx\AiMcp\Model\Tool\Cms\SearchCmsPages</item>
                 <item name="get_cms_page" xsi:type="object">Magenx\AiMcp\Model\Tool\Cms\GetCmsPage</item>
                 <item name="create_cms_page" xsi:type="object">Magenx\AiMcp\Model\Tool\Cms\CreateCmsPage</item>
@@ -104,6 +112,7 @@
                 <item name="update_design_config" xsi:type="object">Magenx\AiMcp\Model\Tool\Design\UpdateDesignConfig</item>
                 <item name="search_media_gallery_assets" xsi:type="object">Magenx\AiMcp\Model\Tool\MediaGallery\SearchMediaGalleryAssets</item>
                 <item name="upload_media_gallery_asset" xsi:type="object">Magenx\AiMcp\Model\Tool\MediaGallery\UploadMediaGalleryAsset</item>
+                <item name="delete_media_gallery_asset" xsi:type="object">Magenx\AiMcp\Model\Tool\MediaGallery\DeleteMediaGalleryAsset</item>
                 <item name="list_product_media" xsi:type="object">Magenx\AiMcp\Model\Tool\Media\ListProductMedia</item>
                 <item name="add_product_media" xsi:type="object">Magenx\AiMcp\Model\Tool\Media\AddProductMedia</item>
                 <item name="update_product_media" xsi:type="object">Magenx\AiMcp\Model\Tool\Media\UpdateProductMedia</item>

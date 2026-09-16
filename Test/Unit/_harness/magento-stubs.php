@@ -79,6 +79,10 @@ namespace Magento\Framework\Exception {
     class ValidatorException extends LocalizedException {}
 }
 
+namespace Magento\Framework\Exception\State {
+    class InvalidTransitionException extends \Magento\Framework\Exception\LocalizedException {}
+}
+
 namespace Magento\Framework {
     class Phrase {
         public function __construct(private $text = '', private array $arguments = []) {}
@@ -1086,4 +1090,144 @@ namespace Magenx\Gdpr\Model\ResourceModel\Cookie {
 namespace Magenx\Gdpr\Model\ResourceModel\CookieGroup {
     class Collection extends \Magenx\Gdpr\Model\ResourceModel\DsrRequest\Collection {}
     class CollectionFactory { public function create(array $data = []) { return null; } }
+}
+
+namespace Magento\Customer\Api\Data {
+    interface GroupInterface {
+        public function getId(); public function setId($id);
+        public function getCode(); public function setCode($code);
+        public function getTaxClassId(); public function setTaxClassId($id);
+        public function getTaxClassName(); public function setTaxClassName($name);
+    }
+}
+
+namespace Magento\Customer\Api {
+    interface GroupRepositoryInterface {
+        public function save(\Magento\Customer\Api\Data\GroupInterface $group);
+        public function getById($id);
+        public function getList(\Magento\Framework\Api\SearchCriteriaInterface $criteria);
+        public function delete(\Magento\Customer\Api\Data\GroupInterface $group);
+        public function deleteById($id);
+    }
+    interface CustomerRepositoryInterface {
+        public function save($customer, $passwordHash = null);
+        public function get($email, $websiteId = null);
+        public function getById($id);
+        public function getList(\Magento\Framework\Api\SearchCriteriaInterface $criteria);
+        public function delete($customer);
+        public function deleteById($id);
+    }
+}
+
+namespace Magento\SalesRule\Api\Data {
+    interface ConditionInterface {
+        public function getConditionType(); public function setConditionType($type);
+        public function getConditions(); public function setConditions(?array $conditions = null);
+        public function getAggregatorType(); public function setAggregatorType($type);
+        public function getOperator(); public function setOperator($operator);
+        public function getAttributeName(); public function setAttributeName($name);
+        public function getValue(); public function setValue($value);
+    }
+    interface RuleInterface {
+        public function getRuleId(); public function setRuleId($id);
+        public function getName(); public function setName($name);
+        public function getDescription(); public function setDescription($description);
+        public function getIsActive(); public function setIsActive($isActive);
+        public function getCondition(); public function setCondition(?ConditionInterface $condition = null);
+        public function getActionCondition(); public function setActionCondition(?ConditionInterface $condition = null);
+        public function getSimpleAction(); public function setSimpleAction($action);
+        public function getDiscountAmount(); public function setDiscountAmount($amount);
+        public function getWebsiteIds(); public function setWebsiteIds($ids);
+        public function getCustomerGroupIds(); public function setCustomerGroupIds($ids);
+        public function getFromDate(); public function setFromDate($date);
+        public function getToDate(); public function setToDate($date);
+        public function getSortOrder(); public function setSortOrder($order);
+        public function getUsesPerCustomer(); public function setUsesPerCustomer($uses);
+        public function getStopRulesProcessing(); public function setStopRulesProcessing($stop);
+        public function getCouponType(); public function setCouponType($type);
+    }
+}
+
+namespace Magento\SalesRule\Api {
+    interface RuleRepositoryInterface {
+        public function save(\Magento\SalesRule\Api\Data\RuleInterface $rule);
+        public function getById($id);
+        public function getList(\Magento\Framework\Api\SearchCriteriaInterface $criteria);
+        public function deleteById($id);
+        public function delete(\Magento\SalesRule\Api\Data\RuleInterface $rule);
+    }
+}
+
+namespace Magento\CatalogRule\Api\Data {
+    interface ConditionInterface {
+        public function getType(); public function setType($type);
+        public function getConditions(); public function setConditions(?array $conditions = null);
+    }
+    interface RuleInterface {
+        public function getRuleId(); public function setRuleId($id);
+        public function getName(); public function setName($name);
+        public function getDescription(); public function setDescription($description);
+        public function getIsActive(); public function setIsActive($isActive);
+        public function getRuleCondition(); public function setRuleCondition(?ConditionInterface $condition = null);
+        public function getSimpleAction(); public function setSimpleAction($action);
+        public function getDiscountAmount(); public function setDiscountAmount($amount);
+        public function getWebsiteIds(); public function setWebsiteIds($ids);
+        public function getCustomerGroupIds(); public function setCustomerGroupIds($ids);
+        public function getStartDate(); public function setStartDate($date);
+        public function getEndDate(); public function setEndDate($date);
+        public function getSortOrder(); public function setSortOrder($order);
+        public function getStopRulesProcessing(); public function setStopRulesProcessing($stop);
+    }
+}
+
+namespace Magento\CatalogRule\Api {
+    interface CatalogRuleRepositoryInterface {
+        public function save(\Magento\CatalogRule\Api\Data\RuleInterface $rule);
+        public function get($ruleId);
+        public function delete(\Magento\CatalogRule\Api\Data\RuleInterface $rule);
+        public function deleteById($ruleId);
+    }
+}
+
+namespace Magento\MediaGalleryApi\Api\Data {
+    interface AssetInterface {
+        public function getId(); public function getPath(); public function getTitle();
+        public function getContentType(); public function getWidth(); public function getHeight();
+        public function getSize(); public function getCreatedAt(); public function getUpdatedAt();
+    }
+}
+
+namespace Magento\MediaGalleryApi\Api {
+    interface GetAssetsByPathsInterface {
+        public function execute(array $paths): array;
+    }
+    interface DeleteAssetsByPathsInterface {
+        public function execute(array $paths): void;
+    }
+    interface SearchAssetsInterface {
+        public function execute(\Magento\Framework\Api\SearchCriteriaInterface $criteria): array;
+    }
+}
+
+namespace Magento\MediaContentApi\Api\Data {
+    interface ContentIdentityInterface {
+        public function getEntityType(); public function getField(); public function getEntityId();
+    }
+}
+
+namespace Magento\MediaContentApi\Api {
+    interface GetContentByAssetIdsInterface {
+        public function execute(array $assetIds): array;
+    }
+}
+
+namespace Magento\Framework\Indexer {
+    interface IndexerInterface {
+        public function getId(); public function getTitle(); public function getStatus();
+        public function isScheduled(); public function isValid(); public function isInvalid();
+        public function invalidate();
+    }
+    class IndexerRegistry {
+        public function get($indexerId) { return null; }
+    }
 }

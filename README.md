@@ -111,6 +111,9 @@ same ACL role, so nothing is lost but the serializer.
 | `search_customers` | | `Magento_Customer::manage` |
 | `get_customer` | | `Magento_Customer::manage` |
 | `list_customer_groups` | | `Magento_Customer::group` |
+| `create_customer_group` | ✓ | `Magento_Customer::group` |
+| `update_customer_group` | ✓ | `Magento_Customer::group` |
+| `delete_customer_group` | ✓ | `Magento_Customer::group` |
 | `create_customer` | ✓ | `Magento_Customer::manage` |
 | `update_customer` | ✓ | `Magento_Customer::manage` |
 | `delete_customer` | ✓ | `Magento_Customer::delete` |
@@ -130,12 +133,17 @@ same ACL role, so nothing is lost but the serializer.
 | `search_cart_price_rules` | | `Magento_SalesRule::quote` |
 | `get_cart_price_rule` | | `Magento_SalesRule::quote` |
 | `update_cart_price_rule` | ✓ | `Magento_SalesRule::quote` |
+| `create_cart_price_rule` | ✓ | `Magento_SalesRule::quote` |
+| `delete_cart_price_rule` | ✓ | `Magento_SalesRule::quote` |
 | `generate_coupons` | ✓ | `Magento_SalesRule::quote` |
 | `search_coupons` | | `Magento_SalesRule::quote` |
 | `delete_coupons` | ✓ | `Magento_SalesRule::quote` |
 | `search_catalog_price_rules` | | `Magento_CatalogRule::promo_catalog` |
 | `get_catalog_price_rule` | | `Magento_CatalogRule::promo_catalog` |
 | `update_catalog_price_rule` | ✓ | `Magento_CatalogRule::promo_catalog` |
+| `create_catalog_price_rule` | ✓ | `Magento_CatalogRule::promo_catalog` |
+| `delete_catalog_price_rule` | ✓ | `Magento_CatalogRule::promo_catalog` |
+| `apply_catalog_price_rules` | ✓ | `Magento_CatalogRule::promo_catalog` |
 | `search_cms_pages` | | `Magento_Cms::page` |
 | `get_cms_page` | | `Magento_Cms::page` |
 | `create_cms_page` | ✓ | `Magento_Cms::save` |
@@ -164,6 +172,7 @@ same ACL role, so nothing is lost but the serializer.
 | `update_design_config` | ✓ | `Magento_Theme::design_config` |
 | `search_media_gallery_assets` | | `Magento_Cms::media_gallery` |
 | `upload_media_gallery_asset` | ✓ | `Magento_Cms::media_gallery` |
+| `delete_media_gallery_asset` | ✓ | `Magento_Cms::media_gallery` |
 | `list_product_media` | | `Magento_Catalog::products` |
 | `add_product_media` | ✓ | `Magento_Catalog::products` |
 | `update_product_media` | ✓ | `Magento_Catalog::products` |
@@ -397,6 +406,30 @@ address list on a saved customer as authoritative and deletes any address
 missing from it, so addresses are only ever changed through the three dedicated
 address tools.
 
+**Customer groups are a separate grant and a separate hazard.** The three group
+tools sit behind `Magento_Customer::group`, not `::manage`, matching
+`list_customer_groups` and Magento's own split — deciding how a class of
+customers is priced and taxed is a different permission from editing one
+person's record.
+
+`tax_class_id` is required on save rather than defaulted. A group carries the
+tax class everyone in it is taxed under, and getting it wrong is not an error
+anybody sees: it is a quietly wrong rate on every order those customers place.
+`update_customer_group` loads the group and mutates it for the same reason the
+price rule tools do — a rename rebuilt from its arguments would save with a null
+tax class.
+
+`delete_customer_group` looks like a one-row delete and is not. Magento does not
+orphan the customers in a deleted group; it reassigns every one of them to the
+default group, a full customer save each, and their prices and tax change with
+them. The confirm preview an agent sees before all that would say nothing but a
+group id. So the members are counted first and any at all refuse the delete,
+naming the number: moving them is a decision for whoever is asking, made
+deliberately with `update_customer`, not a side effect of tidying up a group. An
+empty group deletes normally, and Magento's own refusals — "NOT LOGGED IN" and
+any group configured as a default — are passed through with their reasons
+intact.
+
 ### Stock and pricing: three things that are not obvious
 
 **Stock is the legacy single-stock API.** These tools use
@@ -422,13 +455,44 @@ marks the indexers to rerun.
 
 ### Price rules: what these tools will not do
 
-Neither rule tool writes **conditions**. That is deliberate, and it is why both
+No rule tool writes **conditions**. That is deliberate, and it is why both
 update tools load the existing rule and mutate it rather than building a new
 one: Magento's sales rule repository converts the whole data object back into
 the rule on save, so a rule rebuilt from only the fields being changed would be
 saved with no conditions — a cart discount that suddenly applies to every cart,
 or a catalog rule that re-prices the entire catalogue. A rule whose conditions
 need changing has to be edited in the admin.
+
+Everything else about a rule follows from that, in both directions:
+
+- **Creating.** `create_cart_price_rule` and `create_catalog_price_rule` always
+  create the rule **inactive**, and `is_active` is not in their schemas at all.
+  A rule created here cannot have conditions, so it must not have a way to go
+  live either. The name, dates, discount, websites and customer groups are all
+  set here; somebody then adds the conditions in the admin and enables it there.
+  The result says so rather than reporting a plain success.
+- **Activating.** `update_cart_price_rule` and `update_catalog_price_rule`
+  refuse `is_active: true` on a rule that restricts nothing, naming what to do
+  about it. That guard matters more than the create tools do, because it covers
+  the path that already shipped — and detecting "no conditions" is not the
+  obvious check: Magento hands back a root *combine* node whether or not
+  anything was put inside it, so an unconditioned cart rule answers
+  `getCondition()` with an object. The test is a node with no children, and it
+  lives in one place both tools share.
+- **Deactivating** is never refused, whatever the rule looks like. It is the way
+  back out of a rule that should not have gone live.
+- **Already live and unconditioned** is left alone. A rule in that state is
+  somebody's deliberate store-wide promotion, and renaming or re-dating it is
+  allowed; only switching one *on* is not.
+
+`delete_cart_price_rule` takes the rule's coupon codes with it, so any code a
+customer already holds stops working — deactivating stops a campaign just as
+completely and can be undone. `delete_catalog_price_rule` removes the rule but
+not its prices: those stay in the index until the catalog rule indexer runs, and
+`apply_catalog_price_rules` is what schedules that. Like `invalidate_indexers`,
+it marks the indexer invalid rather than re-pricing inline — which is what the
+admin's own "Apply Rules" button does, because re-applying rules across a real
+catalogue outlasts an HTTP request.
 
 `get_cart_price_rule` does return both condition trees, read-only and
 depth-limited, because they are the usual answer to "why is this rule not
@@ -552,6 +616,23 @@ through a text field:
 `search_media_gallery_assets` requires at least one filter, for the same reason
 `search_url_rewrites` does — an unfiltered lookup returns every asset in the
 store.
+
+`delete_media_gallery_asset` runs the same path guard in the opposite
+direction, which is why the check is a public method on the policy rather than a
+second copy of it: a delete is handed a path that already starts at the gallery
+root, and needs no mime type, so `resolve()` is no use to it while the part that
+refuses `..`, a leading `/`, a backslash and a null byte is exactly what it
+wants. Paths outside the gallery root are refused and pointed at
+`delete_product_media`, which also keeps the product's own gallery consistent.
+
+The other half of that tool is the in-use check. Deleting an asset removes the
+file and leaves every reference to it in place, so the storefront shows a broken
+image and nothing anywhere reports an error — Magento's own admin warns about
+this and then does it. This refuses instead, and names the entity type, id and
+field of everything still pointing at the file, which turns a silent breakage
+into a list of things to fix first. It is the one tool needing
+`magento/module-media-content-api`; without that mapping the check cannot be
+made at all.
 
 ### URL rewrites are read-only
 
