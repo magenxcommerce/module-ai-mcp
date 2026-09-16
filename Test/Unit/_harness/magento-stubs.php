@@ -251,6 +251,10 @@ namespace Magento\Sales\Api\Data {
 }
 
 namespace Magento\Sales\Api {
+    interface OrderRepositoryInterface {
+        public function get($id); public function getList($searchCriteria);
+        public function save(\Magento\Sales\Api\Data\OrderInterface $entity);
+    }
     interface OrderAddressRepositoryInterface {
         public function get($id); public function save(\Magento\Sales\Api\Data\OrderAddressInterface $entity);
     }
@@ -945,4 +949,26 @@ namespace Magenx\Helpdesk\Model\ResourceModel {
     class Department extends Priority {}
     class Field extends Priority {}
     class SpamPattern extends Priority {}
+}
+
+namespace Magenx\Rma\Api\Data {
+    interface RMAInterface {
+        public function getEntityId(); public function setOrderId($v); public function setStoreId($v);
+        public function setCustomerId($v); public function setCustomerEmail($v);
+        public function setCustomerName($v); public function setStatusId($v);
+        public function setReasonId($v); public function setResolutionTypeId($v);
+    }
+    interface ItemInterface {
+        public function setRmaId($v); public function setOrderItemId($v);
+        public function setQtyRequested($v); public function setConditionId($v);
+    }
+    class RMAInterfaceFactory { public function create(array $data = []) { return null; } }
+    class ItemInterfaceFactory { public function create(array $data = []) { return null; } }
+}
+
+namespace Magenx\Rma\Api {
+    interface RMARepositoryInterface {
+        public function get(int $entityId); public function save($rma);
+    }
+    interface ItemRepositoryInterface { public function save($item); }
 }

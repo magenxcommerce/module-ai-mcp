@@ -718,6 +718,22 @@ Add a tool from another module by contributing to the `tools` argument of
 `Magenx\AiMcp\Model\Tool\ToolRegistry` in `di.xml` and implementing
 `Magenx\AiMcp\Api\ToolInterface`. Every guard below applies to it automatically.
 
+### Attachments are listed, never served
+
+`list_helpdesk_attachments` and `list_rma_attachments` report what a customer
+attached — name, size, type, and which message or comment it arrived on — and
+never the file itself. The row is a pointer to a file under the media
+directory, so a tool that returned its bytes by id would be a file-read
+primitive bounded by nothing but which ids an agent can guess, aimed at the most
+personal content in either module. What an agent needs in order to decide what
+to do next is whether the receipt is there, and the admin is one click away for
+the file.
+
+`delete_rma_attachment` exists for the case nobody plans: a customer attaches
+something that should not be on the record at all — a bank statement, a passport
+photo — and it has to come off. Leaving personal data in place because the only
+way to remove it is the admin is the worse failure.
+
 ### Admin users: enough to assign work, and no more
 
 `assign_helpdesk_ticket` refuses an `admin_user_id` that does not exist, which

@@ -176,6 +176,13 @@
                 <item name="delete_helpdesk_custom_field" xsi:type="object">Magenx\AiMcp\Model\Tool\Helpdesk\Lookup\DeleteCustomField</item>
                 <item name="save_helpdesk_spam_pattern" xsi:type="object">Magenx\AiMcp\Model\Tool\Helpdesk\Lookup\SaveSpamPattern</item>
                 <item name="delete_helpdesk_spam_pattern" xsi:type="object">Magenx\AiMcp\Model\Tool\Helpdesk\Lookup\DeleteSpamPattern</item>
+                <item name="set_helpdesk_ticket_fields" xsi:type="object">Magenx\AiMcp\Model\Tool\Helpdesk\SetHelpdeskTicketFields</item>
+                <item name="set_helpdesk_ticket_department" xsi:type="object">Magenx\AiMcp\Model\Tool\Helpdesk\SetHelpdeskTicketDepartment</item>
+                <item name="list_helpdesk_attachments" xsi:type="object">Magenx\AiMcp\Model\Tool\Helpdesk\ListHelpdeskAttachments</item>
+                <item name="delete_helpdesk_ticket" xsi:type="object">Magenx\AiMcp\Model\Tool\Helpdesk\DeleteHelpdeskTicket</item>
+                <item name="create_rma" xsi:type="object">Magenx\AiMcp\Model\Tool\Rma\CreateRma</item>
+                <item name="list_rma_attachments" xsi:type="object">Magenx\AiMcp\Model\Tool\Rma\ListRmaAttachments</item>
+                <item name="delete_rma_attachment" xsi:type="object">Magenx\AiMcp\Model\Tool\Rma\DeleteRmaAttachment</item>
                 <item name="list_helpdesk_gateways" xsi:type="object">Magenx\AiMcp\Model\Tool\Helpdesk\Lookup\ListGateways</item>
                 <item name="get_config" xsi:type="object">Magenx\AiMcp\Model\Tool\Config\GetConfig</item>
                 <item name="set_config" xsi:type="object">Magenx\AiMcp\Model\Tool\Config\SetConfig</item>
