@@ -101,6 +101,53 @@ namespace Magento\Framework\Stdlib\DateTime {
         public function gmtDate($format = null, $input = null) { return ''; }
         public function date($format = null, $input = null) { return ''; }
     }
+    interface TimezoneInterface {
+        public function getConfigTimezone($scopeType = null, $scopeCode = null);
+        public function date($date = null, $locale = null, $useTimezone = true, $includeTime = true);
+    }
+}
+
+namespace Magento\Store\Model {
+    class ScopeInterface {
+        public const SCOPE_STORE = 'store';
+        public const SCOPE_STORES = 'stores';
+        public const SCOPE_WEBSITE = 'website';
+    }
+}
+
+namespace Magento\Framework\DB {
+    // Only the builder calls the aggregator makes. Every one returns $this, as
+    // the real Select does, so a mock can record the calls in order; what the
+    // rendered SQL looks like is not something this stub can speak to.
+    class Select {
+        public function from($name, $cols = '*', $schema = null) { return $this; }
+        public function joinLeft($name, $cond, $cols = '*', $schema = null) { return $this; }
+        public function joinInner($name, $cond, $cols = '*', $schema = null) { return $this; }
+        public function columns($cols = '*', $correlationName = null) { return $this; }
+        public function where($cond, $value = null, $type = null) { return $this; }
+        public function group($spec) { return $this; }
+        public function order($spec) { return $this; }
+        public function limit($count = null, $offset = null) { return $this; }
+        public function reset($part = null) { return $this; }
+    }
+}
+
+namespace Magento\Framework\DB\Adapter {
+    interface AdapterInterface {
+        public function select();
+        public function fetchAll($sql, $bind = [], $fetchMode = null);
+        public function fetchRow($sql, $bind = [], $fetchMode = null);
+        public function fetchOne($sql, $bind = []);
+        public function quoteInto($text, $value, $type = null, $count = null);
+        public function quote($value, $type = null);
+    }
+}
+
+namespace Magento\Framework\App {
+    class ResourceConnection {
+        public function getConnection($resourceName = 'default') { return null; }
+        public function getTableName($modelEntity, $connectionName = 'default') { return $modelEntity; }
+    }
 }
 
 namespace Magento\Authorization\Model {

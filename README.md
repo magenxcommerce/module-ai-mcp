@@ -780,6 +780,54 @@ endpoint without reading any of them:
   fixed and there is no path argument, because a log tool that can be pointed
   elsewhere is a tool for reading any file the web server can.
 
+### Reports: the only SQL in the module, and why
+
+`sales_summary`, `sales_by_period`, `top_products`, `order_status_breakdown` and
+`customer_summary` sit behind **`Magenx_AiMcp::reports`**, a grant of their own.
+"What did we take last month" and "show me this customer's order" are different
+permissions — which is why Magento's own reports live under a separate tree —
+so these do not borrow `Magento_Sales::actions_view` like the order tools.
+
+Every other tool here reads through a repository or a collection. These compute
+`SUM` and `GROUP BY` directly, because the alternative is fetching orders and
+adding them up in PHP, which is the "pull rows into a model's context" this
+server exists to avoid and is capped at 100 rows a page anyway. Magento's
+aggregate tables were the other option and are deliberately **not** used: a
+nightly cron fills them, so they lag a day, and on a store that has never
+refreshed statistics they are empty — which would report zero revenue for a
+store with orders, confidently.
+
+Four things these tools are careful about, because each produces a plausible
+wrong number rather than an error:
+
+- **Canceled orders** are excluded from the totals and reported as their own
+  figure. Counting them overstates revenue; dropping them silently hides a
+  cancellation spike.
+- **Money is read from the `base_*` columns and grouped by base currency.**
+  Every other projector in this module reports the *order* currency, so a
+  multi-currency store gets one totals block per currency — adding 100 EUR to
+  100 USD would produce 200 of nothing.
+- **Only top-level order lines are counted** for product figures. A configurable
+  product writes both itself and its simple variant to `sales_order_item`, so
+  counting every row doubles every configurable sold.
+- **Ordered, invoiced and refunded are all reported**, with a net. Each answers
+  a different question, and picking one to call "revenue" answers the other two
+  wrongly.
+
+**Periods are read in the store's timezone, not UTC** — the one place this
+server departs from the convention every other date argument follows. A daily
+figure computed in UTC disagrees with the admin's own by however many hours the
+store is offset, and "yesterday" means the merchant's yesterday. Every result
+therefore reports both the local range and the UTC range it actually queried, so
+a follow-up `search_orders` call can be made to cover the same orders. Period
+totals are exact across a daylight-saving change; individual buckets near one
+can be an hour out at the edge, which is the same approximation Magento's own
+reports make.
+
+`customer_summary` does not report new versus returning. Answering it correctly
+means reading every customer's whole order history, and a cheap approximation of
+it is precisely the kind of number somebody would quote.
+
 ### Beneath and beside Magento
 
 Two companion modules answer the questions the tools above structurally cannot,

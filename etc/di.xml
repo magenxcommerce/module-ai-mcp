@@ -182,6 +182,11 @@
                 <item name="platform_status" xsi:type="object">Magenx\AiMcp\Model\Tool\Platform\PlatformStatus</item>
                 <item name="search_admin_activity" xsi:type="object">Magenx\AiMcp\Model\Tool\AdminActivity\SearchAdminActivity</item>
                 <item name="get_admin_activity" xsi:type="object">Magenx\AiMcp\Model\Tool\AdminActivity\GetAdminActivity</item>
+                <item name="sales_summary" xsi:type="object">Magenx\AiMcp\Model\Tool\Report\SalesSummary</item>
+                <item name="sales_by_period" xsi:type="object">Magenx\AiMcp\Model\Tool\Report\SalesByPeriod</item>
+                <item name="top_products" xsi:type="object">Magenx\AiMcp\Model\Tool\Report\TopProducts</item>
+                <item name="order_status_breakdown" xsi:type="object">Magenx\AiMcp\Model\Tool\Report\OrderStatusBreakdown</item>
+                <item name="customer_summary" xsi:type="object">Magenx\AiMcp\Model\Tool\Report\CustomerSummary</item>
             </argument>
         </arguments>
     </type>

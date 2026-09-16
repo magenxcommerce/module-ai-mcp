@@ -28,6 +28,16 @@
                         server rather than any part of the catalogue or the store.
                     -->
                     <resource id="Magenx_AiMcp::ops" title="AI MCP Server Diagnostics" translate="title" sortOrder="10"/>
+                    <!--
+                        Aggregate sales figures. Deliberately its own grant rather than
+                        Magento_Sales::actions_view, which every order-reading tool uses:
+                        "what did we take last month" and "show me this customer's order"
+                        are different permissions, which is why Magento's own reports sit
+                        under a tree of their own. Declared here rather than borrowed from
+                        Magento_Reports because that module is not a dependency of this one
+                        and none of its code is used — the figures are computed directly.
+                    -->
+                    <resource id="Magenx_AiMcp::reports" title="AI MCP Server Reports" translate="title" sortOrder="20"/>
                 </resource>
                 <resource id="Magento_Backend::stores">
                     <resource id="Magento_Backend::stores_settings">
