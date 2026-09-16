@@ -21,6 +21,8 @@ class Config
     private const XML_PATH_ALLOWED_IPS = 'magenx_ai_mcp/security/allowed_ips';
     private const XML_PATH_ALLOWED_CONFIG_PATHS = 'magenx_ai_mcp/security/allowed_config_paths';
     private const XML_PATH_ALLOWED_ORIGINS = 'magenx_ai_mcp/security/allowed_origins';
+    private const XML_PATH_ENABLED_TOOL_DOMAINS = 'magenx_ai_mcp/tools/enabled_domains';
+    private const XML_PATH_DISABLED_TOOLS = 'magenx_ai_mcp/tools/disabled_tools';
 
     /**
      * @param ScopeConfigInterface $scopeConfig
@@ -82,6 +84,33 @@ class Config
     public function getAllowedOrigins(): array
     {
         return $this->splitList((string) $this->scopeConfig->getValue(self::XML_PATH_ALLOWED_ORIGINS));
+    }
+
+    /**
+     * Tool domains a client may see. Empty means every domain.
+     *
+     * **This one getter is not default-deny**, unlike every other on this
+     * class. It has to be: an unset value has to keep meaning "all tools", or
+     * shipping this setting would silently empty `tools/list` on every existing
+     * installation the moment the module is upgraded. The exception is safe
+     * because this is not a boundary — ACL and the write switch still decide
+     * what a caller may reach; this decides only what is worth showing it.
+     *
+     * @return string[]
+     */
+    public function getEnabledToolDomains(): array
+    {
+        return $this->splitList((string) $this->scopeConfig->getValue(self::XML_PATH_ENABLED_TOOL_DOMAINS));
+    }
+
+    /**
+     * Individual tool names withheld from clients, whatever their domain.
+     *
+     * @return string[]
+     */
+    public function getDisabledTools(): array
+    {
+        return $this->splitList((string) $this->scopeConfig->getValue(self::XML_PATH_DISABLED_TOOLS));
     }
 
     /**

@@ -10,6 +10,7 @@ use Magenx\AiMcp\Api\ToolAnnotationsInterface;
 use Magenx\AiMcp\Api\ToolInterface;
 use Magenx\AiMcp\Model\Auth\Identity;
 use Magenx\AiMcp\Model\Config;
+use Magenx\AiMcp\Model\Tool\ToolCatalog;
 use Magenx\AiMcp\Model\Tool\ToolRegistry;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Serialize\Serializer\Json;
@@ -53,6 +54,7 @@ class Server
 
     /**
      * @param ToolRegistry $registry
+     * @param ToolCatalog $catalog
      * @param Config $config
      * @param JsonRpc $jsonRpc
      * @param Json $serializer
@@ -61,6 +63,7 @@ class Server
      */
     public function __construct(
         private readonly ToolRegistry $registry,
+        private readonly ToolCatalog $catalog,
         private readonly Config $config,
         private readonly JsonRpc $jsonRpc,
         private readonly Json $serializer,
@@ -162,6 +165,16 @@ class Server
             $tools[] = $this->describeTool($tool);
         }
 
+        if ($tools === []) {
+            // A handshake that succeeds and then offers nothing reads to a
+            // client as a broken server, and there is no error anywhere to
+            // explain it. Say so once, here, where the cause is still known.
+            $this->auditLogger->warning('[magenx-mcp] tools/list is empty', [
+                'caller' => $identity->getLabel(),
+                'reason' => 'no registered tool passed the ACL, write-switch and toolset settings',
+            ]);
+        }
+
         return $tools;
     }
 
@@ -228,6 +241,22 @@ class Server
             return $this->fail($id, JsonRpc::METHOD_NOT_FOUND, sprintf('Unknown tool: %s', $name));
         }
 
+        if (!$this->isEnabledByConfiguration($tool)) {
+            // Same answer again, for the same reason: a tool the operator has
+            // switched off should not be something the agent knows to keep
+            // asking about. But unlike the two cases above this one is a
+            // setting somebody chose, and "why can't the agent see this tool"
+            // is then unanswerable from the outside — so the refusal is
+            // recorded where the operator already looks for refusals.
+            $this->auditLogger->info('[magenx-mcp] tool withheld by configuration', [
+                'tool' => $name,
+                'caller' => $identity->getLabel(),
+                'domain' => $this->catalog->getDomain($tool),
+            ]);
+
+            return $this->fail($id, JsonRpc::METHOD_NOT_FOUND, sprintf('Unknown tool: %s', $name));
+        }
+
         if ($tool->isWrite() && !$this->config->isWriteAllowed()) {
             // The caller is entitled to this tool; the store has writes turned
             // off. Saying so plainly beats an agent retrying a phantom tool.
@@ -286,7 +315,28 @@ class Server
             return false;
         }
 
-        return $identity->isAllowed($tool->getAclResource());
+        return $identity->isAllowed($tool->getAclResource()) && $this->isEnabledByConfiguration($tool);
+    }
+
+    /**
+     * Whether the store's toolset settings let this tool be seen at all.
+     *
+     * Not a boundary — ACL is. This answers only "does the operator want a
+     * client spending context on this", which is why an empty domain list means
+     * every domain rather than none.
+     *
+     * @param ToolInterface $tool
+     * @return bool
+     */
+    private function isEnabledByConfiguration(ToolInterface $tool): bool
+    {
+        if (in_array($tool->getName(), $this->config->getDisabledTools(), true)) {
+            return false;
+        }
+
+        $domains = $this->config->getEnabledToolDomains();
+
+        return $domains === [] || in_array($this->catalog->getDomain($tool), $domains, true);
     }
 
     /**

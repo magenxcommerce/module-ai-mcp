@@ -23,19 +23,6 @@ abstract class AbstractTool implements ToolInterface, ToolAnnotationsInterface
     protected const DEFAULT_PAGE_SIZE = 20;
 
     /**
-     * Words that are initialisms rather than nouns, so the derived title reads
-     * "Search CMS Pages" rather than "Search Cms Pages". Only the ones that
-     * actually occur in a tool name are listed; anything else is capitalised.
-     */
-    private const TITLE_INITIALISMS = [
-        'cms' => 'CMS',
-        'id' => 'ID',
-        'rma' => 'RMA',
-        'sku' => 'SKU',
-        'url' => 'URL',
-    ];
-
-    /**
      * Most tools read; the ones that write say so.
      *
      * @return bool
@@ -54,7 +41,7 @@ abstract class AbstractTool implements ToolInterface, ToolAnnotationsInterface
     public function getTitle(): ?string
     {
         $words = array_map(
-            static fn (string $word): string => self::TITLE_INITIALISMS[$word] ?? ucfirst($word),
+            static fn (string $word): string => Initialisms::MAP[$word] ?? ucfirst($word),
             explode('_', $this->getName())
         );
 

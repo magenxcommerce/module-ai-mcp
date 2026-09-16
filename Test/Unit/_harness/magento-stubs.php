@@ -724,6 +724,39 @@ namespace Magento\Framework\App\Config {
         public function getValue($path, $scopeType = 'default', $scopeCode = null);
         public function isSetFlag($path, $scopeType = 'default', $scopeCode = null);
     }
+    // The backend model base. Its real constructor takes seven collaborators a
+    // unit test has no use for, so the stub swallows them: what the suite
+    // exercises is beforeSave() against the value, nothing the parent holds.
+    class Value {
+        protected $data = [];
+        public function __construct(...$arguments) {}
+        public function getValue() { return $this->data['value'] ?? null; }
+        public function setValue($value) { $this->data['value'] = $value; return $this; }
+        public function beforeSave() { return $this; }
+    }
+}
+
+namespace Magento\Framework\Model {
+    class Context {}
+    abstract class AbstractModel {}
+}
+
+namespace Magento\Framework\Model\ResourceModel {
+    abstract class AbstractResource {}
+}
+
+namespace Magento\Framework\Data {
+    interface OptionSourceInterface {
+        public function toOptionArray();
+    }
+}
+
+namespace Magento\Framework\Data\Collection {
+    class AbstractDb {}
+}
+
+namespace Magento\Framework {
+    class Registry {}
 }
 
 namespace Magento\Framework\Serialize\Serializer {

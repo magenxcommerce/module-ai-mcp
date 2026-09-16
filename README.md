@@ -854,6 +854,43 @@ section, pointing the other way.
 | `magenx_ai_mcp/security/allowed_ips` | *(empty)* | Optional source-address allowlist; plain addresses and CIDR ranges. **See the proxy caveat below** |
 | `magenx_ai_mcp/security/allowed_origins` | *(empty)* | Browser origins permitted to call the endpoint. Requests with no `Origin` header are unaffected; empty therefore means "no browser" |
 | `magenx_ai_mcp/security/allowed_config_paths` | *(empty)* | Glob patterns `set_config` may write; empty denies all |
+| `magenx_ai_mcp/tools/enabled_domains` | *(empty)* | Tool domains to offer; **empty means all** |
+| `magenx_ai_mcp/tools/disabled_tools` | *(empty)* | Individual tool names to withhold |
+
+### Narrowing the toolset is about context, not permission
+
+Every other setting above is a boundary. These two are not: they decide what a
+client is *shown*, and ACL plus the write switch still decide what it may
+actually do. The reason to use them is that the full tool list is a large part
+of a client's context window, and an agent given only the domains its task needs
+plans better inside it.
+
+**Both are empty by default and empty means "everything"** — the one place this
+module is not default-deny. It has to be: an empty domain list that meant "no
+domains" would silently empty `tools/list` on every installation the moment this
+shipped.
+
+Domains are derived from the directory each tool lives in — `sales`, `catalog`,
+`cms`, `rma`, `helpdesk`, `ops` and so on — rather than from a list kept by
+hand, so a tool added tomorrow lands in a domain without anyone maintaining
+anything. A tool contributed by another module that does not sit under
+`Model/Tool/` is grouped under its vendor and module instead, so a whole
+third-party module can be switched off in one tick.
+
+`disabled_tools` is applied after the domain selection, so a name listed there
+is withheld even when its domain is enabled. Saving a name that no tool answers
+to is **refused**, with the nearest real name offered: a denylist whose typo is
+accepted and ignored leaves you believing a tool is off when it is on, which is
+the wrong direction to fail in.
+
+A withheld tool is neither listed nor callable, and calling one is answered
+`Unknown tool` — exactly what a tool the integration's ACL denies gets, so an
+agent learns nothing about a surface it cannot reach and does not keep trying.
+Because that answer says nothing, the refusal is written to
+`var/log/magenx_ai_mcp.log` instead, which is where to look when the question is
+"why can't the agent see this tool". If the settings ever leave `tools/list`
+completely empty, that is logged too — a handshake that succeeds and then offers
+nothing otherwise reads as a broken server with no error anywhere to explain it.
 
 ### `allowed_ips` measures `REMOTE_ADDR`, not `X-Forwarded-For`
 

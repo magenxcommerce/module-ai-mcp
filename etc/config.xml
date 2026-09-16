@@ -20,6 +20,18 @@
                 <allowed_config_paths/>
                 <allowed_origins/>
             </security>
+            <!--
+                Both empty, which here means "offer every tool". This is the one
+                setting in the module that is not default-deny, and deliberately
+                so: an empty domain list has to keep meaning "all", or upgrading
+                an existing installation would silently empty tools/list. It is
+                safe because neither field is a boundary — ACL and the write
+                switch still decide what a caller may reach.
+            -->
+            <tools>
+                <enabled_domains/>
+                <disabled_tools/>
+            </tools>
         </magenx_ai_mcp>
     </default>
 </config>
