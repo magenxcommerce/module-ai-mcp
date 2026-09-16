@@ -183,6 +183,17 @@
                 <item name="create_rma" xsi:type="object">Magenx\AiMcp\Model\Tool\Rma\CreateRma</item>
                 <item name="list_rma_attachments" xsi:type="object">Magenx\AiMcp\Model\Tool\Rma\ListRmaAttachments</item>
                 <item name="delete_rma_attachment" xsi:type="object">Magenx\AiMcp\Model\Tool\Rma\DeleteRmaAttachment</item>
+                <item name="search_blog_posts" xsi:type="object">Magenx\AiMcp\Model\Tool\Blog\SearchBlogPosts</item>
+                <item name="get_blog_post" xsi:type="object">Magenx\AiMcp\Model\Tool\Blog\GetBlogPost</item>
+                <item name="create_blog_post" xsi:type="object">Magenx\AiMcp\Model\Tool\Blog\CreateBlogPost</item>
+                <item name="update_blog_post" xsi:type="object">Magenx\AiMcp\Model\Tool\Blog\UpdateBlogPost</item>
+                <item name="delete_blog_post" xsi:type="object">Magenx\AiMcp\Model\Tool\Blog\DeleteBlogPost</item>
+                <item name="list_blog_categories" xsi:type="object">Magenx\AiMcp\Model\Tool\Blog\ListBlogCategories</item>
+                <item name="save_blog_category" xsi:type="object">Magenx\AiMcp\Model\Tool\Blog\SaveBlogCategory</item>
+                <item name="delete_blog_category" xsi:type="object">Magenx\AiMcp\Model\Tool\Blog\DeleteBlogCategory</item>
+                <item name="list_blog_tags" xsi:type="object">Magenx\AiMcp\Model\Tool\Blog\ListBlogTags</item>
+                <item name="save_blog_tag" xsi:type="object">Magenx\AiMcp\Model\Tool\Blog\SaveBlogTag</item>
+                <item name="delete_blog_tag" xsi:type="object">Magenx\AiMcp\Model\Tool\Blog\DeleteBlogTag</item>
                 <item name="list_helpdesk_gateways" xsi:type="object">Magenx\AiMcp\Model\Tool\Helpdesk\Lookup\ListGateways</item>
                 <item name="get_config" xsi:type="object">Magenx\AiMcp\Model\Tool\Config\GetConfig</item>
                 <item name="set_config" xsi:type="object">Magenx\AiMcp\Model\Tool\Config\SetConfig</item>

@@ -972,3 +972,56 @@ namespace Magenx\Rma\Api {
     }
     interface ItemRepositoryInterface { public function save($item); }
 }
+
+namespace Magenx\Blog\Model {
+    class Post {
+        private $d = [];
+        public function getId() { return $this->d['post_id'] ?? null; }
+        public function getData($k = null, $i = null) { return $k === null ? $this->d : ($this->d[$k] ?? null); }
+        public function setData($k, $v = null) { $this->d[$k] = $v; return $this; }
+        public function hasData($k = null) { return array_key_exists($k, $this->d); }
+        public function getUrlKey() { return $this->d['url_key'] ?? ''; }
+    }
+    class Category extends Post {}
+    class Tag extends Post {}
+    class PostFactory { public function create(array $data = []) { return null; } }
+    class CategoryFactory extends PostFactory {}
+    class TagFactory extends PostFactory {}
+    class UrlKey { public function normalize(string $urlKey, string $fallback = '') { return ''; } }
+    class PostRepository {
+        public function getById(int $id) {} public function getByUrlKey(string $k) {}
+        public function save($post) {} public function delete($post) {}
+        public function getCategoryIds(int $id) { return []; } public function getTagIds(int $id) { return []; }
+        public function getStoreIds(int $id) { return []; }
+        public function getProductPositions(int $id) { return []; }
+    }
+    class CategoryRepository {
+        public function getById(int $id) {} public function save($e) {} public function delete($e) {}
+    }
+    class TagRepository extends CategoryRepository {}
+}
+
+namespace Magenx\Blog\Model\ResourceModel\Post {
+    class Collection implements \IteratorAggregate {
+        public function addFieldToFilter($field, $condition = null) { return $this; }
+        public function addCategoryFilter($id) { return $this; }
+        public function addTagFilter($id) { return $this; }
+        public function addStoreFilter($id) { return $this; }
+        public function setOrder($field, $direction = 'DESC') { return $this; }
+        public function setPageSize($size) { return $this; }
+        public function setCurPage($page) { return $this; }
+        public function getSize() { return 0; }
+        public function getIterator(): \Traversable { return new \ArrayIterator([]); }
+    }
+    class CollectionFactory { public function create(array $data = []) { return null; } }
+}
+
+namespace Magenx\Blog\Model\ResourceModel\Category {
+    class Collection extends \Magenx\Blog\Model\ResourceModel\Post\Collection {}
+    class CollectionFactory { public function create(array $data = []) { return null; } }
+}
+
+namespace Magenx\Blog\Model\ResourceModel\Tag {
+    class Collection extends \Magenx\Blog\Model\ResourceModel\Post\Collection {}
+    class CollectionFactory { public function create(array $data = []) { return null; } }
+}
