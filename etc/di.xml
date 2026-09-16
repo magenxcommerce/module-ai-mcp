@@ -194,6 +194,15 @@
                 <item name="list_blog_tags" xsi:type="object">Magenx\AiMcp\Model\Tool\Blog\ListBlogTags</item>
                 <item name="save_blog_tag" xsi:type="object">Magenx\AiMcp\Model\Tool\Blog\SaveBlogTag</item>
                 <item name="delete_blog_tag" xsi:type="object">Magenx\AiMcp\Model\Tool\Blog\DeleteBlogTag</item>
+                <item name="search_gdpr_requests" xsi:type="object">Magenx\AiMcp\Model\Tool\Gdpr\SearchGdprRequests</item>
+                <item name="get_gdpr_request" xsi:type="object">Magenx\AiMcp\Model\Tool\Gdpr\GetGdprRequest</item>
+                <item name="approve_gdpr_request" xsi:type="object">Magenx\AiMcp\Model\Tool\Gdpr\ApproveGdprRequest</item>
+                <item name="deny_gdpr_request" xsi:type="object">Magenx\AiMcp\Model\Tool\Gdpr\DenyGdprRequest</item>
+                <item name="search_consent_log" xsi:type="object">Magenx\AiMcp\Model\Tool\Gdpr\SearchConsentLog</item>
+                <item name="list_gdpr_cookie_groups" xsi:type="object">Magenx\AiMcp\Model\Tool\Gdpr\ListCookieGroups</item>
+                <item name="list_gdpr_cookies" xsi:type="object">Magenx\AiMcp\Model\Tool\Gdpr\ListCookies</item>
+                <item name="save_gdpr_cookie" xsi:type="object">Magenx\AiMcp\Model\Tool\Gdpr\SaveCookie</item>
+                <item name="delete_gdpr_cookie" xsi:type="object">Magenx\AiMcp\Model\Tool\Gdpr\DeleteCookie</item>
                 <item name="list_helpdesk_gateways" xsi:type="object">Magenx\AiMcp\Model\Tool\Helpdesk\Lookup\ListGateways</item>
                 <item name="get_config" xsi:type="object">Magenx\AiMcp\Model\Tool\Config\GetConfig</item>
                 <item name="set_config" xsi:type="object">Magenx\AiMcp\Model\Tool\Config\SetConfig</item>

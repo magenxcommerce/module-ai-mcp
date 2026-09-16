@@ -1025,3 +1025,65 @@ namespace Magenx\Blog\Model\ResourceModel\Tag {
     class Collection extends \Magenx\Blog\Model\ResourceModel\Post\Collection {}
     class CollectionFactory { public function create(array $data = []) { return null; } }
 }
+
+namespace Magenx\Gdpr\Model {
+    class DsrRequest {
+        public const TYPE_EXPORT_DATA = 'export_data';
+        public const TYPE_ANONYMIZE_DATA = 'anonymize_data';
+        public const TYPE_ERASE_DATA = 'erase_data';
+        public const STATUS_PENDING = 'pending';
+        public const STATUS_APPROVED = 'approved';
+        public const STATUS_DENIED = 'denied';
+        public const STATUS_COMPLETED = 'completed';
+        private $d = [];
+        public function getId() { return $this->d['request_id'] ?? null; }
+        public function getData($k = null, $i = null) { return $k === null ? $this->d : ($this->d[$k] ?? null); }
+        public function setData($k, $v = null) { $this->d[$k] = $v; return $this; }
+    }
+    class Cookie extends DsrRequest {}
+    class CookieGroup extends DsrRequest {}
+    class DsrRequestFactory { public function create(array $data = []) { return null; } }
+    class CookieFactory extends DsrRequestFactory {}
+    class CookieGroupFactory extends DsrRequestFactory {}
+    class Anonymizer {
+        public function hasOpenOrders(int $customerId) { return false; }
+        public function anonymizeCustomer(int $customerId) {}
+    }
+}
+
+namespace Magenx\Gdpr\Model\ResourceModel {
+    class DsrRequest {
+        public function load($object, $value, $field = null) { return $this; }
+        public function save($object) { return $this; }
+        public function delete($object) { return $this; }
+    }
+    class Cookie extends DsrRequest {}
+    class CookieGroup extends DsrRequest {}
+}
+
+namespace Magenx\Gdpr\Model\ResourceModel\DsrRequest {
+    class Collection implements \IteratorAggregate {
+        public function addFieldToFilter($field, $condition = null) { return $this; }
+        public function setOrder($field, $direction = 'DESC') { return $this; }
+        public function setPageSize($size) { return $this; }
+        public function setCurPage($page) { return $this; }
+        public function getSize() { return 0; }
+        public function getIterator(): \Traversable { return new \ArrayIterator([]); }
+    }
+    class CollectionFactory { public function create(array $data = []) { return null; } }
+}
+
+namespace Magenx\Gdpr\Model\ResourceModel\ConsentLog {
+    class Collection extends \Magenx\Gdpr\Model\ResourceModel\DsrRequest\Collection {}
+    class CollectionFactory { public function create(array $data = []) { return null; } }
+}
+
+namespace Magenx\Gdpr\Model\ResourceModel\Cookie {
+    class Collection extends \Magenx\Gdpr\Model\ResourceModel\DsrRequest\Collection {}
+    class CollectionFactory { public function create(array $data = []) { return null; } }
+}
+
+namespace Magenx\Gdpr\Model\ResourceModel\CookieGroup {
+    class Collection extends \Magenx\Gdpr\Model\ResourceModel\DsrRequest\Collection {}
+    class CollectionFactory { public function create(array $data = []) { return null; } }
+}

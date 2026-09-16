@@ -262,6 +262,26 @@ same ACL role, so nothing is lost but the serializer.
 | `top_products` |  | `Magenx_AiMcp::reports` |
 | `order_status_breakdown` |  | `Magenx_AiMcp::reports` |
 | `customer_summary` |  | `Magenx_AiMcp::reports` |
+| `search_blog_posts` |  | `Magenx_Blog::post` |
+| `get_blog_post` |  | `Magenx_Blog::post` |
+| `create_blog_post` | ✓ | `Magenx_Blog::post` |
+| `update_blog_post` | ✓ | `Magenx_Blog::post` |
+| `delete_blog_post` | ✓ | `Magenx_Blog::post` |
+| `list_blog_categories` |  | `Magenx_Blog::category` |
+| `save_blog_category` | ✓ | `Magenx_Blog::category` |
+| `delete_blog_category` | ✓ | `Magenx_Blog` |
+| `list_blog_tags` |  | `Magenx_Blog::tag` |
+| `save_blog_tag` | ✓ | `Magenx_Blog::tag` |
+| `delete_blog_tag` | ✓ | `Magenx_Blog` |
+| `search_gdpr_requests` |  | `Magenx_Gdpr::requests` |
+| `get_gdpr_request` |  | `Magenx_Gdpr::requests` |
+| `approve_gdpr_request` | ✓ | `Magenx_Gdpr::requests` |
+| `deny_gdpr_request` | ✓ | `Magenx_Gdpr::requests` |
+| `search_consent_log` |  | `Magenx_Gdpr::consent_log` |
+| `list_gdpr_cookie_groups` |  | `Magenx_Gdpr::cookie_groups` |
+| `list_gdpr_cookies` |  | `Magenx_Gdpr::cookies` |
+| `save_gdpr_cookie` | ✓ | `Magenx_Gdpr::cookies` |
+| `delete_gdpr_cookie` | ✓ | `Magenx_Gdpr::cookies` |
 
 A tool the caller may not use is not *listed*, so an agent never plans around a
 capability it does not have.
@@ -740,6 +760,38 @@ point the store's mail intake at someone else's mailbox.
 Add a tool from another module by contributing to the `tools` argument of
 `Magenx\AiMcp\Model\Tool\ToolRegistry` in `di.xml` and implementing
 `Magenx\AiMcp\Api\ToolInterface`. Every guard below applies to it automatically.
+
+### Erasure is confirmed by name, not by id
+
+`approve_gdpr_request` is the most irreversible tool here. Approving a
+data-subject request does not mark a row and move on: it overwrites the
+customer's name, email, addresses, telephone, order history and newsletter
+subscription with placeholders, permanently.
+
+The write switch and the confirm gate apply as they do everywhere, but the
+preview they produce names a `request_id` — not a person — so confirming it
+tells an agent nothing about whose data is about to go. The tool therefore also
+requires `customer_email`, and refuses unless it matches the request's own
+customer. An agent that reached for the wrong id cannot get past it; one that
+reached for the right id has had to look at who it belongs to. `get_gdpr_request`
+reports the address to pass.
+
+The order of operations is the module's own, copied rather than reinvented: the
+request is marked resolved **before** the anonymization runs, so a failure
+between the two leaves the data destroyed and the request visibly closed rather
+than destroyed and still pending — which would invite a second call with no
+record that the first had already happened.
+
+`deny_gdpr_request` destroys nothing and needs no such check, but it does
+require a reason: a denial is the part of this process anyone auditing it will
+ask about.
+
+Cookie **groups** are read-only, and that is a property of the data model rather
+than a policy: the consent log records decisions in four fixed columns matching
+the four seeded groups, so a fifth group would appear in the banner with nowhere
+to store what a visitor answered about it. The cookies inside those groups are
+writable, because that registry is what a cookie policy is generated from and it
+drifts every time a script is added.
 
 ### Attachments are listed, never served
 
