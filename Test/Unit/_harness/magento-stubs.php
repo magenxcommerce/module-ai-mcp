@@ -923,3 +923,26 @@ namespace Magenx\Platform\Model {
         public function getCacheTtl() { return 0; }
     }
 }
+
+namespace Magenx\Helpdesk\Model {
+    class Priority { public function getId() {} public function getData($k = null, $i = null) {}
+        public function setData($k, $v = null) { return $this; } }
+    class Department extends Priority {}
+    class Field extends Priority {}
+    class SpamPattern extends Priority {}
+    class PriorityFactory { public function create(array $data = []) { return null; } }
+    class DepartmentFactory extends PriorityFactory {}
+    class FieldFactory extends PriorityFactory {}
+    class SpamPatternFactory extends PriorityFactory {}
+}
+
+namespace Magenx\Helpdesk\Model\ResourceModel {
+    class Priority {
+        public function load($object, $value, $field = null) { return $this; }
+        public function save($object) { return $this; }
+        public function delete($object) { return $this; }
+    }
+    class Department extends Priority {}
+    class Field extends Priority {}
+    class SpamPattern extends Priority {}
+}

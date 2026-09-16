@@ -168,6 +168,14 @@
                 <item name="list_helpdesk_priorities" xsi:type="object">Magenx\AiMcp\Model\Tool\Helpdesk\Lookup\ListPriorities</item>
                 <item name="list_helpdesk_custom_fields" xsi:type="object">Magenx\AiMcp\Model\Tool\Helpdesk\Lookup\ListCustomFields</item>
                 <item name="list_helpdesk_spam_patterns" xsi:type="object">Magenx\AiMcp\Model\Tool\Helpdesk\Lookup\ListSpamPatterns</item>
+                <item name="save_helpdesk_priority" xsi:type="object">Magenx\AiMcp\Model\Tool\Helpdesk\Lookup\SavePriority</item>
+                <item name="delete_helpdesk_priority" xsi:type="object">Magenx\AiMcp\Model\Tool\Helpdesk\Lookup\DeletePriority</item>
+                <item name="save_helpdesk_department" xsi:type="object">Magenx\AiMcp\Model\Tool\Helpdesk\Lookup\SaveDepartment</item>
+                <item name="delete_helpdesk_department" xsi:type="object">Magenx\AiMcp\Model\Tool\Helpdesk\Lookup\DeleteDepartment</item>
+                <item name="save_helpdesk_custom_field" xsi:type="object">Magenx\AiMcp\Model\Tool\Helpdesk\Lookup\SaveCustomField</item>
+                <item name="delete_helpdesk_custom_field" xsi:type="object">Magenx\AiMcp\Model\Tool\Helpdesk\Lookup\DeleteCustomField</item>
+                <item name="save_helpdesk_spam_pattern" xsi:type="object">Magenx\AiMcp\Model\Tool\Helpdesk\Lookup\SaveSpamPattern</item>
+                <item name="delete_helpdesk_spam_pattern" xsi:type="object">Magenx\AiMcp\Model\Tool\Helpdesk\Lookup\DeleteSpamPattern</item>
                 <item name="list_helpdesk_gateways" xsi:type="object">Magenx\AiMcp\Model\Tool\Helpdesk\Lookup\ListGateways</item>
                 <item name="get_config" xsi:type="object">Magenx\AiMcp\Model\Tool\Config\GetConfig</item>
                 <item name="set_config" xsi:type="object">Magenx\AiMcp\Model\Tool\Config\SetConfig</item>
