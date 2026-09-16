@@ -6,20 +6,34 @@ declare(strict_types=1);
 
 namespace Magenx\AiMcp\Model\Tool;
 
+use Magenx\AiMcp\Api\ToolAnnotationsInterface;
 use Magenx\AiMcp\Api\ToolInterface;
 use Magento\Framework\Exception\LocalizedException;
 
 /**
- * Argument handling shared by every tool.
+ * Argument handling shared by every tool, and the annotations derived from it.
  *
  * Tools validate their own arguments rather than relying on the client to
  * honour the advertised JSON Schema — an MCP client is not a trust boundary.
  */
-abstract class AbstractTool implements ToolInterface
+abstract class AbstractTool implements ToolInterface, ToolAnnotationsInterface
 {
     /** Nothing may ask for an unbounded page: results are fed to a model. */
     protected const MAX_PAGE_SIZE = 100;
     protected const DEFAULT_PAGE_SIZE = 20;
+
+    /**
+     * Words that are initialisms rather than nouns, so the derived title reads
+     * "Search CMS Pages" rather than "Search Cms Pages". Only the ones that
+     * actually occur in a tool name are listed; anything else is capitalised.
+     */
+    private const TITLE_INITIALISMS = [
+        'cms' => 'CMS',
+        'id' => 'ID',
+        'rma' => 'RMA',
+        'sku' => 'SKU',
+        'url' => 'URL',
+    ];
 
     /**
      * Most tools read; the ones that write say so.
@@ -27,6 +41,74 @@ abstract class AbstractTool implements ToolInterface
      * @return bool
      */
     public function isWrite(): bool
+    {
+        return false;
+    }
+
+    /**
+     * Derived from the tool name, which is already the canonical description of
+     * what the tool does. A tool whose name reads badly as a title overrides it.
+     *
+     * @return string|null
+     */
+    public function getTitle(): ?string
+    {
+        $words = array_map(
+            static fn (string $word): string => self::TITLE_INITIALISMS[$word] ?? ucfirst($word),
+            explode('_', $this->getName())
+        );
+
+        return implode(' ', $words);
+    }
+
+    /**
+     * The hints, derived so a new tool gets them for free.
+     *
+     * `destructiveHint` and `idempotentHint` are defined by MCP only when
+     * `readOnlyHint` is false, so a read tool advertises neither rather than
+     * advertising a value a client is entitled to ignore.
+     *
+     * @return array<string, bool>
+     */
+    public function getAnnotations(): array
+    {
+        $annotations = [
+            'readOnlyHint' => !$this->isWrite(),
+            // Every tool here acts on this one Magento store. None of them
+            // reaches an open-ended set of external entities, which is what
+            // openWorldHint warns a client about.
+            'openWorldHint' => false,
+        ];
+
+        if ($this->isWrite()) {
+            $annotations['destructiveHint'] = $this->isDestructive();
+            $annotations['idempotentHint'] = $this->isIdempotent();
+        }
+
+        return $annotations;
+    }
+
+    /**
+     * Whether this tool can remove or overwrite something that was already
+     * there. Defaults to MCP's own default of true — assume the worst of a
+     * write — so a tool that only ever adds has to say so deliberately.
+     *
+     * @return bool
+     */
+    protected function isDestructive(): bool
+    {
+        return true;
+    }
+
+    /**
+     * Whether calling this tool twice with the same arguments leaves the store
+     * in the same state as calling it once. False by default, which is MCP's
+     * default and is correct for every `create_`/`add_` tool; the `set_` and
+     * `update_` tools override it.
+     *
+     * @return bool
+     */
+    protected function isIdempotent(): bool
     {
         return false;
     }

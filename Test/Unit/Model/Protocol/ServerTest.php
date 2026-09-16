@@ -11,6 +11,7 @@ use Magenx\AiMcp\Model\Auth\Identity;
 use Magenx\AiMcp\Model\Config;
 use Magenx\AiMcp\Model\Protocol\JsonRpc;
 use Magenx\AiMcp\Model\Protocol\Server;
+use Magenx\AiMcp\Model\Tool\AbstractTool;
 use Magenx\AiMcp\Model\Tool\ToolRegistry;
 use Magento\Framework\Serialize\Serializer\Json;
 use PHPUnit\Framework\TestCase;
@@ -86,6 +87,38 @@ class ServerTest extends TestCase
 
         $this->assertSame('object', $tools[0]['inputSchema']['type']);
         $this->assertFalse($tools[0]['inputSchema']['additionalProperties']);
+    }
+
+    /**
+     * A tool contributed by another module against ToolInterface alone must be
+     * advertised exactly as it was before annotations existed. Inventing hints
+     * for a tool that never declared any would put this server's guess about
+     * someone else's tool on the wire as if the tool had said it.
+     *
+     * @return void
+     */
+    public function testAToolWithoutAnnotationsIsAdvertisedUnchanged(): void
+    {
+        $tools = $this->decode($this->listTools($this->tool('list_things', isWrite: false, properties: [])));
+
+        $this->assertSame(['name', 'description', 'inputSchema'], array_keys($tools[0]));
+    }
+
+    /**
+     * A tool that does declare them reaches the wire with both the top-level
+     * title and the copy inside annotations, because which one a client reads
+     * depends on how old it is.
+     *
+     * @return void
+     */
+    public function testAnnotationsAndTitleReachTheWire(): void
+    {
+        $tools = $this->decode($this->listTools($this->annotatedTool()));
+
+        $this->assertSame('Do Thing', $tools[0]['title']);
+        $this->assertSame('Do Thing', $tools[0]['annotations']['title']);
+        $this->assertFalse($tools[0]['annotations']['readOnlyHint']);
+        $this->assertTrue($tools[0]['annotations']['destructiveHint']);
     }
 
     /**
@@ -187,6 +220,65 @@ class ServerTest extends TestCase
             public function isWrite(): bool
             {
                 return $this->isWrite;
+            }
+
+            /**
+             * @inheritDoc
+             */
+            public function execute(array $arguments): array
+            {
+                return [];
+            }
+        };
+    }
+
+    /**
+     * A write tool built on AbstractTool, so the derived title and hints under
+     * test are the real ones rather than a fixture's idea of them.
+     *
+     * @return ToolInterface
+     */
+    private function annotatedTool(): ToolInterface
+    {
+        return new class extends AbstractTool {
+            /**
+             * @inheritDoc
+             */
+            public function getName(): string
+            {
+                return 'do_thing';
+            }
+
+            /**
+             * @inheritDoc
+             */
+            public function getDescription(): string
+            {
+                return 'Test tool.';
+            }
+
+            /**
+             * @inheritDoc
+             */
+            public function getInputSchema(): array
+            {
+                return ['type' => 'object', 'properties' => [], 'additionalProperties' => false];
+            }
+
+            /**
+             * @inheritDoc
+             */
+            public function getAclResource(): string
+            {
+                return '';
+            }
+
+            /**
+             * @inheritDoc
+             */
+            public function isWrite(): bool
+            {
+                return true;
             }
 
             /**

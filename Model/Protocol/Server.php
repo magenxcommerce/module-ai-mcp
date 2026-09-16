@@ -6,6 +6,7 @@ declare(strict_types=1);
 
 namespace Magenx\AiMcp\Model\Protocol;
 
+use Magenx\AiMcp\Api\ToolAnnotationsInterface;
 use Magenx\AiMcp\Api\ToolInterface;
 use Magenx\AiMcp\Model\Auth\Identity;
 use Magenx\AiMcp\Model\Config;
@@ -158,14 +159,50 @@ class Server
             if (!$this->isAvailable($tool, $identity)) {
                 continue;
             }
-            $tools[] = [
-                'name' => $tool->getName(),
-                'description' => $tool->getDescription(),
-                'inputSchema' => $this->buildInputSchema($tool),
-            ];
+            $tools[] = $this->describeTool($tool);
         }
 
         return $tools;
+    }
+
+    /**
+     * One entry in `tools/list`.
+     *
+     * Title and annotations are added only for a tool that opts into
+     * {@see ToolAnnotationsInterface}. A tool contributed by another module
+     * against the older {@see ToolInterface} alone is advertised exactly as it
+     * was, rather than being given hints this server invented for it.
+     *
+     * @param ToolInterface $tool
+     * @return array<string, mixed>
+     */
+    private function describeTool(ToolInterface $tool): array
+    {
+        $entry = [
+            'name' => $tool->getName(),
+            'description' => $tool->getDescription(),
+            'inputSchema' => $this->buildInputSchema($tool),
+        ];
+
+        if (!$tool instanceof ToolAnnotationsInterface) {
+            return $entry;
+        }
+
+        $title = $tool->getTitle();
+        $annotations = $tool->getAnnotations();
+
+        if ($title !== null && $title !== '') {
+            $entry['title'] = $title;
+            // MCP carries the display name both at the top level and inside
+            // annotations, and clients read one or the other depending on how
+            // old they are. Sending both costs nothing and skips the question.
+            $annotations = ['title' => $title] + $annotations;
+        }
+        if ($annotations !== []) {
+            $entry['annotations'] = $annotations;
+        }
+
+        return $entry;
     }
 
     /**

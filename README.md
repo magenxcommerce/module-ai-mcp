@@ -43,6 +43,22 @@ revision this server advertises.
 `GET` and every other method return `405`. While the module is disabled the
 route returns `404`, so a store that has not opted in advertises nothing.
 
+### What `tools/list` advertises
+
+Each tool carries `name`, `description` and `inputSchema`, plus a `title` for a
+client's tool picker and MCP's `annotations`: `readOnlyHint` (the inverse of
+whether the tool writes), `openWorldHint` (always `false` — every tool acts on
+this one store), and, for write tools only, `destructiveHint` and
+`idempotentHint`. The last two are defined by MCP only when `readOnlyHint` is
+false, so a read tool advertises neither.
+
+These are presentation hints, not a boundary. A client is free to ignore them;
+what actually decides whether a call changes anything is the ACL check, the
+write switch and the confirm gate described under [The four
+guards](#the-four-guards). A tool contributed by another module that implements
+only `Api/ToolInterface.php` is advertised without them rather than being given
+hints this server guessed on its behalf.
+
 ### Why a controller and not a `webapi.xml` route
 
 MCP fixes the wire format. The webapi framework's typed (de)serialization
