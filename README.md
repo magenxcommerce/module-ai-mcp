@@ -780,6 +780,37 @@ endpoint without reading any of them:
   fixed and there is no path argument, because a log tool that can be pointed
   elsewhere is a tool for reading any file the web server can.
 
+### Beneath and beside Magento
+
+Two companion modules answer the questions the tools above structurally cannot,
+and each keeps its **own** ACL resource rather than borrowing `Magenx_AiMcp::ops`
+— an integration that should read infrastructure health has no business reading
+who edited what.
+
+`platform_status` (`Magenx_Platform::platform`) reports live health for MariaDB,
+Redis, RabbitMQ, OpenSearch, PHP-FPM and Nginx. Everything else here describes
+Magento; this describes what Magento is standing on, which is where the cause
+usually is when `cache_status`, `indexer_status` and `cron_status` all look fine
+and the store is still slow. Probing is real work against live backends, so the
+enabled-collector list is a gate rather than a default: a code the store has not
+enabled is refused, naming the ones it has. A backend that cannot be reached
+comes back as one `unavailable` entry with its reason, never as a failed call.
+Repeated calls inside the module's cache TTL are answered from its snapshot,
+which matters more here than in the admin — an agent in a loop can call a tool
+far faster than anyone can click Refresh.
+
+`search_admin_activity` and `get_admin_activity` (`Magenx_AdminActivity::activity`)
+are the other half of `read_audit_log`. That tool sees only writes made *through*
+this server; these read what admin users did in the admin, which is where nearly
+every change to a store actually comes from, with the before and after value of
+every field. Two things they are careful about: an unknown `action_type` or
+`status` is refused rather than filtered on, because an empty page reads as
+"nobody did this" rather than "you asked for something that cannot exist"; and
+every result carries `logging_enabled`, because an empty page from a store with
+logging switched off looks identical to one where nothing happened. Values are
+clipped at 2 KB and say so where they are — a clipped value that reads as
+complete is worse than none, when the question is what a field changed *from*.
+
 ## The four guards
 
 1. **The module switch.** `magenx_ai_mcp/general/enabled` is off by default; the

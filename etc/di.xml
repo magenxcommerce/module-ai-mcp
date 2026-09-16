@@ -179,6 +179,9 @@
                 <item name="cron_status" xsi:type="object">Magenx\AiMcp\Model\Tool\Ops\CronStatus</item>
                 <item name="list_modules" xsi:type="object">Magenx\AiMcp\Model\Tool\Ops\ListModules</item>
                 <item name="read_audit_log" xsi:type="object">Magenx\AiMcp\Model\Tool\Ops\ReadAuditLog</item>
+                <item name="platform_status" xsi:type="object">Magenx\AiMcp\Model\Tool\Platform\PlatformStatus</item>
+                <item name="search_admin_activity" xsi:type="object">Magenx\AiMcp\Model\Tool\AdminActivity\SearchAdminActivity</item>
+                <item name="get_admin_activity" xsi:type="object">Magenx\AiMcp\Model\Tool\AdminActivity\GetAdminActivity</item>
             </argument>
         </arguments>
     </type>

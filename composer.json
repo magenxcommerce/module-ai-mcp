@@ -6,7 +6,9 @@
     },
     "require": {
         "php": "~8.3.0||~8.4.0||~8.5.0",
+        "magenxcommerce/module-admin-activity": "*",
         "magenxcommerce/module-helpdesk": "*",
+        "magenxcommerce/module-platform": "*",
         "magenxcommerce/module-rma": "*",
         "magento/framework": "*",
         "magento/module-authorization": "*",

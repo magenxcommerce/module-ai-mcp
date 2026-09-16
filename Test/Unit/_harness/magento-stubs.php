@@ -753,3 +753,93 @@ namespace Magento\User\Model\ResourceModel\User {
         public function create(array $data = []) { return null; }
     }
 }
+
+namespace Magenx\AdminActivity\Model {
+    class Activity {
+        public function getData($key = null, $index = null) {}
+        public function load($modelId, $field = null) { return $this; }
+    }
+    class ActivityDetail {
+        public function getData($key = null, $index = null) {}
+    }
+    class ActivityFactory {
+        public function create(array $data = []) { return null; }
+    }
+    class Config {
+        public function isEnabled() { return true; }
+    }
+}
+
+namespace Magenx\AdminActivity\Model\Activity {
+    class ActionType {
+        public const ADD = 'add';
+        public const EDIT = 'edit';
+        public const DELETE = 'delete';
+        public const VIEW = 'view';
+        public const PRINT_ACTION = 'print';
+        public const MASS_UPDATE = 'mass_update';
+        public const LOGIN = 'login';
+        public const LOGIN_FAILED = 'login_failed';
+        public const LOGOUT = 'logout';
+        public const PAGE_VISIT = 'page_visit';
+        public const STATUS_SUCCESS = 'success';
+        public const STATUS_FAILURE = 'failure';
+    }
+}
+
+namespace Magenx\AdminActivity\Model\ResourceModel\Activity {
+    class Collection implements \IteratorAggregate {
+        public function addFieldToFilter($field, $condition = null) { return $this; }
+        public function setOrder($field, $direction = 'DESC') { return $this; }
+        public function setPageSize($size) { return $this; }
+        public function setCurPage($page) { return $this; }
+        public function getSize() { return 0; }
+        public function getIterator(): \Traversable { return new \ArrayIterator([]); }
+    }
+    class CollectionFactory {
+        public function create(array $data = []) { return null; }
+    }
+}
+
+namespace Magenx\AdminActivity\Model\ResourceModel\ActivityDetail {
+    class Collection implements \IteratorAggregate {
+        public function addActivityFilter($activityId) { return $this; }
+        public function getIterator(): \Traversable { return new \ArrayIterator([]); }
+    }
+    class CollectionFactory {
+        public function create(array $data = []) { return null; }
+    }
+}
+
+namespace Magenx\Platform\Model\Collector {
+    interface CollectorInterface {
+        public function getLabel();
+        public function collect();
+    }
+}
+
+namespace Magenx\Platform\Model\Metric {
+    class Status {
+        public const INFO = 'info';
+        public const OK = 'ok';
+        public const WARN = 'warn';
+        public const UNAVAILABLE = 'unavailable';
+        public const ERROR = 'error';
+    }
+}
+
+namespace Magenx\Platform\Model {
+    class CollectorPool {
+        public function get($code) { return null; }
+        public function getAll() { return []; }
+    }
+    class CollectorRunner {
+        public function run($code, $collector) { return []; }
+        public function unavailable($summary) { return []; }
+    }
+    class Config {
+        public function isEnabled() { return true; }
+        public function getEnabledCollectors() { return []; }
+        public function getCacheTtl() { return 0; }
+    }
+}
