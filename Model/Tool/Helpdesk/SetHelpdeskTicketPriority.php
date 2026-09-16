@@ -88,6 +88,15 @@ class SetHelpdeskTicketPriority extends AbstractTool
     /**
      * @inheritDoc
      */
+    protected function isIdempotent(): bool
+    {
+        // Setting the priority a ticket already has changes nothing.
+        return true;
+    }
+
+    /**
+     * @inheritDoc
+     */
     public function execute(array $arguments): array
     {
         $ticket = $this->locator->locate(

@@ -101,6 +101,15 @@ class SetCacheState extends AbstractTool
     /**
      * @inheritDoc
      */
+    protected function isIdempotent(): bool
+    {
+        // Setting a cache type to the state it is already in changes nothing.
+        return true;
+    }
+
+    /**
+     * @inheritDoc
+     */
     public function execute(array $arguments): array
     {
         $enabled = $this->optionalBool($arguments, 'enabled');

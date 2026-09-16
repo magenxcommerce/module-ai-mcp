@@ -120,6 +120,16 @@ class CreateProduct extends AbstractTool
     /**
      * @inheritDoc
      */
+    protected function isDestructive(): bool
+    {
+        // Adds a product; an sku already in use is refused rather than
+        // overwritten.
+        return false;
+    }
+
+    /**
+     * @inheritDoc
+     */
     public function execute(array $arguments): array
     {
         $sku = $this->requireString($arguments, 'sku');

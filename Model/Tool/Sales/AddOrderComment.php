@@ -98,6 +98,15 @@ class AddOrderComment extends AbstractTool
     /**
      * @inheritDoc
      */
+    protected function isDestructive(): bool
+    {
+        // Appends a comment to the order history; nothing is overwritten.
+        return false;
+    }
+
+    /**
+     * @inheritDoc
+     */
     public function execute(array $arguments): array
     {
         $order = $this->locator->locate(

@@ -101,6 +101,16 @@ class AddBundleSelection extends AbstractTool
     /**
      * @inheritDoc
      */
+    protected function isDestructive(): bool
+    {
+        // Adds one selection to an option and leaves the others alone;
+        // save_bundle_option is the tool that replaces the list.
+        return false;
+    }
+
+    /**
+     * @inheritDoc
+     */
     public function execute(array $arguments): array
     {
         $sku = $this->requireString($arguments, 'sku');

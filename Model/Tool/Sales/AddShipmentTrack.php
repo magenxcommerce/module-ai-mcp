@@ -112,6 +112,15 @@ class AddShipmentTrack extends AbstractTool
     /**
      * @inheritDoc
      */
+    protected function isDestructive(): bool
+    {
+        // Adds a tracking number beside any already on the shipment.
+        return false;
+    }
+
+    /**
+     * @inheritDoc
+     */
     public function execute(array $arguments): array
     {
         /** @var ShipmentInterface $shipment */

@@ -88,6 +88,15 @@ class CreateCmsPage extends AbstractTool
     /**
      * @inheritDoc
      */
+    protected function isDestructive(): bool
+    {
+        // Adds a page; nothing that already exists is touched.
+        return false;
+    }
+
+    /**
+     * @inheritDoc
+     */
     public function execute(array $arguments): array
     {
         $identifier = $this->requireString($arguments, 'identifier');

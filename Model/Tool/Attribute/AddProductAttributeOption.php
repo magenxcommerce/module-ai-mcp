@@ -113,6 +113,16 @@ class AddProductAttributeOption extends AbstractTool
     /**
      * @inheritDoc
      */
+    protected function isDestructive(): bool
+    {
+        // Adds an option to the list; Magento refuses a duplicate label, so
+        // no existing option is replaced.
+        return false;
+    }
+
+    /**
+     * @inheritDoc
+     */
     public function execute(array $arguments): array
     {
         $code = $this->requireString($arguments, 'attribute_code');

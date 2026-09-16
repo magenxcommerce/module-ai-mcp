@@ -87,6 +87,16 @@ class SetTierPrices extends AbstractTool
     /**
      * @inheritDoc
      */
+    protected function isIdempotent(): bool
+    {
+        // The tier price set is replaced wholesale, so the second call writes
+        // the same set the first one did.
+        return true;
+    }
+
+    /**
+     * @inheritDoc
+     */
     public function execute(array $arguments): array
     {
         $prices = $this->tierPrices->build($this->optionalArray($arguments, 'prices'), true);

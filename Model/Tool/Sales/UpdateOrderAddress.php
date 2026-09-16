@@ -132,6 +132,15 @@ class UpdateOrderAddress extends AbstractTool
     /**
      * @inheritDoc
      */
+    protected function isIdempotent(): bool
+    {
+        // Only the fields passed are written, to the values passed.
+        return true;
+    }
+
+    /**
+     * @inheritDoc
+     */
     public function execute(array $arguments): array
     {
         $order = $this->locator->locate(

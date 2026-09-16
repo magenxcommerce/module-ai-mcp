@@ -133,6 +133,16 @@ class CreateProductAttribute extends AbstractTool
     /**
      * @inheritDoc
      */
+    protected function isDestructive(): bool
+    {
+        // Adds an attribute; a code already in use is refused rather than
+        // overwritten.
+        return false;
+    }
+
+    /**
+     * @inheritDoc
+     */
     public function execute(array $arguments): array
     {
         $code = strtolower($this->requireString($arguments, 'attribute_code'));

@@ -106,6 +106,15 @@ class SetConfig extends AbstractTool
     /**
      * @inheritDoc
      */
+    protected function isIdempotent(): bool
+    {
+        // Writing the same value again leaves the same value.
+        return true;
+    }
+
+    /**
+     * @inheritDoc
+     */
     public function execute(array $arguments): array
     {
         // Magento stores configuration paths lower-cased; normalising here keeps

@@ -120,6 +120,16 @@ class SetProductLinks extends AbstractTool
     /**
      * @inheritDoc
      */
+    protected function isIdempotent(): bool
+    {
+        // The link set is replaced wholesale, so the second call writes the
+        // same set the first one did.
+        return true;
+    }
+
+    /**
+     * @inheritDoc
+     */
     public function execute(array $arguments): array
     {
         $sku = $this->requireString($arguments, 'sku');

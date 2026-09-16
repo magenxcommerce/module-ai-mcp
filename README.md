@@ -52,6 +52,18 @@ this one store), and, for write tools only, `destructiveHint` and
 `idempotentHint`. The last two are defined by MCP only when `readOnlyHint` is
 false, so a read tool advertises neither.
 
+A write tool assumes the worst of itself unless it says otherwise:
+`destructiveHint` starts true and `idempotentHint` false. Every `set_`/`update_`
+tool overrides the second — they write the fields named to the values given, so
+a repeat lands in the same place — and the tools that only ever add override the
+first.
+
+Four write tools keep `destructiveHint: true` despite being named `create_` or
+`add_`, and the exceptions are the point of the hint. `create_invoice`,
+`create_shipment` and `create_credit_memo` move money and goods and cannot be
+taken back; `add_product_media` assigns image roles, and giving a role to one
+image takes it from whichever image held it. Every delete keeps the default too.
+
 These are presentation hints, not a boundary. A client is free to ignore them;
 what actually decides whether a call changes anything is the ACL check, the
 write switch and the confirm gate described under [The four
