@@ -239,6 +239,29 @@ same ACL role, so nothing is lost but the serializer.
 | `cron_status` | | `Magenx_AiMcp::ops` |
 | `list_modules` | | `Magenx_AiMcp::ops` |
 | `read_audit_log` | | `Magenx_AiMcp::ops` |
+| `save_helpdesk_priority` | ✓ | `Magenx_Helpdesk::priority` |
+| `delete_helpdesk_priority` | ✓ | `Magenx_Helpdesk::priority` |
+| `save_helpdesk_department` | ✓ | `Magenx_Helpdesk::department` |
+| `delete_helpdesk_department` | ✓ | `Magenx_Helpdesk::department` |
+| `save_helpdesk_custom_field` | ✓ | `Magenx_Helpdesk::field` |
+| `delete_helpdesk_custom_field` | ✓ | `Magenx_Helpdesk::field` |
+| `save_helpdesk_spam_pattern` | ✓ | `Magenx_Helpdesk::spam` |
+| `delete_helpdesk_spam_pattern` | ✓ | `Magenx_Helpdesk::spam` |
+| `set_helpdesk_ticket_fields` | ✓ | `Magenx_Helpdesk::ticket` |
+| `set_helpdesk_ticket_department` | ✓ | `Magenx_Helpdesk::ticket` |
+| `list_helpdesk_attachments` |  | `Magenx_Helpdesk::ticket` |
+| `delete_helpdesk_ticket` | ✓ | `Magenx_Helpdesk::ticket` |
+| `create_rma` | ✓ | `Magenx_Rma::rma_manage` |
+| `list_rma_attachments` |  | `Magenx_Rma::rma_manage` |
+| `delete_rma_attachment` | ✓ | `Magenx_Rma::rma_manage` |
+| `platform_status` |  | `Magenx_Platform::platform` |
+| `search_admin_activity` |  | `Magenx_AdminActivity::activity` |
+| `get_admin_activity` |  | `Magenx_AdminActivity::activity` |
+| `sales_summary` |  | `Magenx_AiMcp::reports` |
+| `sales_by_period` |  | `Magenx_AiMcp::reports` |
+| `top_products` |  | `Magenx_AiMcp::reports` |
+| `order_status_breakdown` |  | `Magenx_AiMcp::reports` |
+| `customer_summary` |  | `Magenx_AiMcp::reports` |
 
 A tool the caller may not use is not *listed*, so an agent never plans around a
 capability it does not have.
