@@ -101,6 +101,15 @@ class AddRmaComment extends AbstractTool
     /**
      * @inheritDoc
      */
+    protected function isDestructive(): bool
+    {
+        // Appends a comment; nothing already on the return changes.
+        return false;
+    }
+
+    /**
+     * @inheritDoc
+     */
     public function execute(array $arguments): array
     {
         $rma = $this->locator->locate(

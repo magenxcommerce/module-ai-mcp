@@ -80,6 +80,16 @@ class AddConfigurableChild extends AbstractTool
     /**
      * @inheritDoc
      */
+    protected function isDestructive(): bool
+    {
+        // Associates an existing simple product; nothing is removed, and a
+        // combination already taken is refused rather than replaced.
+        return false;
+    }
+
+    /**
+     * @inheritDoc
+     */
     public function execute(array $arguments): array
     {
         $sku = $this->requireString($arguments, 'sku');

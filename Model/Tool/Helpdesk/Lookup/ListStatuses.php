@@ -32,6 +32,18 @@ class ListStatuses extends AbstractHelpdeskList
     /**
      * @inheritDoc
      */
+    public function getDescription(): string
+    {
+        return 'List the help desk statuses with their ids and codes. The ids are what '
+            . 'set_helpdesk_ticket_status takes. Read-only, unlike the other lookups here: a '
+            . 'status code is referenced from store configuration, which decides which statuses '
+            . 'archive a ticket and which lock it, so creating or renaming one changes what '
+            . 'closing a ticket does. That belongs in the admin beside the settings it affects.';
+    }
+
+    /**
+     * @inheritDoc
+     */
     public function getAclResource(): string
     {
         return 'Magenx_Helpdesk::status';

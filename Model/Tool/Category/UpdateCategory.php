@@ -102,6 +102,15 @@ class UpdateCategory extends AbstractTool
     /**
      * @inheritDoc
      */
+    protected function isIdempotent(): bool
+    {
+        // Only the fields passed are written, to the values passed.
+        return true;
+    }
+
+    /**
+     * @inheritDoc
+     */
     public function execute(array $arguments): array
     {
         $categoryId = $this->requireInt($arguments, 'category_id');

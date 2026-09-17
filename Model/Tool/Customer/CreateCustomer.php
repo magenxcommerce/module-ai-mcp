@@ -96,6 +96,16 @@ class CreateCustomer extends AbstractTool
     /**
      * @inheritDoc
      */
+    protected function isDestructive(): bool
+    {
+        // Adds an account. It does send the account-creation e-mail, which
+        // is a message rather than a change to anything already stored.
+        return false;
+    }
+
+    /**
+     * @inheritDoc
+     */
     public function execute(array $arguments): array
     {
         // Presence is enforced here; the values themselves are applied by the

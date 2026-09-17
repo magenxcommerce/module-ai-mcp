@@ -54,6 +54,26 @@
                     </depends>
                 </field>
             </group>
+            <group id="tools" translate="label comment" sortOrder="30" showInDefault="1">
+                <label>Tools</label>
+                <comment><![CDATA[These narrow what a client is <em>shown</em>, not what it is permitted to do. The integration's ACL role and the write switch still decide that, and a tool withheld here is withheld from every integration.]]></comment>
+                <field id="enabled_domains" translate="label comment" type="multiselect" sortOrder="10" showInDefault="1" canRestoreToDefault="1">
+                    <label>Enabled Tool Domains</label>
+                    <source_model>Magenx\AiMcp\Model\Config\Source\ToolDomain</source_model>
+                    <comment><![CDATA[Select nothing to offer every domain, which is the default. Selecting some offers only those: the whole tool list is a large part of a client's context window, and an agent given only the domains its task needs plans better within it. A tool outside the selection is not listed and cannot be called.]]></comment>
+                    <depends>
+                        <field id="magenx_ai_mcp/general/enabled">1</field>
+                    </depends>
+                </field>
+                <field id="disabled_tools" translate="label comment" type="textarea" sortOrder="20" showInDefault="1">
+                    <label>Disabled Tools</label>
+                    <backend_model>Magenx\AiMcp\Model\Config\Backend\DisabledTools</backend_model>
+                    <comment><![CDATA[Comma or newline separated tool names, e.g. <code>delete_product, delete_category</code>. Applied after the domain selection above, so a name listed here is withheld even if its domain is enabled. A name no tool answers to is refused when you save rather than accepted and ignored.]]></comment>
+                    <depends>
+                        <field id="magenx_ai_mcp/general/enabled">1</field>
+                    </depends>
+                </field>
+            </group>
         </section>
     </system>
 </config>

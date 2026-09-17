@@ -65,11 +65,11 @@ class MediaPathPolicy
     {
         $segments = [self::ROOT];
 
-        foreach ($this->split($directory ?? '', 'directory') as $segment) {
+        foreach ($this->segments($directory ?? '', 'directory') as $segment) {
             $segments[] = $segment;
         }
 
-        $name = $this->split($fileName, 'file_name');
+        $name = $this->segments($fileName, 'file_name');
         if (count($name) !== 1) {
             throw new LocalizedException(__(
                 'The "file_name" argument must be a name, not a path — put folders in "directory".'
@@ -86,12 +86,19 @@ class MediaPathPolicy
      * Split a caller-supplied path into segments, refusing anything that could
      * reach outside the gallery root.
      *
+     * Public because deleting needs the same guard as uploading and must not
+     * carry a second copy of it. {@see resolve()} is no use to a deleter — it
+     * prepends the root to a path that already starts with it and demands a
+     * mime type nobody removing a file has — but this, the part that actually
+     * refuses `..`, a leading `/`, a backslash or a null byte, is exactly what
+     * both need.
+     *
      * @param string $value
      * @param string $argumentName
      * @return array<int, string>
      * @throws LocalizedException
      */
-    private function split(string $value, string $argumentName): array
+    public function segments(string $value, string $argumentName): array
     {
         $value = trim($value);
         if ($value === '') {

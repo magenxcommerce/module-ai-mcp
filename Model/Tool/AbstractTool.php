@@ -6,16 +6,18 @@ declare(strict_types=1);
 
 namespace Magenx\AiMcp\Model\Tool;
 
+use Magenx\AiMcp\Api\StructuredToolInterface;
+use Magenx\AiMcp\Api\ToolAnnotationsInterface;
 use Magenx\AiMcp\Api\ToolInterface;
 use Magento\Framework\Exception\LocalizedException;
 
 /**
- * Argument handling shared by every tool.
+ * Argument handling shared by every tool, and the annotations derived from it.
  *
  * Tools validate their own arguments rather than relying on the client to
  * honour the advertised JSON Schema — an MCP client is not a trust boundary.
  */
-abstract class AbstractTool implements ToolInterface
+abstract class AbstractTool implements ToolInterface, ToolAnnotationsInterface, StructuredToolInterface
 {
     /** Nothing may ask for an unbounded page: results are fed to a model. */
     protected const MAX_PAGE_SIZE = 100;
@@ -27,6 +29,74 @@ abstract class AbstractTool implements ToolInterface
      * @return bool
      */
     public function isWrite(): bool
+    {
+        return false;
+    }
+
+    /**
+     * Derived from the tool name, which is already the canonical description of
+     * what the tool does. A tool whose name reads badly as a title overrides it.
+     *
+     * @return string|null
+     */
+    public function getTitle(): ?string
+    {
+        $words = array_map(
+            static fn (string $word): string => Initialisms::MAP[$word] ?? ucfirst($word),
+            explode('_', $this->getName())
+        );
+
+        return implode(' ', $words);
+    }
+
+    /**
+     * The hints, derived so a new tool gets them for free.
+     *
+     * `destructiveHint` and `idempotentHint` are defined by MCP only when
+     * `readOnlyHint` is false, so a read tool advertises neither rather than
+     * advertising a value a client is entitled to ignore.
+     *
+     * @return array<string, bool>
+     */
+    public function getAnnotations(): array
+    {
+        $annotations = [
+            'readOnlyHint' => !$this->isWrite(),
+            // Every tool here acts on this one Magento store. None of them
+            // reaches an open-ended set of external entities, which is what
+            // openWorldHint warns a client about.
+            'openWorldHint' => false,
+        ];
+
+        if ($this->isWrite()) {
+            $annotations['destructiveHint'] = $this->isDestructive();
+            $annotations['idempotentHint'] = $this->isIdempotent();
+        }
+
+        return $annotations;
+    }
+
+    /**
+     * Whether this tool can remove or overwrite something that was already
+     * there. Defaults to MCP's own default of true — assume the worst of a
+     * write — so a tool that only ever adds has to say so deliberately.
+     *
+     * @return bool
+     */
+    protected function isDestructive(): bool
+    {
+        return true;
+    }
+
+    /**
+     * Whether calling this tool twice with the same arguments leaves the store
+     * in the same state as calling it once. False by default, which is MCP's
+     * default and is correct for every `create_`/`add_` tool; the `set_` and
+     * `update_` tools override it.
+     *
+     * @return bool
+     */
+    protected function isIdempotent(): bool
     {
         return false;
     }
@@ -168,6 +238,69 @@ abstract class AbstractTool implements ToolInterface
                 'description' => 'Results per page (default ' . self::DEFAULT_PAGE_SIZE
                     . ', maximum ' . self::MAX_PAGE_SIZE . ').',
             ],
+        ];
+    }
+
+    /**
+     * Advertise nothing unless a tool opts in.
+     *
+     * The same convention as `getAnnotations()` returning an empty array, and
+     * the same opt-in shape as `isDestructive()` and `isIdempotent()`: a tool
+     * that has not thought about its output shape promises nothing about it,
+     * which is the only safe default when the promise is enforced.
+     *
+     * @inheritDoc
+     */
+    public function getOutputSchema(): array
+    {
+        return [];
+    }
+
+    /**
+     * The shared result shape of every paged list tool.
+     *
+     * The counterpart of {@see pagingSchema()}, which describes the arguments
+     * that produce it. A tool returning this envelope overrides
+     * {@see getOutputSchema()} with one line.
+     *
+     * Two things are deliberately left open.
+     *
+     * `additionalProperties` is absent rather than false. Seventeen tools carry
+     * the envelope *and* a key of their own — `search_admin_activity` reports
+     * `logging_enabled`, the lookup lists report which `entity` they listed —
+     * and those keys exist because the tool would otherwise be misread. A
+     * schema that forbade them would make this server advertise responses it
+     * then fails to honour, so the envelope is stated as a floor: these four
+     * keys are always there, and a tool may say more.
+     *
+     * `items` holds untyped objects. Its elements come from twenty-five
+     * projectors, several of which add keys inside a condition — a product's
+     * detail alone has four independently optional ones. A per-entity item
+     * schema is worth having and has to follow the projectors one domain at a
+     * time; inventing one here would promise fields that are genuinely not
+     * always present.
+     *
+     * @return array<string, mixed>
+     */
+    protected function searchEnvelopeSchema(): array
+    {
+        return [
+            'type' => 'object',
+            'properties' => [
+                'total_count' => [
+                    'type' => 'integer',
+                    'minimum' => 0,
+                    'description' => 'Total matches, across every page.',
+                ],
+                'page' => ['type' => 'integer', 'minimum' => 1, 'description' => 'Page returned, 1-based.'],
+                'page_size' => ['type' => 'integer', 'minimum' => 1, 'description' => 'Results per page.'],
+                'items' => [
+                    'type' => 'array',
+                    'description' => 'This page of results.',
+                    'items' => ['type' => 'object'],
+                ],
+            ],
+            'required' => ['total_count', 'page', 'page_size', 'items'],
         ];
     }
 }

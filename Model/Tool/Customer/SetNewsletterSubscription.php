@@ -95,6 +95,17 @@ class SetNewsletterSubscription extends AbstractTool
     /**
      * @inheritDoc
      */
+    protected function isIdempotent(): bool
+    {
+        // The subscription ends in the state asked for either way. A
+        // second call on a pending double opt-in can resend the confirmation
+        // e-mail, which is a message rather than a change of state.
+        return true;
+    }
+
+    /**
+     * @inheritDoc
+     */
     public function execute(array $arguments): array
     {
         $customer = $this->locator->locate(

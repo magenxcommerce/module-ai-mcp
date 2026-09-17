@@ -91,6 +91,17 @@ class ListAttributeSets extends AbstractTool
     }
 
     /**
+     * Deliberately no `getOutputSchema()`.
+     *
+     * This tool looks like every other paged list and is not: passing
+     * `attribute_set_id` returns one set in full — `{attribute_set_id,
+     * attribute_set_name, sort_order, groups, attribute_codes}` — with no
+     * `items` and no paging at all. Declaring the shared envelope here would
+     * advertise a promise this tool breaks on half its calls, which is worse
+     * than promising nothing. Splitting the two branches into separate tools
+     * would fix that; until somebody does, the omission is the correct answer
+     * rather than an oversight.
+     *
      * @inheritDoc
      */
     public function execute(array $arguments): array

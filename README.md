@@ -43,6 +43,69 @@ revision this server advertises.
 `GET` and every other method return `405`. While the module is disabled the
 route returns `404`, so a store that has not opted in advertises nothing.
 
+### What `tools/list` advertises
+
+Each tool carries `name`, `description` and `inputSchema`, plus a `title` for a
+client's tool picker and MCP's `annotations`: `readOnlyHint` (the inverse of
+whether the tool writes), `openWorldHint` (always `false` — every tool acts on
+this one store), and, for write tools only, `destructiveHint` and
+`idempotentHint`. The last two are defined by MCP only when `readOnlyHint` is
+false, so a read tool advertises neither.
+
+A write tool assumes the worst of itself unless it says otherwise:
+`destructiveHint` starts true and `idempotentHint` false. Every `set_`/`update_`
+tool overrides the second — they write the fields named to the values given, so
+a repeat lands in the same place — and the tools that only ever add override the
+first.
+
+Four write tools keep `destructiveHint: true` despite being named `create_` or
+`add_`, and the exceptions are the point of the hint. `create_invoice`,
+`create_shipment` and `create_credit_memo` move money and goods and cannot be
+taken back; `add_product_media` assigns image roles, and giving a role to one
+image takes it from whichever image held it. Every delete keeps the default too.
+
+**Forty-three read tools also carry an `outputSchema`**, describing the
+`total_count`/`page`/`page_size`/`items` envelope every paged list returns. Unlike
+the annotations this is a promise rather than a hint: MCP obliges the
+`structuredContent` of every successful call to validate against whatever is
+advertised, so a schema that is approximately right is worse than none — it turns
+a response a client would have accepted into one it rejects.
+
+Three consequences follow, and each is why something is *missing* from the wire:
+
+- **No write tool advertises one.** Every write has two successful shapes, not
+  one: an unconfirmed call is answered with the confirm preview —
+  `{preview, tool, arguments, message}` — through the same result helper as an
+  applied call, and that is the normal response rather than the exception. No
+  single schema describes both. Errors are unaffected; a tool error carries
+  `isError` and no structured content, which the spec does not validate.
+- **The envelope forbids nothing.** Seventeen of the forty-three return the four
+  keys *and* one of their own — `search_admin_activity` reports whether admin
+  logging is even switched on, the lookup lists report which `entity` they
+  listed — so the schema states the four as required and stops there. A floor
+  that stays true beats a ceiling that is wrong the first time a tool grows.
+- **`items` holds untyped objects.** Its elements come from twenty-five
+  projectors, several of which add keys inside a condition: a product's detail
+  alone has four independently optional ones. Per-entity item schemas are worth
+  having and have to follow the projectors a domain at a time.
+
+Three read tools that look like they should qualify do not, and the omissions are
+deliberate. `search_low_stock` and `search_media_gallery_assets` report no
+`total_count` at all — the first counts what it returned, the second cannot know
+the total — so neither can promise a key it does not send. `list_attribute_sets`
+returns one attribute set in full, with no `items` and no paging, the moment
+`attribute_set_id` is passed; the envelope would be a promise it breaks on half
+its calls.
+
+These are presentation hints, not a boundary. A client is free to ignore them;
+what actually decides whether a call changes anything is the ACL check, the
+write switch and the confirm gate described under [The four
+guards](#the-four-guards). A tool contributed by another module that implements
+only `Api/ToolInterface.php` is advertised without them rather than being given
+hints or promises this server guessed on its behalf — the annotations live on
+`Api/ToolAnnotationsInterface.php` and the output schema on
+`Api/StructuredToolInterface.php`, both opt-in for exactly that reason.
+
 ### Why a controller and not a `webapi.xml` route
 
 MCP fixes the wire format. The webapi framework's typed (de)serialization
@@ -95,6 +158,9 @@ same ACL role, so nothing is lost but the serializer.
 | `search_customers` | | `Magento_Customer::manage` |
 | `get_customer` | | `Magento_Customer::manage` |
 | `list_customer_groups` | | `Magento_Customer::group` |
+| `create_customer_group` | ✓ | `Magento_Customer::group` |
+| `update_customer_group` | ✓ | `Magento_Customer::group` |
+| `delete_customer_group` | ✓ | `Magento_Customer::group` |
 | `create_customer` | ✓ | `Magento_Customer::manage` |
 | `update_customer` | ✓ | `Magento_Customer::manage` |
 | `delete_customer` | ✓ | `Magento_Customer::delete` |
@@ -114,12 +180,17 @@ same ACL role, so nothing is lost but the serializer.
 | `search_cart_price_rules` | | `Magento_SalesRule::quote` |
 | `get_cart_price_rule` | | `Magento_SalesRule::quote` |
 | `update_cart_price_rule` | ✓ | `Magento_SalesRule::quote` |
+| `create_cart_price_rule` | ✓ | `Magento_SalesRule::quote` |
+| `delete_cart_price_rule` | ✓ | `Magento_SalesRule::quote` |
 | `generate_coupons` | ✓ | `Magento_SalesRule::quote` |
 | `search_coupons` | | `Magento_SalesRule::quote` |
 | `delete_coupons` | ✓ | `Magento_SalesRule::quote` |
 | `search_catalog_price_rules` | | `Magento_CatalogRule::promo_catalog` |
 | `get_catalog_price_rule` | | `Magento_CatalogRule::promo_catalog` |
 | `update_catalog_price_rule` | ✓ | `Magento_CatalogRule::promo_catalog` |
+| `create_catalog_price_rule` | ✓ | `Magento_CatalogRule::promo_catalog` |
+| `delete_catalog_price_rule` | ✓ | `Magento_CatalogRule::promo_catalog` |
+| `apply_catalog_price_rules` | ✓ | `Magento_CatalogRule::promo_catalog` |
 | `search_cms_pages` | | `Magento_Cms::page` |
 | `get_cms_page` | | `Magento_Cms::page` |
 | `create_cms_page` | ✓ | `Magento_Cms::save` |
@@ -148,6 +219,7 @@ same ACL role, so nothing is lost but the serializer.
 | `update_design_config` | ✓ | `Magento_Theme::design_config` |
 | `search_media_gallery_assets` | | `Magento_Cms::media_gallery` |
 | `upload_media_gallery_asset` | ✓ | `Magento_Cms::media_gallery` |
+| `delete_media_gallery_asset` | ✓ | `Magento_Cms::media_gallery` |
 | `list_product_media` | | `Magento_Catalog::products` |
 | `add_product_media` | ✓ | `Magento_Catalog::products` |
 | `update_product_media` | ✓ | `Magento_Catalog::products` |
@@ -223,6 +295,68 @@ same ACL role, so nothing is lost but the serializer.
 | `cron_status` | | `Magenx_AiMcp::ops` |
 | `list_modules` | | `Magenx_AiMcp::ops` |
 | `read_audit_log` | | `Magenx_AiMcp::ops` |
+| `save_helpdesk_priority` | ✓ | `Magenx_Helpdesk::priority` |
+| `delete_helpdesk_priority` | ✓ | `Magenx_Helpdesk::priority` |
+| `save_helpdesk_department` | ✓ | `Magenx_Helpdesk::department` |
+| `delete_helpdesk_department` | ✓ | `Magenx_Helpdesk::department` |
+| `save_helpdesk_custom_field` | ✓ | `Magenx_Helpdesk::field` |
+| `delete_helpdesk_custom_field` | ✓ | `Magenx_Helpdesk::field` |
+| `save_helpdesk_spam_pattern` | ✓ | `Magenx_Helpdesk::spam` |
+| `delete_helpdesk_spam_pattern` | ✓ | `Magenx_Helpdesk::spam` |
+| `set_helpdesk_ticket_fields` | ✓ | `Magenx_Helpdesk::ticket` |
+| `set_helpdesk_ticket_department` | ✓ | `Magenx_Helpdesk::ticket` |
+| `list_helpdesk_attachments` |  | `Magenx_Helpdesk::ticket` |
+| `delete_helpdesk_ticket` | ✓ | `Magenx_Helpdesk::ticket` |
+| `create_rma` | ✓ | `Magenx_Rma::rma_manage` |
+| `list_rma_attachments` |  | `Magenx_Rma::rma_manage` |
+| `delete_rma_attachment` | ✓ | `Magenx_Rma::rma_manage` |
+| `platform_status` |  | `Magenx_Platform::platform` |
+| `search_admin_activity` |  | `Magenx_AdminActivity::activity` |
+| `get_admin_activity` |  | `Magenx_AdminActivity::activity` |
+| `sales_summary` |  | `Magenx_AiMcp::reports` |
+| `sales_by_period` |  | `Magenx_AiMcp::reports` |
+| `top_products` |  | `Magenx_AiMcp::reports` |
+| `order_status_breakdown` |  | `Magenx_AiMcp::reports` |
+| `customer_summary` |  | `Magenx_AiMcp::reports` |
+| `search_blog_posts` |  | `Magenx_Blog::post` |
+| `get_blog_post` |  | `Magenx_Blog::post` |
+| `create_blog_post` | ✓ | `Magenx_Blog::post` |
+| `update_blog_post` | ✓ | `Magenx_Blog::post` |
+| `delete_blog_post` | ✓ | `Magenx_Blog::post` |
+| `list_blog_categories` |  | `Magenx_Blog::category` |
+| `save_blog_category` | ✓ | `Magenx_Blog::category` |
+| `delete_blog_category` | ✓ | `Magenx_Blog` |
+| `list_blog_tags` |  | `Magenx_Blog::tag` |
+| `save_blog_tag` | ✓ | `Magenx_Blog::tag` |
+| `delete_blog_tag` | ✓ | `Magenx_Blog` |
+| `search_gdpr_requests` |  | `Magenx_Gdpr::requests` |
+| `get_gdpr_request` |  | `Magenx_Gdpr::requests` |
+| `approve_gdpr_request` | ✓ | `Magenx_Gdpr::requests` |
+| `deny_gdpr_request` | ✓ | `Magenx_Gdpr::requests` |
+| `search_consent_log` |  | `Magenx_Gdpr::consent_log` |
+| `list_gdpr_cookie_groups` |  | `Magenx_Gdpr::cookie_groups` |
+| `list_gdpr_cookies` |  | `Magenx_Gdpr::cookies` |
+| `save_gdpr_cookie` | ✓ | `Magenx_Gdpr::cookies` |
+| `delete_gdpr_cookie` | ✓ | `Magenx_Gdpr::cookies` |
+| `search_feeds` |  | `Magenx_ProductFeed::feed` |
+| `get_feed` |  | `Magenx_ProductFeed::feed` |
+| `get_feed_history` |  | `Magenx_ProductFeed::feed` |
+| `list_feed_deliveries` |  | `Magenx_ProductFeed::feed` |
+| `create_feed` | ✓ | `Magenx_ProductFeed::feed` |
+| `update_feed` | ✓ | `Magenx_ProductFeed::feed` |
+| `delete_feed` | ✓ | `Magenx_ProductFeed::feed` |
+| `generate_feed` | ✓ | `Magenx_ProductFeed::generate` |
+| `search_carts` |  | `Magento_Cart::cart` |
+| `get_cart` |  | `Magento_Cart::cart` |
+| `list_cart_payment_methods` |  | `Magento_Cart::cart` |
+| `estimate_cart_shipping` |  | `Magento_Cart::cart` |
+| `create_cart` | ✓ | `Magento_Cart::manage` |
+| `add_cart_item` | ✓ | `Magento_Cart::manage` |
+| `update_cart_item` | ✓ | `Magento_Cart::manage` |
+| `remove_cart_item` | ✓ | `Magento_Cart::manage` |
+| `set_cart_delivery` | ✓ | `Magento_Cart::manage` |
+| `set_cart_payment_method` | ✓ | `Magento_Cart::manage` |
+| `place_order` | ✓ | `Magento_Sales::create` |
 
 A tool the caller may not use is not *listed*, so an agent never plans around a
 capability it does not have.
@@ -338,6 +472,30 @@ address list on a saved customer as authoritative and deletes any address
 missing from it, so addresses are only ever changed through the three dedicated
 address tools.
 
+**Customer groups are a separate grant and a separate hazard.** The three group
+tools sit behind `Magento_Customer::group`, not `::manage`, matching
+`list_customer_groups` and Magento's own split — deciding how a class of
+customers is priced and taxed is a different permission from editing one
+person's record.
+
+`tax_class_id` is required on save rather than defaulted. A group carries the
+tax class everyone in it is taxed under, and getting it wrong is not an error
+anybody sees: it is a quietly wrong rate on every order those customers place.
+`update_customer_group` loads the group and mutates it for the same reason the
+price rule tools do — a rename rebuilt from its arguments would save with a null
+tax class.
+
+`delete_customer_group` looks like a one-row delete and is not. Magento does not
+orphan the customers in a deleted group; it reassigns every one of them to the
+default group, a full customer save each, and their prices and tax change with
+them. The confirm preview an agent sees before all that would say nothing but a
+group id. So the members are counted first and any at all refuse the delete,
+naming the number: moving them is a decision for whoever is asking, made
+deliberately with `update_customer`, not a side effect of tidying up a group. An
+empty group deletes normally, and Magento's own refusals — "NOT LOGGED IN" and
+any group configured as a default — are passed through with their reasons
+intact.
+
 ### Stock and pricing: three things that are not obvious
 
 **Stock is the legacy single-stock API.** These tools use
@@ -363,13 +521,44 @@ marks the indexers to rerun.
 
 ### Price rules: what these tools will not do
 
-Neither rule tool writes **conditions**. That is deliberate, and it is why both
+No rule tool writes **conditions**. That is deliberate, and it is why both
 update tools load the existing rule and mutate it rather than building a new
 one: Magento's sales rule repository converts the whole data object back into
 the rule on save, so a rule rebuilt from only the fields being changed would be
 saved with no conditions — a cart discount that suddenly applies to every cart,
 or a catalog rule that re-prices the entire catalogue. A rule whose conditions
 need changing has to be edited in the admin.
+
+Everything else about a rule follows from that, in both directions:
+
+- **Creating.** `create_cart_price_rule` and `create_catalog_price_rule` always
+  create the rule **inactive**, and `is_active` is not in their schemas at all.
+  A rule created here cannot have conditions, so it must not have a way to go
+  live either. The name, dates, discount, websites and customer groups are all
+  set here; somebody then adds the conditions in the admin and enables it there.
+  The result says so rather than reporting a plain success.
+- **Activating.** `update_cart_price_rule` and `update_catalog_price_rule`
+  refuse `is_active: true` on a rule that restricts nothing, naming what to do
+  about it. That guard matters more than the create tools do, because it covers
+  the path that already shipped — and detecting "no conditions" is not the
+  obvious check: Magento hands back a root *combine* node whether or not
+  anything was put inside it, so an unconditioned cart rule answers
+  `getCondition()` with an object. The test is a node with no children, and it
+  lives in one place both tools share.
+- **Deactivating** is never refused, whatever the rule looks like. It is the way
+  back out of a rule that should not have gone live.
+- **Already live and unconditioned** is left alone. A rule in that state is
+  somebody's deliberate store-wide promotion, and renaming or re-dating it is
+  allowed; only switching one *on* is not.
+
+`delete_cart_price_rule` takes the rule's coupon codes with it, so any code a
+customer already holds stops working — deactivating stops a campaign just as
+completely and can be undone. `delete_catalog_price_rule` removes the rule but
+not its prices: those stay in the index until the catalog rule indexer runs, and
+`apply_catalog_price_rules` is what schedules that. Like `invalidate_indexers`,
+it marks the indexer invalid rather than re-pricing inline — which is what the
+admin's own "Apply Rules" button does, because re-applying rules across a real
+catalogue outlasts an HTTP request.
 
 `get_cart_price_rule` does return both condition trees, read-only and
 depth-limited, because they are the usual answer to "why is this rule not
@@ -493,6 +682,23 @@ through a text field:
 `search_media_gallery_assets` requires at least one filter, for the same reason
 `search_url_rewrites` does — an unfiltered lookup returns every asset in the
 store.
+
+`delete_media_gallery_asset` runs the same path guard in the opposite
+direction, which is why the check is a public method on the policy rather than a
+second copy of it: a delete is handed a path that already starts at the gallery
+root, and needs no mime type, so `resolve()` is no use to it while the part that
+refuses `..`, a leading `/`, a backslash and a null byte is exactly what it
+wants. Paths outside the gallery root are refused and pointed at
+`delete_product_media`, which also keeps the product's own gallery consistent.
+
+The other half of that tool is the in-use check. Deleting an asset removes the
+file and leaves every reference to it in place, so the storefront shows a broken
+image and nothing anywhere reports an error — Magento's own admin warns about
+this and then does it. This refuses instead, and names the entity type, id and
+field of everything still pointing at the file, which turns a silent breakage
+into a list of things to fix first. It is the one tool needing
+`magento/module-media-content-api`; without that mapping the check cannot be
+made at all.
 
 ### URL rewrites are read-only
 
@@ -702,6 +908,54 @@ Add a tool from another module by contributing to the `tools` argument of
 `Magenx\AiMcp\Model\Tool\ToolRegistry` in `di.xml` and implementing
 `Magenx\AiMcp\Api\ToolInterface`. Every guard below applies to it automatically.
 
+### Erasure is confirmed by name, not by id
+
+`approve_gdpr_request` is the most irreversible tool here. Approving a
+data-subject request does not mark a row and move on: it overwrites the
+customer's name, email, addresses, telephone, order history and newsletter
+subscription with placeholders, permanently.
+
+The write switch and the confirm gate apply as they do everywhere, but the
+preview they produce names a `request_id` — not a person — so confirming it
+tells an agent nothing about whose data is about to go. The tool therefore also
+requires `customer_email`, and refuses unless it matches the request's own
+customer. An agent that reached for the wrong id cannot get past it; one that
+reached for the right id has had to look at who it belongs to. `get_gdpr_request`
+reports the address to pass.
+
+The order of operations is the module's own, copied rather than reinvented: the
+request is marked resolved **before** the anonymization runs, so a failure
+between the two leaves the data destroyed and the request visibly closed rather
+than destroyed and still pending — which would invite a second call with no
+record that the first had already happened.
+
+`deny_gdpr_request` destroys nothing and needs no such check, but it does
+require a reason: a denial is the part of this process anyone auditing it will
+ask about.
+
+Cookie **groups** are read-only, and that is a property of the data model rather
+than a policy: the consent log records decisions in four fixed columns matching
+the four seeded groups, so a fifth group would appear in the banner with nowhere
+to store what a visitor answered about it. The cookies inside those groups are
+writable, because that registry is what a cookie policy is generated from and it
+drifts every time a script is added.
+
+### Attachments are listed, never served
+
+`list_helpdesk_attachments` and `list_rma_attachments` report what a customer
+attached — name, size, type, and which message or comment it arrived on — and
+never the file itself. The row is a pointer to a file under the media
+directory, so a tool that returned its bytes by id would be a file-read
+primitive bounded by nothing but which ids an agent can guess, aimed at the most
+personal content in either module. What an agent needs in order to decide what
+to do next is whether the receipt is there, and the admin is one click away for
+the file.
+
+`delete_rma_attachment` exists for the case nobody plans: a customer attaches
+something that should not be on the record at all — a bank statement, a passport
+photo — and it has to come off. Leaving personal data in place because the only
+way to remove it is the admin is the worse failure.
+
 ### Admin users: enough to assign work, and no more
 
 `assign_helpdesk_ticket` refuses an `admin_user_id` that does not exist, which
@@ -764,6 +1018,238 @@ endpoint without reading any of them:
   fixed and there is no path argument, because a log tool that can be pointed
   elsewhere is a tool for reading any file the web server can.
 
+### Reports: the only SQL in the module, and why
+
+`sales_summary`, `sales_by_period`, `top_products`, `order_status_breakdown` and
+`customer_summary` sit behind **`Magenx_AiMcp::reports`**, a grant of their own.
+"What did we take last month" and "show me this customer's order" are different
+permissions — which is why Magento's own reports live under a separate tree —
+so these do not borrow `Magento_Sales::actions_view` like the order tools.
+
+Every other tool here reads through a repository or a collection. These compute
+`SUM` and `GROUP BY` directly, because the alternative is fetching orders and
+adding them up in PHP, which is the "pull rows into a model's context" this
+server exists to avoid and is capped at 100 rows a page anyway. Magento's
+aggregate tables were the other option and are deliberately **not** used: a
+nightly cron fills them, so they lag a day, and on a store that has never
+refreshed statistics they are empty — which would report zero revenue for a
+store with orders, confidently.
+
+Four things these tools are careful about, because each produces a plausible
+wrong number rather than an error:
+
+- **Canceled orders** are excluded from the totals and reported as their own
+  figure. Counting them overstates revenue; dropping them silently hides a
+  cancellation spike.
+- **Money is read from the `base_*` columns and grouped by base currency.**
+  Every other projector in this module reports the *order* currency, so a
+  multi-currency store gets one totals block per currency — adding 100 EUR to
+  100 USD would produce 200 of nothing.
+- **Only top-level order lines are counted** for product figures. A configurable
+  product writes both itself and its simple variant to `sales_order_item`, so
+  counting every row doubles every configurable sold.
+- **Ordered, invoiced and refunded are all reported**, with a net. Each answers
+  a different question, and picking one to call "revenue" answers the other two
+  wrongly.
+
+**Periods are read in the store's timezone, not UTC** — the one place this
+server departs from the convention every other date argument follows. A daily
+figure computed in UTC disagrees with the admin's own by however many hours the
+store is offset, and "yesterday" means the merchant's yesterday. Every result
+therefore reports both the local range and the UTC range it actually queried, so
+a follow-up `search_orders` call can be made to cover the same orders. Period
+totals are exact across a daylight-saving change; individual buckets near one
+can be an hour out at the edge, which is the same approximation Magento's own
+reports make.
+
+`customer_summary` does not report new versus returning. Answering it correctly
+means reading every customer's whole order history, and a cheap approximation of
+it is precisely the kind of number somebody would quote.
+
+### Beneath and beside Magento
+
+Two companion modules answer the questions the tools above structurally cannot,
+and each keeps its **own** ACL resource rather than borrowing `Magenx_AiMcp::ops`
+— an integration that should read infrastructure health has no business reading
+who edited what.
+
+`platform_status` (`Magenx_Platform::platform`) reports live health for MariaDB,
+Redis, RabbitMQ, OpenSearch, PHP-FPM and Nginx. Everything else here describes
+Magento; this describes what Magento is standing on, which is where the cause
+usually is when `cache_status`, `indexer_status` and `cron_status` all look fine
+and the store is still slow. Probing is real work against live backends, so the
+enabled-collector list is a gate rather than a default: a code the store has not
+enabled is refused, naming the ones it has. A backend that cannot be reached
+comes back as one `unavailable` entry with its reason, never as a failed call.
+Repeated calls inside the module's cache TTL are answered from its snapshot,
+which matters more here than in the admin — an agent in a loop can call a tool
+far faster than anyone can click Refresh.
+
+`search_admin_activity` and `get_admin_activity` (`Magenx_AdminActivity::activity`)
+are the other half of `read_audit_log`. That tool sees only writes made *through*
+this server; these read what admin users did in the admin, which is where nearly
+every change to a store actually comes from, with the before and after value of
+every field. Two things they are careful about: an unknown `action_type` or
+`status` is refused rather than filtered on, because an empty page reads as
+"nobody did this" rather than "you asked for something that cannot exist"; and
+every result carries `logging_enabled`, because an empty page from a store with
+logging switched off looks identical to one where nothing happened. Values are
+clipped at 2 KB and say so where they are — a clipped value that reads as
+complete is worse than none, when the question is what a field changed *from*.
+
+### Product feeds: one slice per call, and it publishes outward
+
+The feed tools wrap `Magenx_ProductFeed`, which defines catalogue exports,
+renders them from a template language into XML, CSV, TSV or JSONL, publishes
+them under `pub/media` and delivers them by public URL, FTP/SFTP, the Google
+Merchant API or a push catalog API such as Meta's.
+
+Three things about `generate_feed` are not what a reader would assume, and each
+would otherwise be found out the hard way.
+
+**It is one slice, not one feed.** The export runs until the store's configured
+execution budget is spent, writes its cursor and stops; cron continues from
+there. On any real catalogue the first call therefore reports that it generated
+*part* of the feed — and that is a success. The module is explicit about it:
+a tick that used its budget has `completed` false and `failed` false, which is
+a normal result and not an error. The tool says so in words as well as in the
+flag, because "completed: false" beside no error message is exactly the shape an
+agent reads as a failure. Nothing is published or delivered until a run
+finishes, so a store whose cron has stopped is a store where this never
+completes — the same trap `invalidate_indexers` carries, and `cron_status` is
+still the tool that answers it.
+
+**A completed run publishes outward immediately.** `FeedManager::process()` is
+not only a generate: when a run finishes, the feed is delivered to every active
+destination, which may be an FTP drop, Google Merchant Center or Meta. That is
+not routed around, because push destinations are prepared before the run and fed
+records as products are exported — generating without delivering would mean
+going around the module's single entry point, and a feed Google is meant to
+receive would silently never arrive. So `generate_feed` calls what the admin
+button, the CLI and cron all call, names the destinations a completed run will
+reach in its result **and** in its confirm preview, and sits behind
+`Magenx_ProductFeed::generate` rather than `::feed`. Defining a feed and
+publishing the catalogue outward are different permissions, and the companion
+module already says so by declaring two resources.
+
+**Feeds are off by default.** The module ships disabled, and `process()` answers
+a disabled store with the same "skipped" result it uses for "a run is already in
+progress" — distinguishable only by an English message. Rather than match on
+that prose, `generate_feed` checks the setting itself first and refuses with the
+config path to switch on, so a skip that does arrive can only mean the export
+lock is held.
+
+**What the write tools will not do.** Conditions are not writable, the same call
+made for price rules: a feed's filter is Magento Rule machinery that needs the
+admin's nested post array. Unlike a price rule this is not a hazard — a feed
+with no conditions exports the whole catalogue, which is what most feeds are for
+— and `update_feed` loads and mutates rather than rebuilding, so a curated feed
+keeps its filter through an edit that does not mention it. The store view is
+settable only on create: a feed publishes under its store's own directory and
+its URL secret is never rotated, so moving one would leave the old file being
+served at the old address indefinitely while the row pointed elsewhere.
+`update_feed` and `delete_feed` both refuse while a generation is in progress,
+because the export writes its cursor and counts straight to the row and saving a
+feed loaded before the run would put the pre-run values back on top of them.
+
+**One refusal the admin does not make.** A feed carrying both a template and a
+field map renders from the template and ignores the map entirely — deliberately,
+upstream, and with no error. Through an API that means writing columns, getting
+a clean save, generating, and finding none of them in the file. So the write
+tools check the *resulting* row and refuse, naming both ways out. `get_feed`
+reports `render_mode` for the same reason: which of the two is actually live is
+worth more than the two fields and a reader left to work it out.
+
+**`delete_feed` leaves the published file.** Deleting cascades the delivery and
+history rows but the file stays where it was, because a marketplace may still be
+fetching that URL and removing it would turn a deletion here into a broken feed
+on somebody else's platform. This is the opposite conclusion from
+`delete_media_gallery_asset`, which refuses precisely *because* references would
+break, and the difference is who holds the reference: a CMS page is inside this
+store and can be fixed, a Google Merchant Center fetch schedule is not. So the
+result names the file that is still being served — an agent that reads "deleted"
+as "it has stopped being published" would be wrong for as long as the
+marketplace keeps fetching.
+
+**Destinations are read-only.** `list_feed_deliveries` reports where a feed goes
+and how each destination's last attempt went, and withholds every setting whose
+key ends in `password`, `token`, `secret` or `key`. That suffix rule is the
+module's own, chosen there so a new deliverer's `api_password` is covered without
+anyone remembering to add it; copying the rule rather than a list of key names
+means this cannot drift into printing a credential. Withheld keys are reported
+by name, because knowing a password is configured at all is what distinguishes a
+broken destination from one nobody ever set up.
+
+### Carts and orders: the one place this server commits money
+
+Until now the server could act on orders that existed — invoice, ship, refund,
+hold, cancel — and could not create one. Eleven tools in `Model/Tool/Quote/`
+build a cart and turn it into an order, and `place_order` is the most
+irreversible call the server has.
+
+**`place_order` sits behind `Magento_Sales::create`**, not the
+`Magento_Cart::manage` the other write tools take. Assembling a basket and
+committing a customer to buy it are different permissions, so an integration can
+be allowed to price up a cart without being allowed to charge for one. Reads take
+`Magento_Cart::cart`; all three are Magento's own resources, from
+`Magento_Quote/etc/acl.xml` and `Magento_Sales/etc/acl.xml`.
+
+**Only offline payment methods work here, and that is not a limitation to route
+around.** Check/money order, bank transfer, cash on delivery, purchase order and
+the zero-total method can be driven to a placed order. An online gateway cannot:
+it finishes at a payment page the customer has to be in front of, and selecting
+one does not fail cleanly — it fails somewhere inside the payment integration
+during `placeOrder`, by which point the quote may be half converted. So
+`set_cart_payment_method` intersects what the cart actually offers with the five
+offline codes and refuses everything else **before** setting anything. The two
+refusals read differently on purpose: an online method is refused for a reason no
+configuration will change, an offline one the cart does not offer is refused for
+a reason an operator can fix. `list_cart_payment_methods` still lists every
+method the store offers, marking which are usable, so a short list never reads as
+"this store takes no payments".
+
+**`create_cart` requires a store view.** `CartManagementInterface::createEmptyCart()`
+takes no store at all — Magento resolves one from ambient scope, which in a
+headless request is whatever the controller happens to be in rather than a
+storefront anybody chose. The store decides the cart's currency, prices, tax and
+which shipping and payment methods exist, so an unspecified one means an order
+priced in the wrong currency that looks exactly like an order priced in the right
+one. The admin scope is refused outright: it is not a storefront and has no
+prices at all.
+
+**Addresses and the shipping method are one call.** `set_cart_delivery` takes the
+billing address, the shipping address and the carrier/method together, because
+that is the only order Magento supports — a shipping rate depends on the
+destination, so the method cannot be chosen before the address is known. Call
+`estimate_cart_shipping` first to get a valid `carrier_code`/`method_code` pair.
+A cart of only virtual or downloadable products ships nothing and takes a
+different path entirely: billing address alone, no carrier, and passing shipping
+details to one is refused rather than ignored.
+
+**Prices are the store's.** `add_cart_item` and `update_cart_item` take a sku and
+a quantity and no price, although Magento's cart item would accept one. An agent
+naming its own price is a discount with no rule behind it, no record of who
+authorised it and nothing in the catalogue to reconcile the order against — and
+it would be invisible on the finished order, which shows a price without saying
+where it came from. Discounts belong to cart price rules, which this server
+already reads and writes.
+
+**A placed cart is still a cart.** Placing an order deactivates the quote rather
+than deleting it, so a placed cart still loads, still lists its items and still
+answers every getter — it simply ignores anything written to it. Every write tool
+here refuses an inactive cart and names the order it became, because otherwise an
+agent would run add-item, set-delivery and set-payment, see success at each step,
+and change nothing. The same distinction matters when reading: in `search_carts`,
+`is_active: false` with a `reserved_order_id` means bought, and `is_active: true`
+with a stale `updated_at` means abandoned. Reading those the wrong way round turns
+"we lost these sales" into "we made them".
+
+`search_carts` is also the read side of abandoned checkout, which nothing here
+could see before. It requires at least one filter, for the reason
+`search_url_rewrites` does, and returns no money: a cart carries none, and totals
+are a service call per cart that a page of them cannot afford. `get_cart` reads
+one in full.
+
 ## The four guards
 
 1. **The module switch.** `magenx_ai_mcp/general/enabled` is off by default; the
@@ -807,6 +1293,43 @@ section, pointing the other way.
 | `magenx_ai_mcp/security/allowed_ips` | *(empty)* | Optional source-address allowlist; plain addresses and CIDR ranges. **See the proxy caveat below** |
 | `magenx_ai_mcp/security/allowed_origins` | *(empty)* | Browser origins permitted to call the endpoint. Requests with no `Origin` header are unaffected; empty therefore means "no browser" |
 | `magenx_ai_mcp/security/allowed_config_paths` | *(empty)* | Glob patterns `set_config` may write; empty denies all |
+| `magenx_ai_mcp/tools/enabled_domains` | *(empty)* | Tool domains to offer; **empty means all** |
+| `magenx_ai_mcp/tools/disabled_tools` | *(empty)* | Individual tool names to withhold |
+
+### Narrowing the toolset is about context, not permission
+
+Every other setting above is a boundary. These two are not: they decide what a
+client is *shown*, and ACL plus the write switch still decide what it may
+actually do. The reason to use them is that the full tool list is a large part
+of a client's context window, and an agent given only the domains its task needs
+plans better inside it.
+
+**Both are empty by default and empty means "everything"** — the one place this
+module is not default-deny. It has to be: an empty domain list that meant "no
+domains" would silently empty `tools/list` on every installation the moment this
+shipped.
+
+Domains are derived from the directory each tool lives in — `sales`, `catalog`,
+`cms`, `rma`, `helpdesk`, `ops` and so on — rather than from a list kept by
+hand, so a tool added tomorrow lands in a domain without anyone maintaining
+anything. A tool contributed by another module that does not sit under
+`Model/Tool/` is grouped under its vendor and module instead, so a whole
+third-party module can be switched off in one tick.
+
+`disabled_tools` is applied after the domain selection, so a name listed there
+is withheld even when its domain is enabled. Saving a name that no tool answers
+to is **refused**, with the nearest real name offered: a denylist whose typo is
+accepted and ignored leaves you believing a tool is off when it is on, which is
+the wrong direction to fail in.
+
+A withheld tool is neither listed nor callable, and calling one is answered
+`Unknown tool` — exactly what a tool the integration's ACL denies gets, so an
+agent learns nothing about a surface it cannot reach and does not keep trying.
+Because that answer says nothing, the refusal is written to
+`var/log/magenx_ai_mcp.log` instead, which is where to look when the question is
+"why can't the agent see this tool". If the settings ever leave `tools/list`
+completely empty, that is logged too — a handshake that succeeds and then offers
+nothing otherwise reads as a broken server with no error anywhere to explain it.
 
 ### `allowed_ips` measures `REMOTE_ADDR`, not `X-Forwarded-For`
 

@@ -159,6 +159,16 @@ class UpdateStock extends AbstractTool
     /**
      * @inheritDoc
      */
+    protected function isIdempotent(): bool
+    {
+        // Quantity is set to the value given rather than adjusted by it, so a
+        // repeat lands on the same number.
+        return true;
+    }
+
+    /**
+     * @inheritDoc
+     */
     public function execute(array $arguments): array
     {
         $sku = $this->requireString($arguments, 'sku');

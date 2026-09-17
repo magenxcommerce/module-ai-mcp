@@ -111,6 +111,23 @@ class UpdateCatalogPriceRule extends AbstractTool
     /**
      * @inheritDoc
      */
+    protected function isDestructive(): bool
+    {
+        // Changes an existing rule's fields; removes nothing.
+        return false;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    protected function isIdempotent(): bool
+    {
+        return true;
+    }
+
+    /**
+     * @inheritDoc
+     */
     public function execute(array $arguments): array
     {
         $ruleId = $this->requireInt($arguments, 'rule_id');
@@ -124,6 +141,18 @@ class UpdateCatalogPriceRule extends AbstractTool
         $changed = $this->apply($rule, $arguments);
         if ($changed === []) {
             throw new LocalizedException(__('Nothing to update: pass at least one field besides rule_id.'));
+        }
+
+        // A catalog rule's condition is an opaque blob in Magento's API, so all
+        // that can be asked is whether one exists — which is the only thing
+        // that matters here. A rule with none re-prices every product.
+        if (($arguments['is_active'] ?? false) === true && $rule->getRuleCondition() === null) {
+            throw new LocalizedException(__(
+                'Rule %1 has no condition, so activating it would re-price the entire catalogue. '
+                . 'Conditions cannot be set through this server — add one in the admin and enable '
+                . 'it there. Everything else about the rule can still be changed here.',
+                $ruleId
+            ));
         }
 
         $saved = $this->catalogRuleRepository->save($rule);

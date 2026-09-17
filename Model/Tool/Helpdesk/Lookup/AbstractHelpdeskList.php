@@ -14,13 +14,20 @@ use Magenx\AiMcp\Model\Tool\AbstractTool;
  * Paging, the active filter and the ordering are the same for all of them; the
  * rows are not, so each subclass projects its own. Reads go through the
  * module's collections because it has no service-contract layer — the same
- * compromise the ticket search makes, and the reason these are read-only.
+ * compromise the ticket search makes.
  *
- * Writing any of these is deliberately not exposed. Statuses in particular are
- * referenced by *code* from store configuration, which decides which of them
- * archive and which lock a ticket, so creating or renaming one through a tool
- * can change what closing a ticket does. That belongs in the admin, next to the
- * settings it interacts with.
+ * Writing was once not exposed for any of these. That has since been narrowed
+ * rather than reversed: priorities, departments, custom fields and spam
+ * patterns are ordinary configuration and are writable through
+ * {@see AbstractHelpdeskSave}.
+ *
+ * Statuses and gateways are still read-only here, and the reasons have not
+ * changed. A status is referenced by *code* from store configuration, which
+ * decides which of them archive and which lock a ticket, so creating or
+ * renaming one through a tool can change what closing a ticket does; that
+ * belongs in the admin, next to the settings it interacts with. A gateway holds
+ * mailbox credentials and decides where the store's mail intake points — see
+ * {@see ListGateways}.
  */
 abstract class AbstractHelpdeskList extends AbstractTool
 {
@@ -63,8 +70,8 @@ abstract class AbstractHelpdeskList extends AbstractTool
     {
         return sprintf(
             'List the help desk %s with their ids. The ids are what the ticket tools take, so '
-            . 'this is how to turn one into a label or find the id to set. Read-only: these are '
-            . 'workflow configuration and are edited in the admin.',
+            . 'this is how to turn one into a label or find the id to set. Inactive rows are '
+            . 'included unless you filter them out.',
             $this->entityName()
         );
     }
@@ -87,6 +94,18 @@ abstract class AbstractHelpdeskList extends AbstractTool
             ),
             'additionalProperties' => false,
         ];
+    }
+
+    /**
+     * Every subclass returns the shared envelope from this class's own
+     * `execute()`, so the promise is made once, here, rather than copied into
+     * each of them.
+     *
+     * @inheritDoc
+     */
+    public function getOutputSchema(): array
+    {
+        return $this->searchEnvelopeSchema();
     }
 
     /**

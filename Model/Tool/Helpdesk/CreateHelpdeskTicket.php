@@ -126,6 +126,15 @@ class CreateHelpdeskTicket extends AbstractTool
     /**
      * @inheritDoc
      */
+    protected function isDestructive(): bool
+    {
+        // Adds a ticket; nothing that already exists is touched.
+        return false;
+    }
+
+    /**
+     * @inheritDoc
+     */
     public function execute(array $arguments): array
     {
         $authorType = strtolower((string) $this->optionalString($arguments, 'author_type', 'customer'));

@@ -51,6 +51,9 @@
                 <item name="search_customers" xsi:type="object">Magenx\AiMcp\Model\Tool\Customer\SearchCustomers</item>
                 <item name="get_customer" xsi:type="object">Magenx\AiMcp\Model\Tool\Customer\GetCustomer</item>
                 <item name="list_customer_groups" xsi:type="object">Magenx\AiMcp\Model\Tool\Customer\ListCustomerGroups</item>
+                <item name="create_customer_group" xsi:type="object">Magenx\AiMcp\Model\Tool\Customer\CreateCustomerGroup</item>
+                <item name="update_customer_group" xsi:type="object">Magenx\AiMcp\Model\Tool\Customer\UpdateCustomerGroup</item>
+                <item name="delete_customer_group" xsi:type="object">Magenx\AiMcp\Model\Tool\Customer\DeleteCustomerGroup</item>
                 <item name="create_customer" xsi:type="object">Magenx\AiMcp\Model\Tool\Customer\CreateCustomer</item>
                 <item name="update_customer" xsi:type="object">Magenx\AiMcp\Model\Tool\Customer\UpdateCustomer</item>
                 <item name="delete_customer" xsi:type="object">Magenx\AiMcp\Model\Tool\Customer\DeleteCustomer</item>
@@ -70,12 +73,17 @@
                 <item name="search_cart_price_rules" xsi:type="object">Magenx\AiMcp\Model\Tool\Promotion\SearchCartPriceRules</item>
                 <item name="get_cart_price_rule" xsi:type="object">Magenx\AiMcp\Model\Tool\Promotion\GetCartPriceRule</item>
                 <item name="update_cart_price_rule" xsi:type="object">Magenx\AiMcp\Model\Tool\Promotion\UpdateCartPriceRule</item>
+                <item name="create_cart_price_rule" xsi:type="object">Magenx\AiMcp\Model\Tool\Promotion\CreateCartPriceRule</item>
+                <item name="delete_cart_price_rule" xsi:type="object">Magenx\AiMcp\Model\Tool\Promotion\DeleteCartPriceRule</item>
                 <item name="generate_coupons" xsi:type="object">Magenx\AiMcp\Model\Tool\Promotion\GenerateCoupons</item>
                 <item name="search_coupons" xsi:type="object">Magenx\AiMcp\Model\Tool\Promotion\SearchCoupons</item>
                 <item name="delete_coupons" xsi:type="object">Magenx\AiMcp\Model\Tool\Promotion\DeleteCoupons</item>
                 <item name="search_catalog_price_rules" xsi:type="object">Magenx\AiMcp\Model\Tool\Promotion\SearchCatalogPriceRules</item>
                 <item name="get_catalog_price_rule" xsi:type="object">Magenx\AiMcp\Model\Tool\Promotion\GetCatalogPriceRule</item>
                 <item name="update_catalog_price_rule" xsi:type="object">Magenx\AiMcp\Model\Tool\Promotion\UpdateCatalogPriceRule</item>
+                <item name="create_catalog_price_rule" xsi:type="object">Magenx\AiMcp\Model\Tool\Promotion\CreateCatalogPriceRule</item>
+                <item name="delete_catalog_price_rule" xsi:type="object">Magenx\AiMcp\Model\Tool\Promotion\DeleteCatalogPriceRule</item>
+                <item name="apply_catalog_price_rules" xsi:type="object">Magenx\AiMcp\Model\Tool\Promotion\ApplyCatalogPriceRules</item>
                 <item name="search_cms_pages" xsi:type="object">Magenx\AiMcp\Model\Tool\Cms\SearchCmsPages</item>
                 <item name="get_cms_page" xsi:type="object">Magenx\AiMcp\Model\Tool\Cms\GetCmsPage</item>
                 <item name="create_cms_page" xsi:type="object">Magenx\AiMcp\Model\Tool\Cms\CreateCmsPage</item>
@@ -104,6 +112,26 @@
                 <item name="update_design_config" xsi:type="object">Magenx\AiMcp\Model\Tool\Design\UpdateDesignConfig</item>
                 <item name="search_media_gallery_assets" xsi:type="object">Magenx\AiMcp\Model\Tool\MediaGallery\SearchMediaGalleryAssets</item>
                 <item name="upload_media_gallery_asset" xsi:type="object">Magenx\AiMcp\Model\Tool\MediaGallery\UploadMediaGalleryAsset</item>
+                <item name="delete_media_gallery_asset" xsi:type="object">Magenx\AiMcp\Model\Tool\MediaGallery\DeleteMediaGalleryAsset</item>
+                <item name="search_feeds" xsi:type="object">Magenx\AiMcp\Model\Tool\ProductFeed\SearchFeeds</item>
+                <item name="get_feed" xsi:type="object">Magenx\AiMcp\Model\Tool\ProductFeed\GetFeed</item>
+                <item name="get_feed_history" xsi:type="object">Magenx\AiMcp\Model\Tool\ProductFeed\GetFeedHistory</item>
+                <item name="list_feed_deliveries" xsi:type="object">Magenx\AiMcp\Model\Tool\ProductFeed\ListFeedDeliveries</item>
+                <item name="create_feed" xsi:type="object">Magenx\AiMcp\Model\Tool\ProductFeed\CreateFeed</item>
+                <item name="update_feed" xsi:type="object">Magenx\AiMcp\Model\Tool\ProductFeed\UpdateFeed</item>
+                <item name="delete_feed" xsi:type="object">Magenx\AiMcp\Model\Tool\ProductFeed\DeleteFeed</item>
+                <item name="generate_feed" xsi:type="object">Magenx\AiMcp\Model\Tool\ProductFeed\GenerateFeed</item>
+                <item name="search_carts" xsi:type="object">Magenx\AiMcp\Model\Tool\Quote\SearchCarts</item>
+                <item name="get_cart" xsi:type="object">Magenx\AiMcp\Model\Tool\Quote\GetCart</item>
+                <item name="list_cart_payment_methods" xsi:type="object">Magenx\AiMcp\Model\Tool\Quote\ListCartPaymentMethods</item>
+                <item name="estimate_cart_shipping" xsi:type="object">Magenx\AiMcp\Model\Tool\Quote\EstimateCartShipping</item>
+                <item name="create_cart" xsi:type="object">Magenx\AiMcp\Model\Tool\Quote\CreateCart</item>
+                <item name="add_cart_item" xsi:type="object">Magenx\AiMcp\Model\Tool\Quote\AddCartItem</item>
+                <item name="update_cart_item" xsi:type="object">Magenx\AiMcp\Model\Tool\Quote\UpdateCartItem</item>
+                <item name="remove_cart_item" xsi:type="object">Magenx\AiMcp\Model\Tool\Quote\RemoveCartItem</item>
+                <item name="set_cart_delivery" xsi:type="object">Magenx\AiMcp\Model\Tool\Quote\SetCartDelivery</item>
+                <item name="set_cart_payment_method" xsi:type="object">Magenx\AiMcp\Model\Tool\Quote\SetCartPaymentMethod</item>
+                <item name="place_order" xsi:type="object">Magenx\AiMcp\Model\Tool\Quote\PlaceOrder</item>
                 <item name="list_product_media" xsi:type="object">Magenx\AiMcp\Model\Tool\Media\ListProductMedia</item>
                 <item name="add_product_media" xsi:type="object">Magenx\AiMcp\Model\Tool\Media\AddProductMedia</item>
                 <item name="update_product_media" xsi:type="object">Magenx\AiMcp\Model\Tool\Media\UpdateProductMedia</item>
@@ -168,6 +196,41 @@
                 <item name="list_helpdesk_priorities" xsi:type="object">Magenx\AiMcp\Model\Tool\Helpdesk\Lookup\ListPriorities</item>
                 <item name="list_helpdesk_custom_fields" xsi:type="object">Magenx\AiMcp\Model\Tool\Helpdesk\Lookup\ListCustomFields</item>
                 <item name="list_helpdesk_spam_patterns" xsi:type="object">Magenx\AiMcp\Model\Tool\Helpdesk\Lookup\ListSpamPatterns</item>
+                <item name="save_helpdesk_priority" xsi:type="object">Magenx\AiMcp\Model\Tool\Helpdesk\Lookup\SavePriority</item>
+                <item name="delete_helpdesk_priority" xsi:type="object">Magenx\AiMcp\Model\Tool\Helpdesk\Lookup\DeletePriority</item>
+                <item name="save_helpdesk_department" xsi:type="object">Magenx\AiMcp\Model\Tool\Helpdesk\Lookup\SaveDepartment</item>
+                <item name="delete_helpdesk_department" xsi:type="object">Magenx\AiMcp\Model\Tool\Helpdesk\Lookup\DeleteDepartment</item>
+                <item name="save_helpdesk_custom_field" xsi:type="object">Magenx\AiMcp\Model\Tool\Helpdesk\Lookup\SaveCustomField</item>
+                <item name="delete_helpdesk_custom_field" xsi:type="object">Magenx\AiMcp\Model\Tool\Helpdesk\Lookup\DeleteCustomField</item>
+                <item name="save_helpdesk_spam_pattern" xsi:type="object">Magenx\AiMcp\Model\Tool\Helpdesk\Lookup\SaveSpamPattern</item>
+                <item name="delete_helpdesk_spam_pattern" xsi:type="object">Magenx\AiMcp\Model\Tool\Helpdesk\Lookup\DeleteSpamPattern</item>
+                <item name="set_helpdesk_ticket_fields" xsi:type="object">Magenx\AiMcp\Model\Tool\Helpdesk\SetHelpdeskTicketFields</item>
+                <item name="set_helpdesk_ticket_department" xsi:type="object">Magenx\AiMcp\Model\Tool\Helpdesk\SetHelpdeskTicketDepartment</item>
+                <item name="list_helpdesk_attachments" xsi:type="object">Magenx\AiMcp\Model\Tool\Helpdesk\ListHelpdeskAttachments</item>
+                <item name="delete_helpdesk_ticket" xsi:type="object">Magenx\AiMcp\Model\Tool\Helpdesk\DeleteHelpdeskTicket</item>
+                <item name="create_rma" xsi:type="object">Magenx\AiMcp\Model\Tool\Rma\CreateRma</item>
+                <item name="list_rma_attachments" xsi:type="object">Magenx\AiMcp\Model\Tool\Rma\ListRmaAttachments</item>
+                <item name="delete_rma_attachment" xsi:type="object">Magenx\AiMcp\Model\Tool\Rma\DeleteRmaAttachment</item>
+                <item name="search_blog_posts" xsi:type="object">Magenx\AiMcp\Model\Tool\Blog\SearchBlogPosts</item>
+                <item name="get_blog_post" xsi:type="object">Magenx\AiMcp\Model\Tool\Blog\GetBlogPost</item>
+                <item name="create_blog_post" xsi:type="object">Magenx\AiMcp\Model\Tool\Blog\CreateBlogPost</item>
+                <item name="update_blog_post" xsi:type="object">Magenx\AiMcp\Model\Tool\Blog\UpdateBlogPost</item>
+                <item name="delete_blog_post" xsi:type="object">Magenx\AiMcp\Model\Tool\Blog\DeleteBlogPost</item>
+                <item name="list_blog_categories" xsi:type="object">Magenx\AiMcp\Model\Tool\Blog\ListBlogCategories</item>
+                <item name="save_blog_category" xsi:type="object">Magenx\AiMcp\Model\Tool\Blog\SaveBlogCategory</item>
+                <item name="delete_blog_category" xsi:type="object">Magenx\AiMcp\Model\Tool\Blog\DeleteBlogCategory</item>
+                <item name="list_blog_tags" xsi:type="object">Magenx\AiMcp\Model\Tool\Blog\ListBlogTags</item>
+                <item name="save_blog_tag" xsi:type="object">Magenx\AiMcp\Model\Tool\Blog\SaveBlogTag</item>
+                <item name="delete_blog_tag" xsi:type="object">Magenx\AiMcp\Model\Tool\Blog\DeleteBlogTag</item>
+                <item name="search_gdpr_requests" xsi:type="object">Magenx\AiMcp\Model\Tool\Gdpr\SearchGdprRequests</item>
+                <item name="get_gdpr_request" xsi:type="object">Magenx\AiMcp\Model\Tool\Gdpr\GetGdprRequest</item>
+                <item name="approve_gdpr_request" xsi:type="object">Magenx\AiMcp\Model\Tool\Gdpr\ApproveGdprRequest</item>
+                <item name="deny_gdpr_request" xsi:type="object">Magenx\AiMcp\Model\Tool\Gdpr\DenyGdprRequest</item>
+                <item name="search_consent_log" xsi:type="object">Magenx\AiMcp\Model\Tool\Gdpr\SearchConsentLog</item>
+                <item name="list_gdpr_cookie_groups" xsi:type="object">Magenx\AiMcp\Model\Tool\Gdpr\ListCookieGroups</item>
+                <item name="list_gdpr_cookies" xsi:type="object">Magenx\AiMcp\Model\Tool\Gdpr\ListCookies</item>
+                <item name="save_gdpr_cookie" xsi:type="object">Magenx\AiMcp\Model\Tool\Gdpr\SaveCookie</item>
+                <item name="delete_gdpr_cookie" xsi:type="object">Magenx\AiMcp\Model\Tool\Gdpr\DeleteCookie</item>
                 <item name="list_helpdesk_gateways" xsi:type="object">Magenx\AiMcp\Model\Tool\Helpdesk\Lookup\ListGateways</item>
                 <item name="get_config" xsi:type="object">Magenx\AiMcp\Model\Tool\Config\GetConfig</item>
                 <item name="set_config" xsi:type="object">Magenx\AiMcp\Model\Tool\Config\SetConfig</item>
@@ -179,6 +242,14 @@
                 <item name="cron_status" xsi:type="object">Magenx\AiMcp\Model\Tool\Ops\CronStatus</item>
                 <item name="list_modules" xsi:type="object">Magenx\AiMcp\Model\Tool\Ops\ListModules</item>
                 <item name="read_audit_log" xsi:type="object">Magenx\AiMcp\Model\Tool\Ops\ReadAuditLog</item>
+                <item name="platform_status" xsi:type="object">Magenx\AiMcp\Model\Tool\Platform\PlatformStatus</item>
+                <item name="search_admin_activity" xsi:type="object">Magenx\AiMcp\Model\Tool\AdminActivity\SearchAdminActivity</item>
+                <item name="get_admin_activity" xsi:type="object">Magenx\AiMcp\Model\Tool\AdminActivity\GetAdminActivity</item>
+                <item name="sales_summary" xsi:type="object">Magenx\AiMcp\Model\Tool\Report\SalesSummary</item>
+                <item name="sales_by_period" xsi:type="object">Magenx\AiMcp\Model\Tool\Report\SalesByPeriod</item>
+                <item name="top_products" xsi:type="object">Magenx\AiMcp\Model\Tool\Report\TopProducts</item>
+                <item name="order_status_breakdown" xsi:type="object">Magenx\AiMcp\Model\Tool\Report\OrderStatusBreakdown</item>
+                <item name="customer_summary" xsi:type="object">Magenx\AiMcp\Model\Tool\Report\CustomerSummary</item>
             </argument>
         </arguments>
     </type>

@@ -89,6 +89,15 @@ class CreateCustomerAddress extends AbstractTool
     /**
      * @inheritDoc
      */
+    protected function isDestructive(): bool
+    {
+        // Adds an address beside the ones already on the customer.
+        return false;
+    }
+
+    /**
+     * @inheritDoc
+     */
     public function execute(array $arguments): array
     {
         $customer = $this->locator->locate(

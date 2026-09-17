@@ -25,10 +25,12 @@ class UpdateCartPriceRule extends AbstractTool
 {
     /**
      * @param RuleRepositoryInterface $ruleRepository
+     * @param RuleConditions $conditions
      * @param CartPriceRuleProjector $projector
      */
     public function __construct(
         private readonly RuleRepositoryInterface $ruleRepository,
+        private readonly RuleConditions $conditions,
         private readonly CartPriceRuleProjector $projector
     ) {
     }
@@ -142,6 +144,23 @@ class UpdateCartPriceRule extends AbstractTool
     /**
      * @inheritDoc
      */
+    protected function isDestructive(): bool
+    {
+        // Changes an existing rule's fields; removes nothing.
+        return false;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    protected function isIdempotent(): bool
+    {
+        return true;
+    }
+
+    /**
+     * @inheritDoc
+     */
     public function execute(array $arguments): array
     {
         $ruleId = $this->requireInt($arguments, 'rule_id');
@@ -163,6 +182,8 @@ class UpdateCartPriceRule extends AbstractTool
             throw new LocalizedException(__('Nothing to update: pass at least one field besides rule_id.'));
         }
 
+        $this->assertActivationIsSafe($rule, $arguments);
+
         $saved = $this->ruleRepository->save($rule);
 
         return [
@@ -170,6 +191,44 @@ class UpdateCartPriceRule extends AbstractTool
             'tool' => $this->getName(),
             'changed_fields' => $changed,
         ] + $this->projector->toSummary($saved);
+    }
+
+    /**
+     * Refuse to switch on a rule that restricts nothing.
+     *
+     * This tool cannot write conditions — see the class docblock — so a rule
+     * that reached the database without them cannot be given any here, and
+     * activating it makes it discount every cart in the store immediately.
+     * Nothing about the request looks wrong when that happens: the field being
+     * set is a boolean, the rule saves, and the first sign of trouble is the
+     * revenue.
+     *
+     * Only activation is blocked. Editing the name or the dates of an
+     * already-live unconditioned rule is left alone — that rule is somebody's
+     * deliberate store-wide promotion, and refusing to touch it would be this
+     * tool inventing policy rather than preventing an accident.
+     *
+     * @param RuleInterface $rule
+     * @param array<string, mixed> $arguments
+     * @return void
+     * @throws LocalizedException
+     */
+    private function assertActivationIsSafe(RuleInterface $rule, array $arguments): void
+    {
+        if (($arguments['is_active'] ?? false) !== true) {
+            return;
+        }
+
+        if ($this->conditions->cartRuleIsRestricted($rule)) {
+            return;
+        }
+
+        throw new LocalizedException(__(
+            'Rule %1 has no conditions, so activating it would discount every cart in the store. '
+            . 'Conditions cannot be set through this server — add them in the admin and enable it '
+            . 'there. Everything else about the rule can still be changed here.',
+            (int) $rule->getRuleId()
+        ));
     }
 
     /**

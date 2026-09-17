@@ -94,6 +94,15 @@ class AddHelpdeskInternalNote extends AbstractTool
     /**
      * @inheritDoc
      */
+    protected function isDestructive(): bool
+    {
+        // Appends a note; nothing already on the ticket changes.
+        return false;
+    }
+
+    /**
+     * @inheritDoc
+     */
     public function execute(array $arguments): array
     {
         $ticket = $this->locator->locate(

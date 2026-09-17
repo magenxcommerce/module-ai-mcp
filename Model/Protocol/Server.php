@@ -6,9 +6,12 @@ declare(strict_types=1);
 
 namespace Magenx\AiMcp\Model\Protocol;
 
+use Magenx\AiMcp\Api\StructuredToolInterface;
+use Magenx\AiMcp\Api\ToolAnnotationsInterface;
 use Magenx\AiMcp\Api\ToolInterface;
 use Magenx\AiMcp\Model\Auth\Identity;
 use Magenx\AiMcp\Model\Config;
+use Magenx\AiMcp\Model\Tool\ToolCatalog;
 use Magenx\AiMcp\Model\Tool\ToolRegistry;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Serialize\Serializer\Json;
@@ -52,6 +55,7 @@ class Server
 
     /**
      * @param ToolRegistry $registry
+     * @param ToolCatalog $catalog
      * @param Config $config
      * @param JsonRpc $jsonRpc
      * @param Json $serializer
@@ -60,6 +64,7 @@ class Server
      */
     public function __construct(
         private readonly ToolRegistry $registry,
+        private readonly ToolCatalog $catalog,
         private readonly Config $config,
         private readonly JsonRpc $jsonRpc,
         private readonly Json $serializer,
@@ -158,14 +163,67 @@ class Server
             if (!$this->isAvailable($tool, $identity)) {
                 continue;
             }
-            $tools[] = [
-                'name' => $tool->getName(),
-                'description' => $tool->getDescription(),
-                'inputSchema' => $this->buildInputSchema($tool),
-            ];
+            $tools[] = $this->describeTool($tool);
+        }
+
+        if ($tools === []) {
+            // A handshake that succeeds and then offers nothing reads to a
+            // client as a broken server, and there is no error anywhere to
+            // explain it. Say so once, here, where the cause is still known.
+            $this->auditLogger->warning('[magenx-mcp] tools/list is empty', [
+                'caller' => $identity->getLabel(),
+                'reason' => 'no registered tool passed the ACL, write-switch and toolset settings',
+            ]);
         }
 
         return $tools;
+    }
+
+    /**
+     * One entry in `tools/list`.
+     *
+     * Title and annotations are added only for a tool that opts into
+     * {@see ToolAnnotationsInterface}, and `outputSchema` only for one that
+     * opts into {@see StructuredToolInterface}. A tool contributed by another
+     * module against the older {@see ToolInterface} alone is advertised exactly
+     * as it was, rather than being given hints or promises this server invented
+     * for it.
+     *
+     * @param ToolInterface $tool
+     * @return array<string, mixed>
+     */
+    private function describeTool(ToolInterface $tool): array
+    {
+        $entry = [
+            'name' => $tool->getName(),
+            'description' => $tool->getDescription(),
+            'inputSchema' => $this->buildInputSchema($tool),
+        ];
+
+        $outputSchema = $this->buildOutputSchema($tool);
+        if ($outputSchema !== null) {
+            $entry['outputSchema'] = $outputSchema;
+        }
+
+        if (!$tool instanceof ToolAnnotationsInterface) {
+            return $entry;
+        }
+
+        $title = $tool->getTitle();
+        $annotations = $tool->getAnnotations();
+
+        if ($title !== null && $title !== '') {
+            $entry['title'] = $title;
+            // MCP carries the display name both at the top level and inside
+            // annotations, and clients read one or the other depending on how
+            // old they are. Sending both costs nothing and skips the question.
+            $annotations = ['title' => $title] + $annotations;
+        }
+        if ($annotations !== []) {
+            $entry['annotations'] = $annotations;
+        }
+
+        return $entry;
     }
 
     /**
@@ -188,6 +246,22 @@ class Server
             // Deliberately the same answer for "no such tool" and "your
             // integration may not use it": an unauthorized caller learns
             // nothing about the surface it cannot reach.
+            return $this->fail($id, JsonRpc::METHOD_NOT_FOUND, sprintf('Unknown tool: %s', $name));
+        }
+
+        if (!$this->isEnabledByConfiguration($tool)) {
+            // Same answer again, for the same reason: a tool the operator has
+            // switched off should not be something the agent knows to keep
+            // asking about. But unlike the two cases above this one is a
+            // setting somebody chose, and "why can't the agent see this tool"
+            // is then unanswerable from the outside — so the refusal is
+            // recorded where the operator already looks for refusals.
+            $this->auditLogger->info('[magenx-mcp] tool withheld by configuration', [
+                'tool' => $name,
+                'caller' => $identity->getLabel(),
+                'domain' => $this->catalog->getDomain($tool),
+            ]);
+
             return $this->fail($id, JsonRpc::METHOD_NOT_FOUND, sprintf('Unknown tool: %s', $name));
         }
 
@@ -249,7 +323,28 @@ class Server
             return false;
         }
 
-        return $identity->isAllowed($tool->getAclResource());
+        return $identity->isAllowed($tool->getAclResource()) && $this->isEnabledByConfiguration($tool);
+    }
+
+    /**
+     * Whether the store's toolset settings let this tool be seen at all.
+     *
+     * Not a boundary — ACL is. This answers only "does the operator want a
+     * client spending context on this", which is why an empty domain list means
+     * every domain rather than none.
+     *
+     * @param ToolInterface $tool
+     * @return bool
+     */
+    private function isEnabledByConfiguration(ToolInterface $tool): bool
+    {
+        if (in_array($tool->getName(), $this->config->getDisabledTools(), true)) {
+            return false;
+        }
+
+        $domains = $this->config->getEnabledToolDomains();
+
+        return $domains === [] || in_array($this->catalog->getDomain($tool), $domains, true);
     }
 
     /**
@@ -278,6 +373,42 @@ class Server
         // whole `tools/list` response can drop every tool over the one bad
         // schema. Normalizing here means no tool can reintroduce that.
         $schema['properties'] = $properties === [] ? new \stdClass() : $properties;
+
+        return $schema;
+    }
+
+    /**
+     * The shape a tool promises its result will have, or null for no promise.
+     *
+     * Declaring this obliges every successful `structuredContent` to validate
+     * against it, so a tool says nothing unless it means it — and no write tool
+     * in this module does, because {@see preview()} answers an unconfirmed call
+     * with a different shape through the same result helper.
+     *
+     * `properties` is normalised for the reason {@see buildInputSchema()} gives:
+     * PHP's empty array encodes as `[]` where JSON Schema requires an object,
+     * and a client validating the whole response can drop every tool the server
+     * offers over one malformed schema, with nothing anywhere to explain it.
+     * A tool contributed by another module is subject to the same hazard here.
+     *
+     * @param ToolInterface $tool
+     * @return array<string, mixed>|null
+     */
+    private function buildOutputSchema(ToolInterface $tool): ?array
+    {
+        if (!$tool instanceof StructuredToolInterface) {
+            return null;
+        }
+
+        $schema = $tool->getOutputSchema();
+        if ($schema === []) {
+            return null;
+        }
+
+        if (array_key_exists('properties', $schema)) {
+            $properties = (array) $schema['properties'];
+            $schema['properties'] = $properties === [] ? new \stdClass() : $properties;
+        }
 
         return $schema;
     }

@@ -90,6 +90,15 @@ class UpdateCustomer extends AbstractTool
     /**
      * @inheritDoc
      */
+    protected function isIdempotent(): bool
+    {
+        // Only the fields passed are written, to the values passed.
+        return true;
+    }
+
+    /**
+     * @inheritDoc
+     */
     public function execute(array $arguments): array
     {
         // The existing record is loaded and mutated rather than rebuilt, so a

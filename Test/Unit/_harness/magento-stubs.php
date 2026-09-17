@@ -79,6 +79,10 @@ namespace Magento\Framework\Exception {
     class ValidatorException extends LocalizedException {}
 }
 
+namespace Magento\Framework\Exception\State {
+    class InvalidTransitionException extends \Magento\Framework\Exception\LocalizedException {}
+}
+
 namespace Magento\Framework {
     class Phrase {
         public function __construct(private $text = '', private array $arguments = []) {}
@@ -100,6 +104,53 @@ namespace Magento\Framework\Stdlib\DateTime {
         public function gmtTimestamp($input = null) { return 0; }
         public function gmtDate($format = null, $input = null) { return ''; }
         public function date($format = null, $input = null) { return ''; }
+    }
+    interface TimezoneInterface {
+        public function getConfigTimezone($scopeType = null, $scopeCode = null);
+        public function date($date = null, $locale = null, $useTimezone = true, $includeTime = true);
+    }
+}
+
+namespace Magento\Store\Model {
+    class ScopeInterface {
+        public const SCOPE_STORE = 'store';
+        public const SCOPE_STORES = 'stores';
+        public const SCOPE_WEBSITE = 'website';
+    }
+}
+
+namespace Magento\Framework\DB {
+    // Only the builder calls the aggregator makes. Every one returns $this, as
+    // the real Select does, so a mock can record the calls in order; what the
+    // rendered SQL looks like is not something this stub can speak to.
+    class Select {
+        public function from($name, $cols = '*', $schema = null) { return $this; }
+        public function joinLeft($name, $cond, $cols = '*', $schema = null) { return $this; }
+        public function joinInner($name, $cond, $cols = '*', $schema = null) { return $this; }
+        public function columns($cols = '*', $correlationName = null) { return $this; }
+        public function where($cond, $value = null, $type = null) { return $this; }
+        public function group($spec) { return $this; }
+        public function order($spec) { return $this; }
+        public function limit($count = null, $offset = null) { return $this; }
+        public function reset($part = null) { return $this; }
+    }
+}
+
+namespace Magento\Framework\DB\Adapter {
+    interface AdapterInterface {
+        public function select();
+        public function fetchAll($sql, $bind = [], $fetchMode = null);
+        public function fetchRow($sql, $bind = [], $fetchMode = null);
+        public function fetchOne($sql, $bind = []);
+        public function quoteInto($text, $value, $type = null, $count = null);
+        public function quote($value, $type = null);
+    }
+}
+
+namespace Magento\Framework\App {
+    class ResourceConnection {
+        public function getConnection($resourceName = 'default') { return null; }
+        public function getTableName($modelEntity, $connectionName = 'default') { return $modelEntity; }
     }
 }
 
@@ -204,6 +255,10 @@ namespace Magento\Sales\Api\Data {
 }
 
 namespace Magento\Sales\Api {
+    interface OrderRepositoryInterface {
+        public function get($id); public function getList($searchCriteria);
+        public function save(\Magento\Sales\Api\Data\OrderInterface $entity);
+    }
     interface OrderAddressRepositoryInterface {
         public function get($id); public function save(\Magento\Sales\Api\Data\OrderAddressInterface $entity);
     }
@@ -288,51 +343,9 @@ namespace Magento\Customer\Api\Data {
         public function isDefaultShipping(); public function setIsDefaultShipping($v);
         public function isDefaultBilling(); public function setIsDefaultBilling($v);
     }
-    class Address implements AddressInterface {
-        public array $data = [];
-        public function __construct(array $seed = []) { $this->data = $seed; }
-        private function s(string $k, $v) { $this->data[$k] = $v; return $this; }
-        public function getId() { return $this->data['id'] ?? null; }
-        public function setId($id) { return $this->s('id', $id); }
-        public function getCustomerId() { return $this->data['customer_id'] ?? null; }
-        public function setCustomerId($id) { return $this->s('customer_id', $id); }
-        public function getRegion() { return $this->data['region_obj'] ?? null; }
-        public function setRegion(?RegionInterface $r = null) { return $this->s('region_obj', $r); }
-        public function getRegionId() { return $this->data['region_id'] ?? null; }
-        public function setRegionId($id) { return $this->s('region_id', $id); }
-        public function getCountryId() { return $this->data['country_id'] ?? null; }
-        public function setCountryId($id) { return $this->s('country_id', $id); }
-        public function getStreet() { return $this->data['street'] ?? null; }
-        public function setStreet(array $s) { return $this->s('street', $s); }
-        public function getCompany() { return $this->data['company'] ?? null; }
-        public function setCompany($v) { return $this->s('company', $v); }
-        public function getTelephone() { return $this->data['telephone'] ?? null; }
-        public function setTelephone($v) { return $this->s('telephone', $v); }
-        public function getFax() { return $this->data['fax'] ?? null; }
-        public function setFax($v) { return $this->s('fax', $v); }
-        public function getPostcode() { return $this->data['postcode'] ?? null; }
-        public function setPostcode($v) { return $this->s('postcode', $v); }
-        public function getCity() { return $this->data['city'] ?? null; }
-        public function setCity($v) { return $this->s('city', $v); }
-        public function getFirstname() { return $this->data['firstname'] ?? null; }
-        public function setFirstname($v) { return $this->s('firstname', $v); }
-        public function getLastname() { return $this->data['lastname'] ?? null; }
-        public function setLastname($v) { return $this->s('lastname', $v); }
-        public function getMiddlename() { return $this->data['middlename'] ?? null; }
-        public function setMiddlename($v) { return $this->s('middlename', $v); }
-        public function getPrefix() { return $this->data['prefix'] ?? null; }
-        public function setPrefix($v) { return $this->s('prefix', $v); }
-        public function getSuffix() { return $this->data['suffix'] ?? null; }
-        public function setSuffix($v) { return $this->s('suffix', $v); }
-        public function getVatId() { return $this->data['vat_id'] ?? null; }
-        public function setVatId($v) { return $this->s('vat_id', $v); }
-        public function isDefaultShipping() { return $this->data['is_default_shipping'] ?? null; }
-        public function setIsDefaultShipping($v) { return $this->s('is_default_shipping', $v); }
-        public function isDefaultBilling() { return $this->data['is_default_billing'] ?? null; }
-        public function setIsDefaultBilling($v) { return $this->s('is_default_billing', $v); }
-    }
     interface CustomerInterface {
         public function getId(); public function setId($id);
+        public function getEmail(); public function setEmail($v);
         public function getGroupId(); public function setGroupId($v);
         public function getStoreId(); public function setStoreId($v);
         public function getGender(); public function setGender($v);
@@ -350,6 +363,8 @@ namespace Magento\Customer\Api\Data {
         public array $data = []; public array $custom = [];
         private function s(string $k, $v) { $this->data[$k] = $v; return $this; }
         public function getId() { return $this->data['id'] ?? null; }
+        public function getEmail() { return $this->data['email'] ?? null; }
+        public function setEmail($v) { return $this->s('email', $v); }
         public function setId($id) { return $this->s('id', $id); }
         public function getGroupId() { return $this->data['group_id'] ?? null; }
         public function setGroupId($v) { return $this->s('group_id', $v); }
@@ -724,6 +739,39 @@ namespace Magento\Framework\App\Config {
         public function getValue($path, $scopeType = 'default', $scopeCode = null);
         public function isSetFlag($path, $scopeType = 'default', $scopeCode = null);
     }
+    // The backend model base. Its real constructor takes seven collaborators a
+    // unit test has no use for, so the stub swallows them: what the suite
+    // exercises is beforeSave() against the value, nothing the parent holds.
+    class Value {
+        protected $data = [];
+        public function __construct(...$arguments) {}
+        public function getValue() { return $this->data['value'] ?? null; }
+        public function setValue($value) { $this->data['value'] = $value; return $this; }
+        public function beforeSave() { return $this; }
+    }
+}
+
+namespace Magento\Framework\Model {
+    class Context {}
+    abstract class AbstractModel {}
+}
+
+namespace Magento\Framework\Model\ResourceModel {
+    abstract class AbstractResource {}
+}
+
+namespace Magento\Framework\Data {
+    interface OptionSourceInterface {
+        public function toOptionArray();
+    }
+}
+
+namespace Magento\Framework\Data\Collection {
+    class AbstractDb {}
+}
+
+namespace Magento\Framework {
+    class Registry {}
 }
 
 namespace Magento\Framework\Serialize\Serializer {
@@ -751,5 +799,747 @@ namespace Magento\User\Model\ResourceModel\User {
     }
     class CollectionFactory {
         public function create(array $data = []) { return null; }
+    }
+}
+
+namespace Magenx\AdminActivity\Model {
+    class Activity {
+        public function getData($key = null, $index = null) {}
+        public function load($modelId, $field = null) { return $this; }
+    }
+    class ActivityDetail {
+        public function getData($key = null, $index = null) {}
+    }
+    class ActivityFactory {
+        public function create(array $data = []) { return null; }
+    }
+    class Config {
+        public function isEnabled() { return true; }
+    }
+}
+
+namespace Magenx\AdminActivity\Model\Activity {
+    class ActionType {
+        public const ADD = 'add';
+        public const EDIT = 'edit';
+        public const DELETE = 'delete';
+        public const VIEW = 'view';
+        public const PRINT_ACTION = 'print';
+        public const MASS_UPDATE = 'mass_update';
+        public const LOGIN = 'login';
+        public const LOGIN_FAILED = 'login_failed';
+        public const LOGOUT = 'logout';
+        public const PAGE_VISIT = 'page_visit';
+        public const STATUS_SUCCESS = 'success';
+        public const STATUS_FAILURE = 'failure';
+    }
+}
+
+namespace Magenx\AdminActivity\Model\ResourceModel\Activity {
+    class Collection implements \IteratorAggregate {
+        public function addFieldToFilter($field, $condition = null) { return $this; }
+        public function setOrder($field, $direction = 'DESC') { return $this; }
+        public function setPageSize($size) { return $this; }
+        public function setCurPage($page) { return $this; }
+        public function getSize() { return 0; }
+        public function getIterator(): \Traversable { return new \ArrayIterator([]); }
+    }
+    class CollectionFactory {
+        public function create(array $data = []) { return null; }
+    }
+}
+
+namespace Magenx\AdminActivity\Model\ResourceModel\ActivityDetail {
+    class Collection implements \IteratorAggregate {
+        public function addActivityFilter($activityId) { return $this; }
+        public function getIterator(): \Traversable { return new \ArrayIterator([]); }
+    }
+    class CollectionFactory {
+        public function create(array $data = []) { return null; }
+    }
+}
+
+namespace Magenx\Platform\Model\Collector {
+    interface CollectorInterface {
+        public function getLabel();
+        public function collect();
+    }
+}
+
+namespace Magenx\Platform\Model\Metric {
+    class Status {
+        public const INFO = 'info';
+        public const OK = 'ok';
+        public const WARN = 'warn';
+        public const UNAVAILABLE = 'unavailable';
+        public const ERROR = 'error';
+    }
+}
+
+namespace Magenx\Platform\Model {
+    class CollectorPool {
+        public function get($code) { return null; }
+        public function getAll() { return []; }
+    }
+    class CollectorRunner {
+        public function run($code, $collector) { return []; }
+        public function unavailable($summary) { return []; }
+    }
+    class Config {
+        public function isEnabled() { return true; }
+        public function getEnabledCollectors() { return []; }
+        public function getCacheTtl() { return 0; }
+    }
+}
+
+namespace Magenx\Helpdesk\Model {
+    class Priority { public function getId() {} public function getData($k = null, $i = null) {}
+        public function setData($k, $v = null) { return $this; } }
+    class Department extends Priority {}
+    class Field extends Priority {}
+    class SpamPattern extends Priority {}
+    class PriorityFactory { public function create(array $data = []) { return null; } }
+    class DepartmentFactory extends PriorityFactory {}
+    class FieldFactory extends PriorityFactory {}
+    class SpamPatternFactory extends PriorityFactory {}
+}
+
+namespace Magenx\Helpdesk\Model\ResourceModel {
+    class Priority {
+        public function load($object, $value, $field = null) { return $this; }
+        public function save($object) { return $this; }
+        public function delete($object) { return $this; }
+    }
+    class Department extends Priority {}
+    class Field extends Priority {}
+    class SpamPattern extends Priority {}
+}
+
+namespace Magenx\Rma\Api\Data {
+    interface RMAInterface {
+        public function getEntityId(); public function setOrderId($v); public function setStoreId($v);
+        public function setCustomerId($v); public function setCustomerEmail($v);
+        public function setCustomerName($v); public function setStatusId($v);
+        public function setReasonId($v); public function setResolutionTypeId($v);
+    }
+    interface ItemInterface {
+        public function setRmaId($v); public function setOrderItemId($v);
+        public function setQtyRequested($v); public function setConditionId($v);
+    }
+    class RMAInterfaceFactory { public function create(array $data = []) { return null; } }
+    class ItemInterfaceFactory { public function create(array $data = []) { return null; } }
+}
+
+namespace Magenx\Rma\Api {
+    interface RMARepositoryInterface {
+        public function get(int $entityId); public function save($rma);
+    }
+    interface ItemRepositoryInterface { public function save($item); }
+}
+
+namespace Magenx\Blog\Model {
+    class Post {
+        private $d = [];
+        public function getId() { return $this->d['post_id'] ?? null; }
+        public function getData($k = null, $i = null) { return $k === null ? $this->d : ($this->d[$k] ?? null); }
+        public function setData($k, $v = null) { $this->d[$k] = $v; return $this; }
+        public function hasData($k = null) { return array_key_exists($k, $this->d); }
+        public function getUrlKey() { return $this->d['url_key'] ?? ''; }
+    }
+    class Category extends Post {}
+    class Tag extends Post {}
+    class PostFactory { public function create(array $data = []) { return null; } }
+    class CategoryFactory extends PostFactory {}
+    class TagFactory extends PostFactory {}
+    class UrlKey { public function normalize(string $urlKey, string $fallback = '') { return ''; } }
+    class PostRepository {
+        public function getById(int $id) {} public function getByUrlKey(string $k) {}
+        public function save($post) {} public function delete($post) {}
+        public function getCategoryIds(int $id) { return []; } public function getTagIds(int $id) { return []; }
+        public function getStoreIds(int $id) { return []; }
+        public function getProductPositions(int $id) { return []; }
+    }
+    class CategoryRepository {
+        public function getById(int $id) {} public function save($e) {} public function delete($e) {}
+    }
+    class TagRepository extends CategoryRepository {}
+}
+
+namespace Magenx\Blog\Model\ResourceModel\Post {
+    class Collection implements \IteratorAggregate {
+        public function addFieldToFilter($field, $condition = null) { return $this; }
+        public function addCategoryFilter($id) { return $this; }
+        public function addTagFilter($id) { return $this; }
+        public function addStoreFilter($id) { return $this; }
+        public function setOrder($field, $direction = 'DESC') { return $this; }
+        public function setPageSize($size) { return $this; }
+        public function setCurPage($page) { return $this; }
+        public function getSize() { return 0; }
+        public function getIterator(): \Traversable { return new \ArrayIterator([]); }
+    }
+    class CollectionFactory { public function create(array $data = []) { return null; } }
+}
+
+namespace Magenx\Blog\Model\ResourceModel\Category {
+    class Collection extends \Magenx\Blog\Model\ResourceModel\Post\Collection {}
+    class CollectionFactory { public function create(array $data = []) { return null; } }
+}
+
+namespace Magenx\Blog\Model\ResourceModel\Tag {
+    class Collection extends \Magenx\Blog\Model\ResourceModel\Post\Collection {}
+    class CollectionFactory { public function create(array $data = []) { return null; } }
+}
+
+namespace Magenx\Gdpr\Model {
+    class DsrRequest {
+        public const TYPE_EXPORT_DATA = 'export_data';
+        public const TYPE_ANONYMIZE_DATA = 'anonymize_data';
+        public const TYPE_ERASE_DATA = 'erase_data';
+        public const STATUS_PENDING = 'pending';
+        public const STATUS_APPROVED = 'approved';
+        public const STATUS_DENIED = 'denied';
+        public const STATUS_COMPLETED = 'completed';
+        private $d = [];
+        public function getId() { return $this->d['request_id'] ?? null; }
+        public function getData($k = null, $i = null) { return $k === null ? $this->d : ($this->d[$k] ?? null); }
+        public function setData($k, $v = null) { $this->d[$k] = $v; return $this; }
+    }
+    class Cookie extends DsrRequest {}
+    class CookieGroup extends DsrRequest {}
+    class DsrRequestFactory { public function create(array $data = []) { return null; } }
+    class CookieFactory extends DsrRequestFactory {}
+    class CookieGroupFactory extends DsrRequestFactory {}
+    class Anonymizer {
+        public function hasOpenOrders(int $customerId) { return false; }
+        public function anonymizeCustomer(int $customerId) {}
+    }
+}
+
+namespace Magenx\Gdpr\Model\ResourceModel {
+    class DsrRequest {
+        public function load($object, $value, $field = null) { return $this; }
+        public function save($object) { return $this; }
+        public function delete($object) { return $this; }
+    }
+    class Cookie extends DsrRequest {}
+    class CookieGroup extends DsrRequest {}
+}
+
+namespace Magenx\Gdpr\Model\ResourceModel\DsrRequest {
+    class Collection implements \IteratorAggregate {
+        public function addFieldToFilter($field, $condition = null) { return $this; }
+        public function setOrder($field, $direction = 'DESC') { return $this; }
+        public function setPageSize($size) { return $this; }
+        public function setCurPage($page) { return $this; }
+        public function getSize() { return 0; }
+        public function getIterator(): \Traversable { return new \ArrayIterator([]); }
+    }
+    class CollectionFactory { public function create(array $data = []) { return null; } }
+}
+
+namespace Magenx\Gdpr\Model\ResourceModel\ConsentLog {
+    class Collection extends \Magenx\Gdpr\Model\ResourceModel\DsrRequest\Collection {}
+    class CollectionFactory { public function create(array $data = []) { return null; } }
+}
+
+namespace Magenx\Gdpr\Model\ResourceModel\Cookie {
+    class Collection extends \Magenx\Gdpr\Model\ResourceModel\DsrRequest\Collection {}
+    class CollectionFactory { public function create(array $data = []) { return null; } }
+}
+
+namespace Magenx\Gdpr\Model\ResourceModel\CookieGroup {
+    class Collection extends \Magenx\Gdpr\Model\ResourceModel\DsrRequest\Collection {}
+    class CollectionFactory { public function create(array $data = []) { return null; } }
+}
+
+namespace Magento\Customer\Api\Data {
+    interface GroupInterface {
+        public function getId(); public function setId($id);
+        public function getCode(); public function setCode($code);
+        public function getTaxClassId(); public function setTaxClassId($id);
+        public function getTaxClassName(); public function setTaxClassName($name);
+    }
+}
+
+namespace Magento\Customer\Api {
+    interface GroupRepositoryInterface {
+        public function save(\Magento\Customer\Api\Data\GroupInterface $group);
+        public function getById($id);
+        public function getList(\Magento\Framework\Api\SearchCriteriaInterface $criteria);
+        public function delete(\Magento\Customer\Api\Data\GroupInterface $group);
+        public function deleteById($id);
+    }
+    interface CustomerRepositoryInterface {
+        public function save($customer, $passwordHash = null);
+        public function get($email, $websiteId = null);
+        public function getById($id);
+        public function getList(\Magento\Framework\Api\SearchCriteriaInterface $criteria);
+        public function delete($customer);
+        public function deleteById($id);
+    }
+}
+
+namespace Magento\SalesRule\Api\Data {
+    interface ConditionInterface {
+        public function getConditionType(); public function setConditionType($type);
+        public function getConditions(); public function setConditions(?array $conditions = null);
+        public function getAggregatorType(); public function setAggregatorType($type);
+        public function getOperator(); public function setOperator($operator);
+        public function getAttributeName(); public function setAttributeName($name);
+        public function getValue(); public function setValue($value);
+    }
+    interface RuleInterface {
+        public function getRuleId(); public function setRuleId($id);
+        public function getName(); public function setName($name);
+        public function getDescription(); public function setDescription($description);
+        public function getIsActive(); public function setIsActive($isActive);
+        public function getCondition(); public function setCondition(?ConditionInterface $condition = null);
+        public function getActionCondition(); public function setActionCondition(?ConditionInterface $condition = null);
+        public function getSimpleAction(); public function setSimpleAction($action);
+        public function getDiscountAmount(); public function setDiscountAmount($amount);
+        public function getWebsiteIds(); public function setWebsiteIds($ids);
+        public function getCustomerGroupIds(); public function setCustomerGroupIds($ids);
+        public function getFromDate(); public function setFromDate($date);
+        public function getToDate(); public function setToDate($date);
+        public function getSortOrder(); public function setSortOrder($order);
+        public function getUsesPerCustomer(); public function setUsesPerCustomer($uses);
+        public function getStopRulesProcessing(); public function setStopRulesProcessing($stop);
+        public function getCouponType(); public function setCouponType($type);
+    }
+}
+
+namespace Magento\SalesRule\Api {
+    interface RuleRepositoryInterface {
+        public function save(\Magento\SalesRule\Api\Data\RuleInterface $rule);
+        public function getById($id);
+        public function getList(\Magento\Framework\Api\SearchCriteriaInterface $criteria);
+        public function deleteById($id);
+        public function delete(\Magento\SalesRule\Api\Data\RuleInterface $rule);
+    }
+}
+
+namespace Magento\CatalogRule\Api\Data {
+    interface ConditionInterface {
+        public function getType(); public function setType($type);
+        public function getConditions(); public function setConditions(?array $conditions = null);
+    }
+    interface RuleInterface {
+        public function getRuleId(); public function setRuleId($id);
+        public function getName(); public function setName($name);
+        public function getDescription(); public function setDescription($description);
+        public function getIsActive(); public function setIsActive($isActive);
+        public function getRuleCondition(); public function setRuleCondition(?ConditionInterface $condition = null);
+        public function getSimpleAction(); public function setSimpleAction($action);
+        public function getDiscountAmount(); public function setDiscountAmount($amount);
+        public function getWebsiteIds(); public function setWebsiteIds($ids);
+        public function getCustomerGroupIds(); public function setCustomerGroupIds($ids);
+        public function getStartDate(); public function setStartDate($date);
+        public function getEndDate(); public function setEndDate($date);
+        public function getSortOrder(); public function setSortOrder($order);
+        public function getStopRulesProcessing(); public function setStopRulesProcessing($stop);
+    }
+}
+
+namespace Magento\CatalogRule\Api {
+    interface CatalogRuleRepositoryInterface {
+        public function save(\Magento\CatalogRule\Api\Data\RuleInterface $rule);
+        public function get($ruleId);
+        public function delete(\Magento\CatalogRule\Api\Data\RuleInterface $rule);
+        public function deleteById($ruleId);
+    }
+}
+
+namespace Magento\MediaGalleryApi\Api\Data {
+    interface AssetInterface {
+        public function getId(); public function getPath(); public function getTitle();
+        public function getContentType(); public function getWidth(); public function getHeight();
+        public function getSize(); public function getCreatedAt(); public function getUpdatedAt();
+    }
+}
+
+namespace Magento\MediaGalleryApi\Api {
+    interface GetAssetsByPathsInterface {
+        public function execute(array $paths): array;
+    }
+    interface DeleteAssetsByPathsInterface {
+        public function execute(array $paths): void;
+    }
+    interface SearchAssetsInterface {
+        public function execute(\Magento\Framework\Api\SearchCriteriaInterface $criteria): array;
+    }
+}
+
+namespace Magento\MediaContentApi\Api\Data {
+    interface ContentIdentityInterface {
+        public function getEntityType(); public function getField(); public function getEntityId();
+    }
+}
+
+namespace Magento\MediaContentApi\Api {
+    interface GetContentByAssetIdsInterface {
+        public function execute(array $assetIds): array;
+    }
+}
+
+namespace Magento\Framework\Indexer {
+    interface IndexerInterface {
+        public function getId(); public function getTitle(); public function getStatus();
+        public function isScheduled(); public function isValid(); public function isInvalid();
+        public function invalidate();
+    }
+    class IndexerRegistry {
+        public function get($indexerId) { return null; }
+    }
+}
+
+namespace Magenx\ProductFeed\Model\Template\Exception {
+    class TemplateSyntaxException extends \Exception {}
+}
+
+namespace Magenx\ProductFeed\Model\Template {
+    class TemplateEngine {
+        public function compile(string $source): array { return []; }
+    }
+}
+
+namespace Magenx\ProductFeed\Model\Config\Source {
+    class Delimiter {
+        public const COMMA = 'comma'; public const SEMICOLON = 'semicolon';
+        public const TAB = 'tab'; public const PIPE = 'pipe';
+        public const COLON = 'colon'; public const SPACE = 'space';
+    }
+    class Enclosure {
+        public const DOUBLE = 'double'; public const SINGLE = 'single'; public const NONE = 'none';
+    }
+}
+
+namespace Magenx\ProductFeed\Model\Export {
+    final class RunResult {
+        public function __construct(
+            public readonly bool $completed,
+            public readonly bool $failed,
+            public readonly int $productCount,
+            public readonly int $durationMs,
+            public readonly string $message = '',
+            public readonly ?string $publishedPath = null,
+            public readonly bool $skipped = false
+        ) {}
+        public static function progressed(int $count, int $durationMs): self {
+            return new self(false, false, $count, $durationMs, 'Partially generated; will continue on the next run.');
+        }
+        public static function finished(int $count, int $durationMs, string $publishedPath): self {
+            return new self(true, false, $count, $durationMs, 'Feed generated.', $publishedPath);
+        }
+        public static function error(string $message, int $durationMs, int $count = 0): self {
+            return new self(false, true, $count, $durationMs, $message);
+        }
+        public static function skipped(string $message): self {
+            return new self(false, false, 0, 0, $message, null, true);
+        }
+    }
+    class FeedFilesystem {
+        public function getRelativePath($feed, string $filename): string { return ''; }
+        public function getPublicUrl($feed, string $filename): string { return ''; }
+    }
+}
+
+namespace Magenx\ProductFeed\Model {
+    class Feed {
+        public const STATUS_NOT_GENERATED = 'not_generated';
+        public const STATUS_PROCESSING = 'processing';
+        public const STATUS_READY = 'ready';
+        public const STATUS_WARNING = 'warning';
+        public const STATUS_ERROR = 'error';
+        public const STATUS_DISABLED = 'disabled';
+        public const FORMAT_XML = 'xml';
+        public const FORMAT_CSV = 'csv';
+        public const FORMAT_TSV = 'tsv';
+        public const FORMAT_JSONL = 'jsonl';
+
+        private $d = [];
+        public function getFeedId(): ?int {
+            return isset($this->d['feed_id']) ? (int) $this->d['feed_id'] : null;
+        }
+        public function getCode(): string { return (string) ($this->d['code'] ?? ''); }
+        public function getStoreId(): int { return (int) ($this->d['store_id'] ?? 0); }
+        public function getFormat(): string { return (string) ($this->d['format'] ?? 'xml'); }
+        public function isActive(): bool { return (bool) ($this->d['is_active'] ?? false); }
+        public function producesRecords(): bool {
+            return in_array($this->getFormat(), ['csv', 'tsv', 'jsonl'], true);
+        }
+        public function getData($k = null, $i = null) {
+            return $k === null ? $this->d : ($this->d[$k] ?? null);
+        }
+        public function setData($k, $v = null) { $this->d[$k] = $v; return $this; }
+        public function hasData($k = null) { return array_key_exists($k, $this->d); }
+        public function getFieldMap(): array {
+            $raw = (string) ($this->d['field_map'] ?? '');
+            if ($raw === '') { return []; }
+            $decoded = json_decode($raw, true);
+            return is_array($decoded) ? $decoded : [];
+        }
+        public function getValidationRules(): array {
+            $raw = (string) ($this->d['validation_rules'] ?? '');
+            if ($raw === '') { return []; }
+            $decoded = json_decode($raw, true);
+            return is_array($decoded) ? $decoded : [];
+        }
+        public function getScheduleDays(): array {
+            $raw = trim((string) ($this->d['schedule_days'] ?? ''));
+            return $raw === '' ? [] : array_map('intval', explode(',', $raw));
+        }
+        public function getScheduleTimes(): array {
+            $raw = trim((string) ($this->d['schedule_times'] ?? ''));
+            return $raw === '' ? [] : explode(',', $raw);
+        }
+    }
+    class FeedFactory { public function create(array $data = []) { return null; } }
+    class FeedHistory {
+        public const TYPE_GENERATE = 'generate';
+        public const TYPE_DELIVER = 'deliver';
+        public const TYPE_VALIDATE = 'validate';
+    }
+    class FeedManager {
+        public function process(Feed $feed) {}
+        public function deliver(Feed $feed) { return []; }
+    }
+    class Config {
+        public function isEnabled(?int $storeId = null): bool { return false; }
+    }
+    class Delivery {
+        private $d = [];
+        public function getId() { return $this->d['delivery_id'] ?? null; }
+        public function getType(): string { return (string) ($this->d['type'] ?? ''); }
+        public function isActive(): bool { return (bool) ($this->d['is_active'] ?? false); }
+        public function getConfigData(): array { return $this->d['config'] ?? []; }
+        public function getData($k = null, $i = null) {
+            return $k === null ? $this->d : ($this->d[$k] ?? null);
+        }
+        public function setData($k, $v = null) { $this->d[$k] = $v; return $this; }
+    }
+    class History {
+        private $d = [];
+        public function getId() { return $this->d['history_id'] ?? null; }
+        public function getDetails(): array { return $this->d['details'] ?? []; }
+        public function getData($k = null, $i = null) {
+            return $k === null ? $this->d : ($this->d[$k] ?? null);
+        }
+        public function setData($k, $v = null) { $this->d[$k] = $v; return $this; }
+    }
+}
+
+namespace Magenx\ProductFeed\Model\ResourceModel {
+    class Feed {
+        public function load($object, $value, $field = null) { return $this; }
+        public function save($object) { return $this; }
+        public function delete($object) { return $this; }
+        public function getIdByCode(string $code): ?int { return null; }
+    }
+    class Delivery extends Feed {}
+    class History extends Feed {}
+}
+
+namespace Magenx\ProductFeed\Model\ResourceModel\Feed {
+    class Collection implements \IteratorAggregate {
+        public function addFieldToFilter($field, $condition = null) { return $this; }
+        public function addActiveFilter() { return $this; }
+        public function addStoreFilter($id) { return $this; }
+        public function setOrder($field, $direction = 'DESC') { return $this; }
+        public function setPageSize($size) { return $this; }
+        public function setCurPage($page) { return $this; }
+        public function getSize() { return 0; }
+        public function getIterator(): \Traversable { return new \ArrayIterator([]); }
+    }
+    class CollectionFactory { public function create(array $data = []) { return null; } }
+}
+
+namespace Magenx\ProductFeed\Model\ResourceModel\Delivery {
+    class Collection extends \Magenx\ProductFeed\Model\ResourceModel\Feed\Collection {
+        public function addFeedFilter(int $feedId) { return $this; }
+    }
+    class CollectionFactory { public function create(array $data = []) { return null; } }
+}
+
+namespace Magenx\ProductFeed\Model\ResourceModel\History {
+    class Collection extends \Magenx\ProductFeed\Model\ResourceModel\Feed\Collection {
+        public function addFeedFilter(int $feedId) { return $this; }
+    }
+    class CollectionFactory { public function create(array $data = []) { return null; } }
+}
+
+namespace Magento\Quote\Api\Data {
+    interface CurrencyInterface {
+        public function getQuoteCurrencyCode(); public function getBaseCurrencyCode();
+    }
+    interface CartItemInterface {
+        public function getItemId(); public function setItemId($id);
+        public function getSku(); public function setSku($sku);
+        public function getQty(); public function setQty($qty);
+        public function getName(); public function setName($name);
+        public function getPrice(); public function setPrice($price);
+        public function getProductType(); public function setProductType($type);
+        public function getQuoteId(); public function setQuoteId($id);
+    }
+    interface CartInterface {
+        public function getId(); public function getStoreId(); public function setStoreId($id);
+        public function getIsActive(); public function getIsVirtual();
+        public function getItems(); public function getItemsCount(); public function getItemsQty();
+        public function getCustomer(); public function getCustomerIsGuest();
+        public function getCustomerNote(); public function getCurrency();
+        public function getReservedOrderId(); public function getConvertedAt();
+        public function getCreatedAt(); public function getUpdatedAt();
+    }
+    interface AddressInterface {
+        public function getId();
+        public function getFirstname(); public function setFirstname($v);
+        public function getLastname(); public function setLastname($v);
+        public function getMiddlename(); public function setMiddlename($v);
+        public function getPrefix(); public function setPrefix($v);
+        public function getSuffix(); public function setSuffix($v);
+        public function getCompany(); public function setCompany($v);
+        public function getStreet(); public function setStreet(array $street);
+        public function getCity(); public function setCity($v);
+        public function getRegion(); public function setRegion($v);
+        public function getRegionId(); public function setRegionId($v);
+        public function getRegionCode(); public function setRegionCode($v);
+        public function getPostcode(); public function setPostcode($v);
+        public function getCountryId(); public function setCountryId($v);
+        public function getTelephone(); public function setTelephone($v);
+        public function getFax(); public function setFax($v);
+        public function getVatId(); public function setVatId($v);
+        public function getEmail(); public function setEmail($v);
+    }
+    interface PaymentInterface {
+        public function getMethod(); public function setMethod($method);
+        public function getPoNumber(); public function setPoNumber($poNumber);
+        public function getAdditionalData(); public function setAdditionalData($data);
+    }
+    interface PaymentMethodInterface {
+        public function getCode(); public function getTitle();
+    }
+    interface ShippingMethodInterface {
+        public function getCarrierCode(); public function getMethodCode();
+        public function getCarrierTitle(); public function getMethodTitle();
+        public function getAmount(); public function getBaseAmount();
+        public function getPriceExclTax(); public function getPriceInclTax();
+        public function getAvailable(); public function getErrorMessage();
+    }
+    interface TotalsInterface {
+        public function getGrandTotal(); public function getBaseGrandTotal();
+        public function getSubtotal(); public function getSubtotalInclTax();
+        public function getBaseSubtotal(); public function getDiscountAmount();
+        public function getShippingAmount(); public function getShippingInclTax();
+        public function getTaxAmount(); public function getItemsQty();
+        public function getCouponCode();
+        public function getQuoteCurrencyCode(); public function getBaseCurrencyCode();
+    }
+    class Address implements AddressInterface {
+        private array $d = [];
+        public function getId() { return $this->d['Id'] ?? null; }
+        public function getFirstname() { return $this->d['Firstname'] ?? null; }
+        public function getLastname() { return $this->d['Lastname'] ?? null; }
+        public function getMiddlename() { return $this->d['Middlename'] ?? null; }
+        public function getPrefix() { return $this->d['Prefix'] ?? null; }
+        public function getSuffix() { return $this->d['Suffix'] ?? null; }
+        public function getCompany() { return $this->d['Company'] ?? null; }
+        public function getStreet() { return $this->d['Street'] ?? null; }
+        public function getCity() { return $this->d['City'] ?? null; }
+        public function getRegion() { return $this->d['Region'] ?? null; }
+        public function getRegionId() { return $this->d['RegionId'] ?? null; }
+        public function getRegionCode() { return $this->d['RegionCode'] ?? null; }
+        public function getPostcode() { return $this->d['Postcode'] ?? null; }
+        public function getCountryId() { return $this->d['CountryId'] ?? null; }
+        public function getTelephone() { return $this->d['Telephone'] ?? null; }
+        public function getFax() { return $this->d['Fax'] ?? null; }
+        public function getVatId() { return $this->d['VatId'] ?? null; }
+        public function getEmail() { return $this->d['Email'] ?? null; }
+        public function setFirstname($v) { $this->d['Firstname'] = $v; return $this; }
+        public function setLastname($v) { $this->d['Lastname'] = $v; return $this; }
+        public function setMiddlename($v) { $this->d['Middlename'] = $v; return $this; }
+        public function setPrefix($v) { $this->d['Prefix'] = $v; return $this; }
+        public function setSuffix($v) { $this->d['Suffix'] = $v; return $this; }
+        public function setCompany($v) { $this->d['Company'] = $v; return $this; }
+        public function setStreet(array $v) { $this->d['Street'] = $v; return $this; }
+        public function setCity($v) { $this->d['City'] = $v; return $this; }
+        public function setRegion($v) { $this->d['Region'] = $v; return $this; }
+        public function setRegionId($v) { $this->d['RegionId'] = $v; return $this; }
+        public function setRegionCode($v) { $this->d['RegionCode'] = $v; return $this; }
+        public function setPostcode($v) { $this->d['Postcode'] = $v; return $this; }
+        public function setCountryId($v) { $this->d['CountryId'] = $v; return $this; }
+        public function setTelephone($v) { $this->d['Telephone'] = $v; return $this; }
+        public function setFax($v) { $this->d['Fax'] = $v; return $this; }
+        public function setVatId($v) { $this->d['VatId'] = $v; return $this; }
+        public function setEmail($v) { $this->d['Email'] = $v; return $this; }
+    }
+    class AddressInterfaceFactory { public function create(array $data = []) { return null; } }
+    class CartItemInterfaceFactory { public function create(array $data = []) { return null; } }
+    class PaymentInterfaceFactory { public function create(array $data = []) { return null; } }
+}
+
+namespace Magento\Quote\Api {
+    interface CartManagementInterface {
+        public function createEmptyCart();
+        public function createEmptyCartForCustomer($customerId);
+        public function getCartForCustomer($customerId);
+        public function assignCustomer($cartId, $customerId, $storeId);
+        public function placeOrder($cartId, ?\Magento\Quote\Api\Data\PaymentInterface $paymentMethod = null);
+    }
+    interface CartRepositoryInterface {
+        public function get($cartId);
+        public function getList(\Magento\Framework\Api\SearchCriteriaInterface $searchCriteria);
+        public function getForCustomer($customerId, array $sharedStoreIds = []);
+        public function getActive($cartId, array $sharedStoreIds = []);
+        public function save(\Magento\Quote\Api\Data\CartInterface $quote);
+        public function delete(\Magento\Quote\Api\Data\CartInterface $quote);
+    }
+    interface CartItemRepositoryInterface {
+        public function getList($cartId);
+        public function save(\Magento\Quote\Api\Data\CartItemInterface $cartItem);
+        public function deleteById($cartId, $itemId);
+    }
+    interface CartTotalRepositoryInterface {
+        public function get($cartId);
+    }
+    interface PaymentMethodManagementInterface {
+        public function set($cartId, \Magento\Quote\Api\Data\PaymentInterface $method);
+        public function get($cartId);
+        public function getList($cartId);
+    }
+    interface BillingAddressManagementInterface {
+        public function assign($cartId, \Magento\Quote\Api\Data\AddressInterface $address, $useForShipping = false);
+        public function get($cartId);
+    }
+    interface ShipmentEstimationInterface {
+        public function estimateByExtendedAddress($cartId, \Magento\Quote\Api\Data\AddressInterface $address);
+    }
+}
+
+namespace Magento\Checkout\Api\Data {
+    interface ShippingInformationInterface {
+        public function getShippingAddress();
+        public function setShippingAddress(\Magento\Quote\Api\Data\AddressInterface $address);
+        public function getBillingAddress();
+        public function setBillingAddress(\Magento\Quote\Api\Data\AddressInterface $address);
+        public function getShippingMethodCode(); public function setShippingMethodCode($code);
+        public function getShippingCarrierCode(); public function setShippingCarrierCode($code);
+    }
+    interface PaymentDetailsInterface {
+        public function getPaymentMethods(); public function getTotals();
+    }
+    class ShippingInformationInterfaceFactory { public function create(array $data = []) { return null; } }
+}
+
+namespace Magento\Checkout\Api {
+    interface ShippingInformationManagementInterface {
+        public function saveAddressInformation(
+            $cartId,
+            \Magento\Checkout\Api\Data\ShippingInformationInterface $addressInformation
+        );
+    }
+}
+
+namespace Magento\Store\Model {
+    class Store {
+        public const DEFAULT_STORE_ID = 0;
     }
 }

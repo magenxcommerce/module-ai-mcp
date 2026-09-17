@@ -87,6 +87,15 @@ class CreateCmsBlock extends AbstractTool
     /**
      * @inheritDoc
      */
+    protected function isDestructive(): bool
+    {
+        // Adds a block; nothing that already exists is touched.
+        return false;
+    }
+
+    /**
+     * @inheritDoc
+     */
     public function execute(array $arguments): array
     {
         $block = $this->blockFactory->create();
