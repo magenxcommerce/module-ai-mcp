@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.1](https://github.com/magenxcommerce/module-ai-mcp/compare/v1.3.0...v1.3.1) (2026-09-17)
+
+
+### Bug Fixes
+
+* Add tool annotations and expand tool catalog with 100+ new tools ([#16](https://github.com/magenxcommerce/module-ai-mcp/issues/16)) ([510647f](https://github.com/magenxcommerce/module-ai-mcp/commit/510647fdb353fddf468d9db3bfdec58ac70521ee))
+
 ## [1.3.0](https://github.com/magenxcommerce/module-ai-mcp/compare/v1.2.0...v1.3.0) (2026-09-14)
 
 
