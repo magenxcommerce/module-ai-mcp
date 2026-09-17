@@ -113,6 +113,14 @@
                 <item name="search_media_gallery_assets" xsi:type="object">Magenx\AiMcp\Model\Tool\MediaGallery\SearchMediaGalleryAssets</item>
                 <item name="upload_media_gallery_asset" xsi:type="object">Magenx\AiMcp\Model\Tool\MediaGallery\UploadMediaGalleryAsset</item>
                 <item name="delete_media_gallery_asset" xsi:type="object">Magenx\AiMcp\Model\Tool\MediaGallery\DeleteMediaGalleryAsset</item>
+                <item name="search_feeds" xsi:type="object">Magenx\AiMcp\Model\Tool\ProductFeed\SearchFeeds</item>
+                <item name="get_feed" xsi:type="object">Magenx\AiMcp\Model\Tool\ProductFeed\GetFeed</item>
+                <item name="get_feed_history" xsi:type="object">Magenx\AiMcp\Model\Tool\ProductFeed\GetFeedHistory</item>
+                <item name="list_feed_deliveries" xsi:type="object">Magenx\AiMcp\Model\Tool\ProductFeed\ListFeedDeliveries</item>
+                <item name="create_feed" xsi:type="object">Magenx\AiMcp\Model\Tool\ProductFeed\CreateFeed</item>
+                <item name="update_feed" xsi:type="object">Magenx\AiMcp\Model\Tool\ProductFeed\UpdateFeed</item>
+                <item name="delete_feed" xsi:type="object">Magenx\AiMcp\Model\Tool\ProductFeed\DeleteFeed</item>
+                <item name="generate_feed" xsi:type="object">Magenx\AiMcp\Model\Tool\ProductFeed\GenerateFeed</item>
                 <item name="list_product_media" xsi:type="object">Magenx\AiMcp\Model\Tool\Media\ListProductMedia</item>
                 <item name="add_product_media" xsi:type="object">Magenx\AiMcp\Model\Tool\Media\AddProductMedia</item>
                 <item name="update_product_media" xsi:type="object">Magenx\AiMcp\Model\Tool\Media\UpdateProductMedia</item>

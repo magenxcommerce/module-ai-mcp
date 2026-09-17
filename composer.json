@@ -11,6 +11,7 @@
         "magenxcommerce/module-gdpr": "*",
         "magenxcommerce/module-helpdesk": "*",
         "magenxcommerce/module-platform": "*",
+        "magenxcommerce/module-product-feed": "*",
         "magenxcommerce/module-rma": "*",
         "magento/framework": "*",
         "magento/module-authorization": "*",

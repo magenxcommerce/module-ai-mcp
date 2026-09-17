@@ -23,6 +23,7 @@
             <module name="Magenx_Gdpr"/>
             <module name="Magenx_Helpdesk"/>
             <module name="Magenx_Platform"/>
+            <module name="Magenx_ProductFeed"/>
             <module name="Magenx_Rma"/>
             <module name="Magento_Newsletter"/>
             <module name="Magento_SalesRule"/>

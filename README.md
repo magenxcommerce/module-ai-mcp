@@ -303,6 +303,14 @@ same ACL role, so nothing is lost but the serializer.
 | `list_gdpr_cookies` |  | `Magenx_Gdpr::cookies` |
 | `save_gdpr_cookie` | ✓ | `Magenx_Gdpr::cookies` |
 | `delete_gdpr_cookie` | ✓ | `Magenx_Gdpr::cookies` |
+| `search_feeds` |  | `Magenx_ProductFeed::feed` |
+| `get_feed` |  | `Magenx_ProductFeed::feed` |
+| `get_feed_history` |  | `Magenx_ProductFeed::feed` |
+| `list_feed_deliveries` |  | `Magenx_ProductFeed::feed` |
+| `create_feed` | ✓ | `Magenx_ProductFeed::feed` |
+| `update_feed` | ✓ | `Magenx_ProductFeed::feed` |
+| `delete_feed` | ✓ | `Magenx_ProductFeed::feed` |
+| `generate_feed` | ✓ | `Magenx_ProductFeed::generate` |
 
 A tool the caller may not use is not *listed*, so an agent never plans around a
 capability it does not have.
@@ -1042,6 +1050,89 @@ every result carries `logging_enabled`, because an empty page from a store with
 logging switched off looks identical to one where nothing happened. Values are
 clipped at 2 KB and say so where they are — a clipped value that reads as
 complete is worse than none, when the question is what a field changed *from*.
+
+### Product feeds: one slice per call, and it publishes outward
+
+The feed tools wrap `Magenx_ProductFeed`, which defines catalogue exports,
+renders them from a template language into XML, CSV, TSV or JSONL, publishes
+them under `pub/media` and delivers them by public URL, FTP/SFTP, the Google
+Merchant API or a push catalog API such as Meta's.
+
+Three things about `generate_feed` are not what a reader would assume, and each
+would otherwise be found out the hard way.
+
+**It is one slice, not one feed.** The export runs until the store's configured
+execution budget is spent, writes its cursor and stops; cron continues from
+there. On any real catalogue the first call therefore reports that it generated
+*part* of the feed — and that is a success. The module is explicit about it:
+a tick that used its budget has `completed` false and `failed` false, which is
+a normal result and not an error. The tool says so in words as well as in the
+flag, because "completed: false" beside no error message is exactly the shape an
+agent reads as a failure. Nothing is published or delivered until a run
+finishes, so a store whose cron has stopped is a store where this never
+completes — the same trap `invalidate_indexers` carries, and `cron_status` is
+still the tool that answers it.
+
+**A completed run publishes outward immediately.** `FeedManager::process()` is
+not only a generate: when a run finishes, the feed is delivered to every active
+destination, which may be an FTP drop, Google Merchant Center or Meta. That is
+not routed around, because push destinations are prepared before the run and fed
+records as products are exported — generating without delivering would mean
+going around the module's single entry point, and a feed Google is meant to
+receive would silently never arrive. So `generate_feed` calls what the admin
+button, the CLI and cron all call, names the destinations a completed run will
+reach in its result **and** in its confirm preview, and sits behind
+`Magenx_ProductFeed::generate` rather than `::feed`. Defining a feed and
+publishing the catalogue outward are different permissions, and the companion
+module already says so by declaring two resources.
+
+**Feeds are off by default.** The module ships disabled, and `process()` answers
+a disabled store with the same "skipped" result it uses for "a run is already in
+progress" — distinguishable only by an English message. Rather than match on
+that prose, `generate_feed` checks the setting itself first and refuses with the
+config path to switch on, so a skip that does arrive can only mean the export
+lock is held.
+
+**What the write tools will not do.** Conditions are not writable, the same call
+made for price rules: a feed's filter is Magento Rule machinery that needs the
+admin's nested post array. Unlike a price rule this is not a hazard — a feed
+with no conditions exports the whole catalogue, which is what most feeds are for
+— and `update_feed` loads and mutates rather than rebuilding, so a curated feed
+keeps its filter through an edit that does not mention it. The store view is
+settable only on create: a feed publishes under its store's own directory and
+its URL secret is never rotated, so moving one would leave the old file being
+served at the old address indefinitely while the row pointed elsewhere.
+`update_feed` and `delete_feed` both refuse while a generation is in progress,
+because the export writes its cursor and counts straight to the row and saving a
+feed loaded before the run would put the pre-run values back on top of them.
+
+**One refusal the admin does not make.** A feed carrying both a template and a
+field map renders from the template and ignores the map entirely — deliberately,
+upstream, and with no error. Through an API that means writing columns, getting
+a clean save, generating, and finding none of them in the file. So the write
+tools check the *resulting* row and refuse, naming both ways out. `get_feed`
+reports `render_mode` for the same reason: which of the two is actually live is
+worth more than the two fields and a reader left to work it out.
+
+**`delete_feed` leaves the published file.** Deleting cascades the delivery and
+history rows but the file stays where it was, because a marketplace may still be
+fetching that URL and removing it would turn a deletion here into a broken feed
+on somebody else's platform. This is the opposite conclusion from
+`delete_media_gallery_asset`, which refuses precisely *because* references would
+break, and the difference is who holds the reference: a CMS page is inside this
+store and can be fixed, a Google Merchant Center fetch schedule is not. So the
+result names the file that is still being served — an agent that reads "deleted"
+as "it has stopped being published" would be wrong for as long as the
+marketplace keeps fetching.
+
+**Destinations are read-only.** `list_feed_deliveries` reports where a feed goes
+and how each destination's last attempt went, and withholds every setting whose
+key ends in `password`, `token`, `secret` or `key`. That suffix rule is the
+module's own, chosen there so a new deliverer's `api_password` is covered without
+anyone remembering to add it; copying the rule rather than a list of key names
+means this cannot drift into printing a credential. Withheld keys are reported
+by name, because knowing a password is configured at all is what distinguishes a
+broken destination from one nobody ever set up.
 
 ## The four guards
 

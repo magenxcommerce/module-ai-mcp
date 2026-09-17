@@ -1231,3 +1231,178 @@ namespace Magento\Framework\Indexer {
         public function get($indexerId) { return null; }
     }
 }
+
+namespace Magenx\ProductFeed\Model\Template\Exception {
+    class TemplateSyntaxException extends \Exception {}
+}
+
+namespace Magenx\ProductFeed\Model\Template {
+    class TemplateEngine {
+        public function compile(string $source): array { return []; }
+    }
+}
+
+namespace Magenx\ProductFeed\Model\Config\Source {
+    class Delimiter {
+        public const COMMA = 'comma'; public const SEMICOLON = 'semicolon';
+        public const TAB = 'tab'; public const PIPE = 'pipe';
+        public const COLON = 'colon'; public const SPACE = 'space';
+    }
+    class Enclosure {
+        public const DOUBLE = 'double'; public const SINGLE = 'single'; public const NONE = 'none';
+    }
+}
+
+namespace Magenx\ProductFeed\Model\Export {
+    final class RunResult {
+        public function __construct(
+            public readonly bool $completed,
+            public readonly bool $failed,
+            public readonly int $productCount,
+            public readonly int $durationMs,
+            public readonly string $message = '',
+            public readonly ?string $publishedPath = null,
+            public readonly bool $skipped = false
+        ) {}
+        public static function progressed(int $count, int $durationMs): self {
+            return new self(false, false, $count, $durationMs, 'Partially generated; will continue on the next run.');
+        }
+        public static function finished(int $count, int $durationMs, string $publishedPath): self {
+            return new self(true, false, $count, $durationMs, 'Feed generated.', $publishedPath);
+        }
+        public static function error(string $message, int $durationMs, int $count = 0): self {
+            return new self(false, true, $count, $durationMs, $message);
+        }
+        public static function skipped(string $message): self {
+            return new self(false, false, 0, 0, $message, null, true);
+        }
+    }
+    class FeedFilesystem {
+        public function getRelativePath($feed, string $filename): string { return ''; }
+        public function getPublicUrl($feed, string $filename): string { return ''; }
+    }
+}
+
+namespace Magenx\ProductFeed\Model {
+    class Feed {
+        public const STATUS_NOT_GENERATED = 'not_generated';
+        public const STATUS_PROCESSING = 'processing';
+        public const STATUS_READY = 'ready';
+        public const STATUS_WARNING = 'warning';
+        public const STATUS_ERROR = 'error';
+        public const STATUS_DISABLED = 'disabled';
+        public const FORMAT_XML = 'xml';
+        public const FORMAT_CSV = 'csv';
+        public const FORMAT_TSV = 'tsv';
+        public const FORMAT_JSONL = 'jsonl';
+
+        private $d = [];
+        public function getFeedId(): ?int {
+            return isset($this->d['feed_id']) ? (int) $this->d['feed_id'] : null;
+        }
+        public function getCode(): string { return (string) ($this->d['code'] ?? ''); }
+        public function getStoreId(): int { return (int) ($this->d['store_id'] ?? 0); }
+        public function getFormat(): string { return (string) ($this->d['format'] ?? 'xml'); }
+        public function isActive(): bool { return (bool) ($this->d['is_active'] ?? false); }
+        public function producesRecords(): bool {
+            return in_array($this->getFormat(), ['csv', 'tsv', 'jsonl'], true);
+        }
+        public function getData($k = null, $i = null) {
+            return $k === null ? $this->d : ($this->d[$k] ?? null);
+        }
+        public function setData($k, $v = null) { $this->d[$k] = $v; return $this; }
+        public function hasData($k = null) { return array_key_exists($k, $this->d); }
+        public function getFieldMap(): array {
+            $raw = (string) ($this->d['field_map'] ?? '');
+            if ($raw === '') { return []; }
+            $decoded = json_decode($raw, true);
+            return is_array($decoded) ? $decoded : [];
+        }
+        public function getValidationRules(): array {
+            $raw = (string) ($this->d['validation_rules'] ?? '');
+            if ($raw === '') { return []; }
+            $decoded = json_decode($raw, true);
+            return is_array($decoded) ? $decoded : [];
+        }
+        public function getScheduleDays(): array {
+            $raw = trim((string) ($this->d['schedule_days'] ?? ''));
+            return $raw === '' ? [] : array_map('intval', explode(',', $raw));
+        }
+        public function getScheduleTimes(): array {
+            $raw = trim((string) ($this->d['schedule_times'] ?? ''));
+            return $raw === '' ? [] : explode(',', $raw);
+        }
+    }
+    class FeedFactory { public function create(array $data = []) { return null; } }
+    class FeedHistory {
+        public const TYPE_GENERATE = 'generate';
+        public const TYPE_DELIVER = 'deliver';
+        public const TYPE_VALIDATE = 'validate';
+    }
+    class FeedManager {
+        public function process(Feed $feed) {}
+        public function deliver(Feed $feed) { return []; }
+    }
+    class Config {
+        public function isEnabled(?int $storeId = null): bool { return false; }
+    }
+    class Delivery {
+        private $d = [];
+        public function getId() { return $this->d['delivery_id'] ?? null; }
+        public function getType(): string { return (string) ($this->d['type'] ?? ''); }
+        public function isActive(): bool { return (bool) ($this->d['is_active'] ?? false); }
+        public function getConfigData(): array { return $this->d['config'] ?? []; }
+        public function getData($k = null, $i = null) {
+            return $k === null ? $this->d : ($this->d[$k] ?? null);
+        }
+        public function setData($k, $v = null) { $this->d[$k] = $v; return $this; }
+    }
+    class History {
+        private $d = [];
+        public function getId() { return $this->d['history_id'] ?? null; }
+        public function getDetails(): array { return $this->d['details'] ?? []; }
+        public function getData($k = null, $i = null) {
+            return $k === null ? $this->d : ($this->d[$k] ?? null);
+        }
+        public function setData($k, $v = null) { $this->d[$k] = $v; return $this; }
+    }
+}
+
+namespace Magenx\ProductFeed\Model\ResourceModel {
+    class Feed {
+        public function load($object, $value, $field = null) { return $this; }
+        public function save($object) { return $this; }
+        public function delete($object) { return $this; }
+        public function getIdByCode(string $code): ?int { return null; }
+    }
+    class Delivery extends Feed {}
+    class History extends Feed {}
+}
+
+namespace Magenx\ProductFeed\Model\ResourceModel\Feed {
+    class Collection implements \IteratorAggregate {
+        public function addFieldToFilter($field, $condition = null) { return $this; }
+        public function addActiveFilter() { return $this; }
+        public function addStoreFilter($id) { return $this; }
+        public function setOrder($field, $direction = 'DESC') { return $this; }
+        public function setPageSize($size) { return $this; }
+        public function setCurPage($page) { return $this; }
+        public function getSize() { return 0; }
+        public function getIterator(): \Traversable { return new \ArrayIterator([]); }
+    }
+    class CollectionFactory { public function create(array $data = []) { return null; } }
+}
+
+namespace Magenx\ProductFeed\Model\ResourceModel\Delivery {
+    class Collection extends \Magenx\ProductFeed\Model\ResourceModel\Feed\Collection {
+        public function addFeedFilter(int $feedId) { return $this; }
+    }
+    class CollectionFactory { public function create(array $data = []) { return null; } }
+}
+
+namespace Magenx\ProductFeed\Model\ResourceModel\History {
+    class Collection extends \Magenx\ProductFeed\Model\ResourceModel\Feed\Collection {
+        public function addFeedFilter(int $feedId) { return $this; }
+    }
+    class CollectionFactory { public function create(array $data = []) { return null; } }
+}
