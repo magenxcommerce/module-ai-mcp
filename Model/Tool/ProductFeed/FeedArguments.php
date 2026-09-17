@@ -372,11 +372,20 @@ class FeedArguments
         if (array_key_exists('schedule_times', $arguments)) {
             $times = [];
             foreach ($this->requireArray($arguments, 'schedule_times') as $time) {
-                if (!is_string($time) || preg_match('/^(?:[01][0-9]|2[0-3]):[0-5][0-9]$/', $time) !== 1) {
+                // Two different mistakes, kept apart: a value that is not a
+                // string at all cannot be quoted back safely, and a string in
+                // the wrong shape is most usefully reported by showing it.
+                if (!is_string($time)) {
+                    throw new LocalizedException(__(
+                        'Every entry in "schedule_times" must be a string in 24-hour form, '
+                        . 'like "06:30".'
+                    ));
+                }
+                if (preg_match('/^(?:[01][0-9]|2[0-3]):[0-5][0-9]$/', $time) !== 1) {
                     throw new LocalizedException(__(
                         'Every entry in "schedule_times" must be a 24-hour time like "06:30"; '
                         . 'got "%1".',
-                        is_scalar($time) ? (string) $time : gettype($time)
+                        $time
                     ));
                 }
                 $times[] = $time;

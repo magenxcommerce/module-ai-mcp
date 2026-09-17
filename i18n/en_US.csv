@@ -33,6 +33,7 @@
 "Every entry in ""schedule_days"" must be a whole number.","Every entry in ""schedule_days"" must be a whole number."
 "Every entry in ""schedule_days"" must be between 1 (Monday) and 7 (Sunday); got %1.","Every entry in ""schedule_days"" must be between 1 (Monday) and 7 (Sunday); got %1."
 "Every entry in ""schedule_times"" must be a 24-hour time like ""06:30""; got ""%1"".","Every entry in ""schedule_times"" must be a 24-hour time like ""06:30""; got ""%1""."
+"Every entry in ""schedule_times"" must be a string in 24-hour form, like ""06:30"".","Every entry in ""schedule_times"" must be a string in 24-hour form, like ""06:30""."
 "Every entry in ""skus"" must be a sku.","Every entry in ""skus"" must be a sku."
 "Every entry in ""types"" must be one of: %1.","Every entry in ""types"" must be one of: %1."
 "Every entry in ""validation_rules"" must be an object.","Every entry in ""validation_rules"" must be an object."

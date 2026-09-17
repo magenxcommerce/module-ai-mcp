@@ -188,6 +188,26 @@ class FeedArgumentsTest extends TestCase
     }
 
     /**
+     * A value that is not a string gets its own refusal, because it cannot be
+     * quoted back into the message safely — which is what the original single
+     * check needed a type-name function for, and what CI's Magento standard
+     * refused.
+     *
+     * @return void
+     */
+    public function testANonStringScheduleTimeIsRefusedWithoutEchoingIt(): void
+    {
+        try {
+            $this->arguments->applyTo($this->feed(['template' => '']), ['schedule_times' => [630]], false);
+            $this->fail('A non-string schedule time must be refused.');
+        } catch (LocalizedException $e) {
+            $this->assertStringContainsString('must be a string in 24-hour form', $e->getMessage());
+            // The offending value is deliberately not interpolated here.
+            $this->assertStringNotContainsString('630', $e->getMessage());
+        }
+    }
+
+    /**
      * @return void
      */
     public function testATwentyFourHourTimeIsRefusedAsOutOfRange(): void
