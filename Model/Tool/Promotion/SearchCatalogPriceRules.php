@@ -75,6 +75,14 @@ class SearchCatalogPriceRules extends AbstractTool
     /**
      * @inheritDoc
      */
+    public function getOutputSchema(): array
+    {
+        return $this->searchEnvelopeSchema();
+    }
+
+    /**
+     * @inheritDoc
+     */
     public function getAclResource(): string
     {
         return 'Magento_CatalogRule::promo_catalog';

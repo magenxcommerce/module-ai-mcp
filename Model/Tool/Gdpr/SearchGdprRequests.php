@@ -101,6 +101,14 @@ class SearchGdprRequests extends AbstractTool
     /**
      * @inheritDoc
      */
+    public function getOutputSchema(): array
+    {
+        return $this->searchEnvelopeSchema();
+    }
+
+    /**
+     * @inheritDoc
+     */
     public function getAclResource(): string
     {
         return 'Magenx_Gdpr::requests';

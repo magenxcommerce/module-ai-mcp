@@ -6,6 +6,7 @@ declare(strict_types=1);
 
 namespace Magenx\AiMcp\Model\Protocol;
 
+use Magenx\AiMcp\Api\StructuredToolInterface;
 use Magenx\AiMcp\Api\ToolAnnotationsInterface;
 use Magenx\AiMcp\Api\ToolInterface;
 use Magenx\AiMcp\Model\Auth\Identity;
@@ -182,9 +183,11 @@ class Server
      * One entry in `tools/list`.
      *
      * Title and annotations are added only for a tool that opts into
-     * {@see ToolAnnotationsInterface}. A tool contributed by another module
-     * against the older {@see ToolInterface} alone is advertised exactly as it
-     * was, rather than being given hints this server invented for it.
+     * {@see ToolAnnotationsInterface}, and `outputSchema` only for one that
+     * opts into {@see StructuredToolInterface}. A tool contributed by another
+     * module against the older {@see ToolInterface} alone is advertised exactly
+     * as it was, rather than being given hints or promises this server invented
+     * for it.
      *
      * @param ToolInterface $tool
      * @return array<string, mixed>
@@ -196,6 +199,11 @@ class Server
             'description' => $tool->getDescription(),
             'inputSchema' => $this->buildInputSchema($tool),
         ];
+
+        $outputSchema = $this->buildOutputSchema($tool);
+        if ($outputSchema !== null) {
+            $entry['outputSchema'] = $outputSchema;
+        }
 
         if (!$tool instanceof ToolAnnotationsInterface) {
             return $entry;
@@ -365,6 +373,42 @@ class Server
         // whole `tools/list` response can drop every tool over the one bad
         // schema. Normalizing here means no tool can reintroduce that.
         $schema['properties'] = $properties === [] ? new \stdClass() : $properties;
+
+        return $schema;
+    }
+
+    /**
+     * The shape a tool promises its result will have, or null for no promise.
+     *
+     * Declaring this obliges every successful `structuredContent` to validate
+     * against it, so a tool says nothing unless it means it — and no write tool
+     * in this module does, because {@see preview()} answers an unconfirmed call
+     * with a different shape through the same result helper.
+     *
+     * `properties` is normalised for the reason {@see buildInputSchema()} gives:
+     * PHP's empty array encodes as `[]` where JSON Schema requires an object,
+     * and a client validating the whole response can drop every tool the server
+     * offers over one malformed schema, with nothing anywhere to explain it.
+     * A tool contributed by another module is subject to the same hazard here.
+     *
+     * @param ToolInterface $tool
+     * @return array<string, mixed>|null
+     */
+    private function buildOutputSchema(ToolInterface $tool): ?array
+    {
+        if (!$tool instanceof StructuredToolInterface) {
+            return null;
+        }
+
+        $schema = $tool->getOutputSchema();
+        if ($schema === []) {
+            return null;
+        }
+
+        if (array_key_exists('properties', $schema)) {
+            $properties = (array) $schema['properties'];
+            $schema['properties'] = $properties === [] ? new \stdClass() : $properties;
+        }
 
         return $schema;
     }

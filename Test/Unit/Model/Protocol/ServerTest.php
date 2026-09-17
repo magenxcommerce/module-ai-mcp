@@ -124,6 +124,78 @@ class ServerTest extends TestCase
     }
 
     /**
+     * A tool that promises nothing must advertise no `outputSchema` key.
+     *
+     * An empty schema on the wire is not a weaker promise than none — it is a
+     * promise that the result is an object with no constraints, which a strict
+     * client can read as a contract the server then fails to keep. Absent and
+     * empty have to stay different.
+     *
+     * @return void
+     */
+    public function testAToolPromisingNothingAdvertisesNoOutputSchema(): void
+    {
+        $tools = $this->decode($this->listTools($this->annotatedTool()));
+
+        $this->assertArrayNotHasKey('outputSchema', $tools[0]);
+    }
+
+    /**
+     * @return void
+     */
+    public function testADeclaredOutputSchemaReachesTheWire(): void
+    {
+        $tools = $this->decode($this->listTools($this->structuredTool()));
+
+        $this->assertSame('object', $tools[0]['outputSchema']['type']);
+        $this->assertSame(
+            ['total_count', 'page', 'page_size', 'items'],
+            $tools[0]['outputSchema']['required']
+        );
+        $this->assertSame('array', $tools[0]['outputSchema']['properties']['items']['type']);
+    }
+
+    /**
+     * The envelope is a floor, not a ceiling: seventeen tools return it plus a
+     * key of their own, and forbidding those would make the server advertise a
+     * shape it does not honour.
+     *
+     * @return void
+     */
+    public function testTheEnvelopeSchemaDoesNotForbidExtraKeys(): void
+    {
+        $tools = $this->decode($this->listTools($this->structuredTool()));
+
+        $this->assertArrayNotHasKey('additionalProperties', $tools[0]['outputSchema']);
+    }
+
+    /**
+     * The same `[]`-versus-`{}` hazard this file opens on, on the output side.
+     * A tool from another module may well declare a schema with no properties.
+     *
+     * @return void
+     */
+    public function testAnEmptyOutputPropertiesIsAdvertisedAsAnObject(): void
+    {
+        $json = $this->listTools($this->structuredTool(['type' => 'object', 'properties' => []]));
+
+        $this->assertStringContainsString('"outputSchema":{"type":"object","properties":{}}', $json);
+    }
+
+    /**
+     * A tool contributed against ToolInterface alone is advertised exactly as
+     * it was, with no schema this server invented on its behalf.
+     *
+     * @return void
+     */
+    public function testAToolOutsideTheStructuredInterfaceIsAdvertisedUnchanged(): void
+    {
+        $tools = $this->decode($this->listTools($this->tool('list_things', isWrite: false, properties: [])));
+
+        $this->assertArrayNotHasKey('outputSchema', $tools[0]);
+    }
+
+    /**
      * A tool whose domain the store has not enabled is not offered at all.
      *
      * Listing it and then refusing the call would be the worst of both: the
@@ -358,6 +430,72 @@ class ServerTest extends TestCase
      *
      * @return ToolInterface
      */
+    /**
+     * A read tool that declares the shared search envelope.
+     *
+     * @param array<string, mixed>|null $schema
+     * @return ToolInterface
+     */
+    private function structuredTool(?array $schema = null): ToolInterface
+    {
+        return new class ($schema) extends AbstractTool {
+            /**
+             * @param array<string, mixed>|null $schema
+             */
+            public function __construct(private readonly ?array $schema = null)
+            {
+            }
+
+            /**
+             * @inheritDoc
+             */
+            public function getName(): string
+            {
+                return 'search_things';
+            }
+
+            /**
+             * @inheritDoc
+             */
+            public function getDescription(): string
+            {
+                return 'Test tool.';
+            }
+
+            /**
+             * @inheritDoc
+             */
+            public function getInputSchema(): array
+            {
+                return ['type' => 'object', 'properties' => [], 'additionalProperties' => false];
+            }
+
+            /**
+             * @inheritDoc
+             */
+            public function getOutputSchema(): array
+            {
+                return $this->schema ?? $this->searchEnvelopeSchema();
+            }
+
+            /**
+             * @inheritDoc
+             */
+            public function getAclResource(): string
+            {
+                return '';
+            }
+
+            /**
+             * @inheritDoc
+             */
+            public function execute(array $arguments): array
+            {
+                return ['total_count' => 0, 'page' => 1, 'page_size' => 20, 'items' => []];
+            }
+        };
+    }
+
     private function annotatedTool(): ToolInterface
     {
         return new class extends AbstractTool {

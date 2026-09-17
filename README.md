@@ -64,12 +64,47 @@ Four write tools keep `destructiveHint: true` despite being named `create_` or
 taken back; `add_product_media` assigns image roles, and giving a role to one
 image takes it from whichever image held it. Every delete keeps the default too.
 
+**Forty-three read tools also carry an `outputSchema`**, describing the
+`total_count`/`page`/`page_size`/`items` envelope every paged list returns. Unlike
+the annotations this is a promise rather than a hint: MCP obliges the
+`structuredContent` of every successful call to validate against whatever is
+advertised, so a schema that is approximately right is worse than none — it turns
+a response a client would have accepted into one it rejects.
+
+Three consequences follow, and each is why something is *missing* from the wire:
+
+- **No write tool advertises one.** Every write has two successful shapes, not
+  one: an unconfirmed call is answered with the confirm preview —
+  `{preview, tool, arguments, message}` — through the same result helper as an
+  applied call, and that is the normal response rather than the exception. No
+  single schema describes both. Errors are unaffected; a tool error carries
+  `isError` and no structured content, which the spec does not validate.
+- **The envelope forbids nothing.** Seventeen of the forty-three return the four
+  keys *and* one of their own — `search_admin_activity` reports whether admin
+  logging is even switched on, the lookup lists report which `entity` they
+  listed — so the schema states the four as required and stops there. A floor
+  that stays true beats a ceiling that is wrong the first time a tool grows.
+- **`items` holds untyped objects.** Its elements come from twenty-five
+  projectors, several of which add keys inside a condition: a product's detail
+  alone has four independently optional ones. Per-entity item schemas are worth
+  having and have to follow the projectors a domain at a time.
+
+Three read tools that look like they should qualify do not, and the omissions are
+deliberate. `search_low_stock` and `search_media_gallery_assets` report no
+`total_count` at all — the first counts what it returned, the second cannot know
+the total — so neither can promise a key it does not send. `list_attribute_sets`
+returns one attribute set in full, with no `items` and no paging, the moment
+`attribute_set_id` is passed; the envelope would be a promise it breaks on half
+its calls.
+
 These are presentation hints, not a boundary. A client is free to ignore them;
 what actually decides whether a call changes anything is the ACL check, the
 write switch and the confirm gate described under [The four
 guards](#the-four-guards). A tool contributed by another module that implements
 only `Api/ToolInterface.php` is advertised without them rather than being given
-hints this server guessed on its behalf.
+hints or promises this server guessed on its behalf — the annotations live on
+`Api/ToolAnnotationsInterface.php` and the output schema on
+`Api/StructuredToolInterface.php`, both opt-in for exactly that reason.
 
 ### Why a controller and not a `webapi.xml` route
 

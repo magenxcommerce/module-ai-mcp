@@ -83,6 +83,18 @@ abstract class AbstractLookupList extends AbstractTool
     }
 
     /**
+     * Every subclass returns the shared envelope from this class's own
+     * `execute()`, so the promise is made once, here, rather than copied into
+     * each of them.
+     *
+     * @inheritDoc
+     */
+    public function getOutputSchema(): array
+    {
+        return $this->searchEnvelopeSchema();
+    }
+
+    /**
      * @inheritDoc
      */
     public function execute(array $arguments): array

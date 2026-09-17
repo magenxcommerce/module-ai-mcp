@@ -6,6 +6,7 @@ declare(strict_types=1);
 
 namespace Magenx\AiMcp\Model\Tool;
 
+use Magenx\AiMcp\Api\StructuredToolInterface;
 use Magenx\AiMcp\Api\ToolAnnotationsInterface;
 use Magenx\AiMcp\Api\ToolInterface;
 use Magento\Framework\Exception\LocalizedException;
@@ -16,7 +17,7 @@ use Magento\Framework\Exception\LocalizedException;
  * Tools validate their own arguments rather than relying on the client to
  * honour the advertised JSON Schema — an MCP client is not a trust boundary.
  */
-abstract class AbstractTool implements ToolInterface, ToolAnnotationsInterface
+abstract class AbstractTool implements ToolInterface, ToolAnnotationsInterface, StructuredToolInterface
 {
     /** Nothing may ask for an unbounded page: results are fed to a model. */
     protected const MAX_PAGE_SIZE = 100;
@@ -237,6 +238,69 @@ abstract class AbstractTool implements ToolInterface, ToolAnnotationsInterface
                 'description' => 'Results per page (default ' . self::DEFAULT_PAGE_SIZE
                     . ', maximum ' . self::MAX_PAGE_SIZE . ').',
             ],
+        ];
+    }
+
+    /**
+     * Advertise nothing unless a tool opts in.
+     *
+     * The same convention as `getAnnotations()` returning an empty array, and
+     * the same opt-in shape as `isDestructive()` and `isIdempotent()`: a tool
+     * that has not thought about its output shape promises nothing about it,
+     * which is the only safe default when the promise is enforced.
+     *
+     * @inheritDoc
+     */
+    public function getOutputSchema(): array
+    {
+        return [];
+    }
+
+    /**
+     * The shared result shape of every paged list tool.
+     *
+     * The counterpart of {@see pagingSchema()}, which describes the arguments
+     * that produce it. A tool returning this envelope overrides
+     * {@see getOutputSchema()} with one line.
+     *
+     * Two things are deliberately left open.
+     *
+     * `additionalProperties` is absent rather than false. Seventeen tools carry
+     * the envelope *and* a key of their own — `search_admin_activity` reports
+     * `logging_enabled`, the lookup lists report which `entity` they listed —
+     * and those keys exist because the tool would otherwise be misread. A
+     * schema that forbade them would make this server advertise responses it
+     * then fails to honour, so the envelope is stated as a floor: these four
+     * keys are always there, and a tool may say more.
+     *
+     * `items` holds untyped objects. Its elements come from twenty-five
+     * projectors, several of which add keys inside a condition — a product's
+     * detail alone has four independently optional ones. A per-entity item
+     * schema is worth having and has to follow the projectors one domain at a
+     * time; inventing one here would promise fields that are genuinely not
+     * always present.
+     *
+     * @return array<string, mixed>
+     */
+    protected function searchEnvelopeSchema(): array
+    {
+        return [
+            'type' => 'object',
+            'properties' => [
+                'total_count' => [
+                    'type' => 'integer',
+                    'minimum' => 0,
+                    'description' => 'Total matches, across every page.',
+                ],
+                'page' => ['type' => 'integer', 'minimum' => 1, 'description' => 'Page returned, 1-based.'],
+                'page_size' => ['type' => 'integer', 'minimum' => 1, 'description' => 'Results per page.'],
+                'items' => [
+                    'type' => 'array',
+                    'description' => 'This page of results.',
+                    'items' => ['type' => 'object'],
+                ],
+            ],
+            'required' => ['total_count', 'page', 'page_size', 'items'],
         ];
     }
 }
