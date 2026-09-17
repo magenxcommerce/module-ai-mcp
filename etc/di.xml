@@ -121,6 +121,17 @@
                 <item name="update_feed" xsi:type="object">Magenx\AiMcp\Model\Tool\ProductFeed\UpdateFeed</item>
                 <item name="delete_feed" xsi:type="object">Magenx\AiMcp\Model\Tool\ProductFeed\DeleteFeed</item>
                 <item name="generate_feed" xsi:type="object">Magenx\AiMcp\Model\Tool\ProductFeed\GenerateFeed</item>
+                <item name="search_carts" xsi:type="object">Magenx\AiMcp\Model\Tool\Quote\SearchCarts</item>
+                <item name="get_cart" xsi:type="object">Magenx\AiMcp\Model\Tool\Quote\GetCart</item>
+                <item name="list_cart_payment_methods" xsi:type="object">Magenx\AiMcp\Model\Tool\Quote\ListCartPaymentMethods</item>
+                <item name="estimate_cart_shipping" xsi:type="object">Magenx\AiMcp\Model\Tool\Quote\EstimateCartShipping</item>
+                <item name="create_cart" xsi:type="object">Magenx\AiMcp\Model\Tool\Quote\CreateCart</item>
+                <item name="add_cart_item" xsi:type="object">Magenx\AiMcp\Model\Tool\Quote\AddCartItem</item>
+                <item name="update_cart_item" xsi:type="object">Magenx\AiMcp\Model\Tool\Quote\UpdateCartItem</item>
+                <item name="remove_cart_item" xsi:type="object">Magenx\AiMcp\Model\Tool\Quote\RemoveCartItem</item>
+                <item name="set_cart_delivery" xsi:type="object">Magenx\AiMcp\Model\Tool\Quote\SetCartDelivery</item>
+                <item name="set_cart_payment_method" xsi:type="object">Magenx\AiMcp\Model\Tool\Quote\SetCartPaymentMethod</item>
+                <item name="place_order" xsi:type="object">Magenx\AiMcp\Model\Tool\Quote\PlaceOrder</item>
                 <item name="list_product_media" xsi:type="object">Magenx\AiMcp\Model\Tool\Media\ListProductMedia</item>
                 <item name="add_product_media" xsi:type="object">Magenx\AiMcp\Model\Tool\Media\AddProductMedia</item>
                 <item name="update_product_media" xsi:type="object">Magenx\AiMcp\Model\Tool\Media\UpdateProductMedia</item>

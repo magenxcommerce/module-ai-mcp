@@ -343,51 +343,9 @@ namespace Magento\Customer\Api\Data {
         public function isDefaultShipping(); public function setIsDefaultShipping($v);
         public function isDefaultBilling(); public function setIsDefaultBilling($v);
     }
-    class Address implements AddressInterface {
-        public array $data = [];
-        public function __construct(array $seed = []) { $this->data = $seed; }
-        private function s(string $k, $v) { $this->data[$k] = $v; return $this; }
-        public function getId() { return $this->data['id'] ?? null; }
-        public function setId($id) { return $this->s('id', $id); }
-        public function getCustomerId() { return $this->data['customer_id'] ?? null; }
-        public function setCustomerId($id) { return $this->s('customer_id', $id); }
-        public function getRegion() { return $this->data['region_obj'] ?? null; }
-        public function setRegion(?RegionInterface $r = null) { return $this->s('region_obj', $r); }
-        public function getRegionId() { return $this->data['region_id'] ?? null; }
-        public function setRegionId($id) { return $this->s('region_id', $id); }
-        public function getCountryId() { return $this->data['country_id'] ?? null; }
-        public function setCountryId($id) { return $this->s('country_id', $id); }
-        public function getStreet() { return $this->data['street'] ?? null; }
-        public function setStreet(array $s) { return $this->s('street', $s); }
-        public function getCompany() { return $this->data['company'] ?? null; }
-        public function setCompany($v) { return $this->s('company', $v); }
-        public function getTelephone() { return $this->data['telephone'] ?? null; }
-        public function setTelephone($v) { return $this->s('telephone', $v); }
-        public function getFax() { return $this->data['fax'] ?? null; }
-        public function setFax($v) { return $this->s('fax', $v); }
-        public function getPostcode() { return $this->data['postcode'] ?? null; }
-        public function setPostcode($v) { return $this->s('postcode', $v); }
-        public function getCity() { return $this->data['city'] ?? null; }
-        public function setCity($v) { return $this->s('city', $v); }
-        public function getFirstname() { return $this->data['firstname'] ?? null; }
-        public function setFirstname($v) { return $this->s('firstname', $v); }
-        public function getLastname() { return $this->data['lastname'] ?? null; }
-        public function setLastname($v) { return $this->s('lastname', $v); }
-        public function getMiddlename() { return $this->data['middlename'] ?? null; }
-        public function setMiddlename($v) { return $this->s('middlename', $v); }
-        public function getPrefix() { return $this->data['prefix'] ?? null; }
-        public function setPrefix($v) { return $this->s('prefix', $v); }
-        public function getSuffix() { return $this->data['suffix'] ?? null; }
-        public function setSuffix($v) { return $this->s('suffix', $v); }
-        public function getVatId() { return $this->data['vat_id'] ?? null; }
-        public function setVatId($v) { return $this->s('vat_id', $v); }
-        public function isDefaultShipping() { return $this->data['is_default_shipping'] ?? null; }
-        public function setIsDefaultShipping($v) { return $this->s('is_default_shipping', $v); }
-        public function isDefaultBilling() { return $this->data['is_default_billing'] ?? null; }
-        public function setIsDefaultBilling($v) { return $this->s('is_default_billing', $v); }
-    }
     interface CustomerInterface {
         public function getId(); public function setId($id);
+        public function getEmail(); public function setEmail($v);
         public function getGroupId(); public function setGroupId($v);
         public function getStoreId(); public function setStoreId($v);
         public function getGender(); public function setGender($v);
@@ -405,6 +363,8 @@ namespace Magento\Customer\Api\Data {
         public array $data = []; public array $custom = [];
         private function s(string $k, $v) { $this->data[$k] = $v; return $this; }
         public function getId() { return $this->data['id'] ?? null; }
+        public function getEmail() { return $this->data['email'] ?? null; }
+        public function setEmail($v) { return $this->s('email', $v); }
         public function setId($id) { return $this->s('id', $id); }
         public function getGroupId() { return $this->data['group_id'] ?? null; }
         public function setGroupId($v) { return $this->s('group_id', $v); }
@@ -1405,4 +1365,181 @@ namespace Magenx\ProductFeed\Model\ResourceModel\History {
         public function addFeedFilter(int $feedId) { return $this; }
     }
     class CollectionFactory { public function create(array $data = []) { return null; } }
+}
+
+namespace Magento\Quote\Api\Data {
+    interface CurrencyInterface {
+        public function getQuoteCurrencyCode(); public function getBaseCurrencyCode();
+    }
+    interface CartItemInterface {
+        public function getItemId(); public function setItemId($id);
+        public function getSku(); public function setSku($sku);
+        public function getQty(); public function setQty($qty);
+        public function getName(); public function setName($name);
+        public function getPrice(); public function setPrice($price);
+        public function getProductType(); public function setProductType($type);
+        public function getQuoteId(); public function setQuoteId($id);
+    }
+    interface CartInterface {
+        public function getId(); public function getStoreId(); public function setStoreId($id);
+        public function getIsActive(); public function getIsVirtual();
+        public function getItems(); public function getItemsCount(); public function getItemsQty();
+        public function getCustomer(); public function getCustomerIsGuest();
+        public function getCustomerNote(); public function getCurrency();
+        public function getReservedOrderId(); public function getConvertedAt();
+        public function getCreatedAt(); public function getUpdatedAt();
+    }
+    interface AddressInterface {
+        public function getId();
+        public function getFirstname(); public function setFirstname($v);
+        public function getLastname(); public function setLastname($v);
+        public function getMiddlename(); public function setMiddlename($v);
+        public function getPrefix(); public function setPrefix($v);
+        public function getSuffix(); public function setSuffix($v);
+        public function getCompany(); public function setCompany($v);
+        public function getStreet(); public function setStreet(array $street);
+        public function getCity(); public function setCity($v);
+        public function getRegion(); public function setRegion($v);
+        public function getRegionId(); public function setRegionId($v);
+        public function getRegionCode(); public function setRegionCode($v);
+        public function getPostcode(); public function setPostcode($v);
+        public function getCountryId(); public function setCountryId($v);
+        public function getTelephone(); public function setTelephone($v);
+        public function getFax(); public function setFax($v);
+        public function getVatId(); public function setVatId($v);
+        public function getEmail(); public function setEmail($v);
+    }
+    interface PaymentInterface {
+        public function getMethod(); public function setMethod($method);
+        public function getPoNumber(); public function setPoNumber($poNumber);
+        public function getAdditionalData(); public function setAdditionalData($data);
+    }
+    interface PaymentMethodInterface {
+        public function getCode(); public function getTitle();
+    }
+    interface ShippingMethodInterface {
+        public function getCarrierCode(); public function getMethodCode();
+        public function getCarrierTitle(); public function getMethodTitle();
+        public function getAmount(); public function getBaseAmount();
+        public function getPriceExclTax(); public function getPriceInclTax();
+        public function getAvailable(); public function getErrorMessage();
+    }
+    interface TotalsInterface {
+        public function getGrandTotal(); public function getBaseGrandTotal();
+        public function getSubtotal(); public function getSubtotalInclTax();
+        public function getBaseSubtotal(); public function getDiscountAmount();
+        public function getShippingAmount(); public function getShippingInclTax();
+        public function getTaxAmount(); public function getItemsQty();
+        public function getCouponCode();
+        public function getQuoteCurrencyCode(); public function getBaseCurrencyCode();
+    }
+    class Address implements AddressInterface {
+        private array $d = [];
+        public function getId() { return $this->d['Id'] ?? null; }
+        public function getFirstname() { return $this->d['Firstname'] ?? null; }
+        public function getLastname() { return $this->d['Lastname'] ?? null; }
+        public function getMiddlename() { return $this->d['Middlename'] ?? null; }
+        public function getPrefix() { return $this->d['Prefix'] ?? null; }
+        public function getSuffix() { return $this->d['Suffix'] ?? null; }
+        public function getCompany() { return $this->d['Company'] ?? null; }
+        public function getStreet() { return $this->d['Street'] ?? null; }
+        public function getCity() { return $this->d['City'] ?? null; }
+        public function getRegion() { return $this->d['Region'] ?? null; }
+        public function getRegionId() { return $this->d['RegionId'] ?? null; }
+        public function getRegionCode() { return $this->d['RegionCode'] ?? null; }
+        public function getPostcode() { return $this->d['Postcode'] ?? null; }
+        public function getCountryId() { return $this->d['CountryId'] ?? null; }
+        public function getTelephone() { return $this->d['Telephone'] ?? null; }
+        public function getFax() { return $this->d['Fax'] ?? null; }
+        public function getVatId() { return $this->d['VatId'] ?? null; }
+        public function getEmail() { return $this->d['Email'] ?? null; }
+        public function setFirstname($v) { $this->d['Firstname'] = $v; return $this; }
+        public function setLastname($v) { $this->d['Lastname'] = $v; return $this; }
+        public function setMiddlename($v) { $this->d['Middlename'] = $v; return $this; }
+        public function setPrefix($v) { $this->d['Prefix'] = $v; return $this; }
+        public function setSuffix($v) { $this->d['Suffix'] = $v; return $this; }
+        public function setCompany($v) { $this->d['Company'] = $v; return $this; }
+        public function setStreet(array $v) { $this->d['Street'] = $v; return $this; }
+        public function setCity($v) { $this->d['City'] = $v; return $this; }
+        public function setRegion($v) { $this->d['Region'] = $v; return $this; }
+        public function setRegionId($v) { $this->d['RegionId'] = $v; return $this; }
+        public function setRegionCode($v) { $this->d['RegionCode'] = $v; return $this; }
+        public function setPostcode($v) { $this->d['Postcode'] = $v; return $this; }
+        public function setCountryId($v) { $this->d['CountryId'] = $v; return $this; }
+        public function setTelephone($v) { $this->d['Telephone'] = $v; return $this; }
+        public function setFax($v) { $this->d['Fax'] = $v; return $this; }
+        public function setVatId($v) { $this->d['VatId'] = $v; return $this; }
+        public function setEmail($v) { $this->d['Email'] = $v; return $this; }
+    }
+    class AddressInterfaceFactory { public function create(array $data = []) { return null; } }
+    class CartItemInterfaceFactory { public function create(array $data = []) { return null; } }
+    class PaymentInterfaceFactory { public function create(array $data = []) { return null; } }
+}
+
+namespace Magento\Quote\Api {
+    interface CartManagementInterface {
+        public function createEmptyCart();
+        public function createEmptyCartForCustomer($customerId);
+        public function getCartForCustomer($customerId);
+        public function assignCustomer($cartId, $customerId, $storeId);
+        public function placeOrder($cartId, ?\Magento\Quote\Api\Data\PaymentInterface $paymentMethod = null);
+    }
+    interface CartRepositoryInterface {
+        public function get($cartId);
+        public function getList(\Magento\Framework\Api\SearchCriteriaInterface $searchCriteria);
+        public function getForCustomer($customerId, array $sharedStoreIds = []);
+        public function getActive($cartId, array $sharedStoreIds = []);
+        public function save(\Magento\Quote\Api\Data\CartInterface $quote);
+        public function delete(\Magento\Quote\Api\Data\CartInterface $quote);
+    }
+    interface CartItemRepositoryInterface {
+        public function getList($cartId);
+        public function save(\Magento\Quote\Api\Data\CartItemInterface $cartItem);
+        public function deleteById($cartId, $itemId);
+    }
+    interface CartTotalRepositoryInterface {
+        public function get($cartId);
+    }
+    interface PaymentMethodManagementInterface {
+        public function set($cartId, \Magento\Quote\Api\Data\PaymentInterface $method);
+        public function get($cartId);
+        public function getList($cartId);
+    }
+    interface BillingAddressManagementInterface {
+        public function assign($cartId, \Magento\Quote\Api\Data\AddressInterface $address, $useForShipping = false);
+        public function get($cartId);
+    }
+    interface ShipmentEstimationInterface {
+        public function estimateByExtendedAddress($cartId, \Magento\Quote\Api\Data\AddressInterface $address);
+    }
+}
+
+namespace Magento\Checkout\Api\Data {
+    interface ShippingInformationInterface {
+        public function getShippingAddress();
+        public function setShippingAddress(\Magento\Quote\Api\Data\AddressInterface $address);
+        public function getBillingAddress();
+        public function setBillingAddress(\Magento\Quote\Api\Data\AddressInterface $address);
+        public function getShippingMethodCode(); public function setShippingMethodCode($code);
+        public function getShippingCarrierCode(); public function setShippingCarrierCode($code);
+    }
+    interface PaymentDetailsInterface {
+        public function getPaymentMethods(); public function getTotals();
+    }
+    class ShippingInformationInterfaceFactory { public function create(array $data = []) { return null; } }
+}
+
+namespace Magento\Checkout\Api {
+    interface ShippingInformationManagementInterface {
+        public function saveAddressInformation(
+            $cartId,
+            \Magento\Checkout\Api\Data\ShippingInformationInterface $addressInformation
+        );
+    }
+}
+
+namespace Magento\Store\Model {
+    class Store {
+        public const DEFAULT_STORE_ID = 0;
+    }
 }

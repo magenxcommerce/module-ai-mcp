@@ -346,6 +346,17 @@ same ACL role, so nothing is lost but the serializer.
 | `update_feed` | ✓ | `Magenx_ProductFeed::feed` |
 | `delete_feed` | ✓ | `Magenx_ProductFeed::feed` |
 | `generate_feed` | ✓ | `Magenx_ProductFeed::generate` |
+| `search_carts` |  | `Magento_Cart::cart` |
+| `get_cart` |  | `Magento_Cart::cart` |
+| `list_cart_payment_methods` |  | `Magento_Cart::cart` |
+| `estimate_cart_shipping` |  | `Magento_Cart::cart` |
+| `create_cart` | ✓ | `Magento_Cart::manage` |
+| `add_cart_item` | ✓ | `Magento_Cart::manage` |
+| `update_cart_item` | ✓ | `Magento_Cart::manage` |
+| `remove_cart_item` | ✓ | `Magento_Cart::manage` |
+| `set_cart_delivery` | ✓ | `Magento_Cart::manage` |
+| `set_cart_payment_method` | ✓ | `Magento_Cart::manage` |
+| `place_order` | ✓ | `Magento_Sales::create` |
 
 A tool the caller may not use is not *listed*, so an agent never plans around a
 capability it does not have.
@@ -1168,6 +1179,76 @@ anyone remembering to add it; copying the rule rather than a list of key names
 means this cannot drift into printing a credential. Withheld keys are reported
 by name, because knowing a password is configured at all is what distinguishes a
 broken destination from one nobody ever set up.
+
+### Carts and orders: the one place this server commits money
+
+Until now the server could act on orders that existed — invoice, ship, refund,
+hold, cancel — and could not create one. Eleven tools in `Model/Tool/Quote/`
+build a cart and turn it into an order, and `place_order` is the most
+irreversible call the server has.
+
+**`place_order` sits behind `Magento_Sales::create`**, not the
+`Magento_Cart::manage` the other write tools take. Assembling a basket and
+committing a customer to buy it are different permissions, so an integration can
+be allowed to price up a cart without being allowed to charge for one. Reads take
+`Magento_Cart::cart`; all three are Magento's own resources, from
+`Magento_Quote/etc/acl.xml` and `Magento_Sales/etc/acl.xml`.
+
+**Only offline payment methods work here, and that is not a limitation to route
+around.** Check/money order, bank transfer, cash on delivery, purchase order and
+the zero-total method can be driven to a placed order. An online gateway cannot:
+it finishes at a payment page the customer has to be in front of, and selecting
+one does not fail cleanly — it fails somewhere inside the payment integration
+during `placeOrder`, by which point the quote may be half converted. So
+`set_cart_payment_method` intersects what the cart actually offers with the five
+offline codes and refuses everything else **before** setting anything. The two
+refusals read differently on purpose: an online method is refused for a reason no
+configuration will change, an offline one the cart does not offer is refused for
+a reason an operator can fix. `list_cart_payment_methods` still lists every
+method the store offers, marking which are usable, so a short list never reads as
+"this store takes no payments".
+
+**`create_cart` requires a store view.** `CartManagementInterface::createEmptyCart()`
+takes no store at all — Magento resolves one from ambient scope, which in a
+headless request is whatever the controller happens to be in rather than a
+storefront anybody chose. The store decides the cart's currency, prices, tax and
+which shipping and payment methods exist, so an unspecified one means an order
+priced in the wrong currency that looks exactly like an order priced in the right
+one. The admin scope is refused outright: it is not a storefront and has no
+prices at all.
+
+**Addresses and the shipping method are one call.** `set_cart_delivery` takes the
+billing address, the shipping address and the carrier/method together, because
+that is the only order Magento supports — a shipping rate depends on the
+destination, so the method cannot be chosen before the address is known. Call
+`estimate_cart_shipping` first to get a valid `carrier_code`/`method_code` pair.
+A cart of only virtual or downloadable products ships nothing and takes a
+different path entirely: billing address alone, no carrier, and passing shipping
+details to one is refused rather than ignored.
+
+**Prices are the store's.** `add_cart_item` and `update_cart_item` take a sku and
+a quantity and no price, although Magento's cart item would accept one. An agent
+naming its own price is a discount with no rule behind it, no record of who
+authorised it and nothing in the catalogue to reconcile the order against — and
+it would be invisible on the finished order, which shows a price without saying
+where it came from. Discounts belong to cart price rules, which this server
+already reads and writes.
+
+**A placed cart is still a cart.** Placing an order deactivates the quote rather
+than deleting it, so a placed cart still loads, still lists its items and still
+answers every getter — it simply ignores anything written to it. Every write tool
+here refuses an inactive cart and names the order it became, because otherwise an
+agent would run add-item, set-delivery and set-payment, see success at each step,
+and change nothing. The same distinction matters when reading: in `search_carts`,
+`is_active: false` with a `reserved_order_id` means bought, and `is_active: true`
+with a stale `updated_at` means abandoned. Reading those the wrong way round turns
+"we lost these sales" into "we made them".
+
+`search_carts` is also the read side of abandoned checkout, which nothing here
+could see before. It requires at least one filter, for the reason
+`search_url_rewrites` does, and returns no money: a cart carries none, and totals
+are a service call per cart that a page of them cannot afford. `get_cart` reads
+one in full.
 
 ## The four guards
 
