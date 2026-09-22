@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.3.2](https://github.com/magenxcommerce/module-ai-mcp/compare/v1.3.1...v1.3.2) (2026-09-22)
+
+
+### Bug Fixes
+
+* Register tools as proxies to defer construction until needed ([#18](https://github.com/magenxcommerce/module-ai-mcp/issues/18)) ([79ee46e](https://github.com/magenxcommerce/module-ai-mcp/commit/79ee46e20aee43b0dbc956968bc728e94f81e319))
+
+
+### Performance Improvements
+
+* build tools lazily so a request constructs only what it uses ([79ee46e](https://github.com/magenxcommerce/module-ai-mcp/commit/79ee46e20aee43b0dbc956968bc728e94f81e319))
+
 ## [1.3.1](https://github.com/magenxcommerce/module-ai-mcp/compare/v1.3.0...v1.3.1) (2026-09-17)
 
 
