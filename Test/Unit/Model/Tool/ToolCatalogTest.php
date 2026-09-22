@@ -10,7 +10,10 @@ use Magenx\AiMcp\Api\ToolInterface;
 use Magenx\AiMcp\Model\Tool\ToolCatalog;
 use Magenx\AiMcp\Model\Tool\ToolRegistry;
 use Magenx\AiMcp\Test\Unit\Fixture\Model\Tool\Catalog\Option\NestedTool;
+use Magenx\AiMcp\Test\Unit\Fixture\Model\Tool\RootTool;
+use Magenx\AiMcp\Test\Unit\Fixture\Model\Tool\RootTool\Proxy as RootToolProxy;
 use Magenx\AiMcp\Test\Unit\Fixture\Model\Tool\Sales\FlatTool;
+use Magenx\AiMcp\Test\Unit\Fixture\Model\Tool\Sales\FlatTool\Proxy as FlatToolProxy;
 use Magenx\AiMcp\Test\Unit\Fixture\Model\Tool\UrlRewrite\LabelledTool;
 use PHPUnit\Framework\TestCase;
 
@@ -147,6 +150,71 @@ class ToolCatalogTest extends TestCase
 
         sort($names);
         $this->assertSame(['flat_tool', 'nested_tool'], $names);
+    }
+
+    /**
+     * Every tool is registered as a `\Proxy`, so the class the catalog is
+     * handed is almost never the tool's own. Reading the domain off the
+     * generated name would file every tool under whatever segment the suffix
+     * happened to expose.
+     *
+     * @return void
+     */
+    public function testAProxiedToolLandsInTheSameDomainAsItsSubject(): void
+    {
+        $subject = new FlatTool();
+        $proxy = new FlatToolProxy();
+
+        self::assertSame(
+            $this->catalog($subject)->getDomain($subject),
+            $this->catalog($proxy)->getDomain($proxy)
+        );
+    }
+
+    /**
+     * The case the unwrapping exists for. A tool with no domain directory of
+     * its own falls back to vendor and module — but `\Proxy` is a namespace
+     * segment like any other, so left on it reads as the directory that is not
+     * there, and the tool appears in the multiselect under a heading of its own
+     * that nothing else shares.
+     *
+     * @return void
+     */
+    public function testAProxySuffixDoesNotInventADomainForAToolThatHasNone(): void
+    {
+        $proxy = new RootToolProxy();
+
+        self::assertSame('magenx_aimcp', $this->catalog($proxy)->getDomain($proxy));
+        self::assertSame(
+            $this->catalog(new RootTool())->getDomains(),
+            $this->catalog($proxy)->getDomains()
+        );
+    }
+
+    /**
+     * The listing path asks by name, having not built the tool yet, and has to
+     * get the same answer as the path that holds one.
+     *
+     * @return void
+     */
+    public function testTheDomainIsTheSameWhetherAskedByNameOrByTool(): void
+    {
+        $tool = new NestedTool();
+        $catalog = $this->catalog($tool);
+
+        self::assertSame($catalog->getDomain($tool), $catalog->getDomainForName('nested_tool'));
+    }
+
+    /**
+     * Both callers look the name up in the registry first, so this is
+     * unreachable — but falling back beats erroring for a catalog whose whole
+     * job is grouping something an operator will read.
+     *
+     * @return void
+     */
+    public function testAnUnregisteredNameFallsBack(): void
+    {
+        self::assertSame('other', $this->catalog(new FlatTool())->getDomainForName('no_such_tool'));
     }
 
     /**

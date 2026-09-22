@@ -8,6 +8,7 @@ namespace Magenx\AiMcp\Test\Unit\Model\Tool;
 
 use Magenx\AiMcp\Api\StructuredToolInterface;
 use Magenx\AiMcp\Model\Tool\AbstractTool;
+use Magenx\AiMcp\Test\Unit\RegisteredTools;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
 
@@ -31,6 +32,8 @@ use ReflectionClass;
  */
 class OutputSchemaConventionsTest extends TestCase
 {
+    use RegisteredTools;
+
     /** The literals a tool returning the shared envelope necessarily contains. */
     private const ENVELOPE_KEYS = ["'total_count' =>", "'page' =>", "'page_size' =>", "'items' =>"];
 
@@ -43,32 +46,6 @@ class OutputSchemaConventionsTest extends TestCase
      * would fix that; until then the omission is the answer, not an oversight.
      */
     private const BRANCHES_TO_ANOTHER_SHAPE = ['list_attribute_sets'];
-
-    /**
-     * Every tool registered in di.xml, as name => fully-qualified class.
-     *
-     * @return array<string, string>
-     */
-    private function registeredTools(): array
-    {
-        $di = file_get_contents(__DIR__ . '/../../../../etc/di.xml');
-        self::assertIsString($di);
-
-        preg_match_all(
-            '#<item name="([a-z0-9_]+)" xsi:type="object">(Magenx\\\\AiMcp\\\\Model\\\\Tool\\\\[A-Za-z\\\\]+)</item>#',
-            $di,
-            $matches,
-            PREG_SET_ORDER
-        );
-        self::assertNotEmpty($matches, 'No tools found in di.xml — the pattern has drifted.');
-
-        $tools = [];
-        foreach ($matches as $match) {
-            $tools[$match[1]] = $match[2];
-        }
-
-        return $tools;
-    }
 
     /**
      * The tool's own source and that of every ancestor up to AbstractTool.

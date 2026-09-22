@@ -14,6 +14,7 @@ use Magenx\AiMcp\Model\Protocol\Server;
 use Magenx\AiMcp\Model\Tool\AbstractTool;
 use Magenx\AiMcp\Model\Tool\ToolCatalog;
 use Magenx\AiMcp\Model\Tool\ToolRegistry;
+use Magenx\AiMcp\Test\Unit\Fixture\Model\Tool\Sales\FlatTool\Proxy as FlatToolProxy;
 use Magento\Framework\Serialize\Serializer\Json;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
@@ -270,6 +271,84 @@ class ServerTest extends TestCase
         )->getBody();
 
         $this->assertSame('Unknown tool: do_thing', $body['error']['message']);
+    }
+
+    /**
+     * The point of registering every tool as a `\Proxy`: a domain the operator
+     * switched off should cost nothing, and it only does if the decision is
+     * made before the tool is built. The saving is invisible either way —
+     * `tools/list` returns the same bytes — so the only way to hold it is to
+     * assert that nothing asked the tool a question.
+     *
+     * @return void
+     */
+    public function testAToolInADisabledDomainIsNeverBuilt(): void
+    {
+        $proxy = new FlatToolProxy();
+
+        $tools = $this->decode($this->listNamed('flat_tool', $proxy, $this->filtering(['catalog'])));
+
+        $this->assertSame([], $tools);
+        $this->assertFalse($proxy->woken, 'A tool the operator switched off was built anyway.');
+    }
+
+    /**
+     * @return void
+     */
+    public function testADeniedToolIsNeverBuilt(): void
+    {
+        $proxy = new FlatToolProxy();
+
+        $tools = $this->decode($this->listNamed('flat_tool', $proxy, $this->filtering([], ['flat_tool'])));
+
+        $this->assertSame([], $tools);
+        $this->assertFalse($proxy->woken, 'A tool on the denylist was built anyway.');
+    }
+
+    /**
+     * The control the two above need: a tool that survives the filters is
+     * built, so neither of them can be passing because nothing was listed for
+     * some unrelated reason.
+     *
+     * @return void
+     */
+    public function testAToolThatSurvivesTheFiltersIsBuilt(): void
+    {
+        $proxy = new FlatToolProxy();
+
+        $tools = $this->decode($this->listNamed('flat_tool', $proxy, $this->filtering(['sales'])));
+
+        $this->assertCount(1, $tools);
+        $this->assertTrue($proxy->woken);
+    }
+
+    /**
+     * tools/list for one tool registered the way di.xml registers them — keyed
+     * by name. The other helper keys by position, which makes the registry ask
+     * the tool its name and so wakes it before the server has done anything.
+     *
+     * The name is passed in rather than read off the tool for that same reason:
+     * asking would be the wake these tests are watching for.
+     *
+     * @param string $name
+     * @param ToolInterface $tool
+     * @param Config $config
+     * @return string
+     */
+    private function listNamed(string $name, ToolInterface $tool, Config $config): string
+    {
+        $registry = new ToolRegistry([$name => $tool]);
+        $server = new Server(
+            $registry,
+            new ToolCatalog($registry),
+            $config,
+            new JsonRpc(),
+            new Json(),
+            $this->createMock(LoggerInterface::class),
+            '1.0.0'
+        );
+
+        return (string) json_encode($server->dispatch('tools/list', [], 1, $this->identity())->getBody());
     }
 
     /**
