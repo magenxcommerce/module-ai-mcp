@@ -7,6 +7,7 @@ declare(strict_types=1);
 namespace Magenx\AiMcp\Test\Unit\Model\Tool;
 
 use Magenx\AiMcp\Model\Tool\AbstractTool;
+use Magenx\AiMcp\Test\Unit\RegisteredTools;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
 
@@ -29,6 +30,8 @@ use ReflectionClass;
  */
 class AnnotationConventionsTest extends TestCase
 {
+    use RegisteredTools;
+
     /**
      * Write tools named `create_` or `add_` that are destructive anyway.
      *
@@ -42,32 +45,6 @@ class AnnotationConventionsTest extends TestCase
         'create_credit_memo',
         'add_product_media',
     ];
-
-    /**
-     * Every tool registered in di.xml, as name => fully-qualified class.
-     *
-     * @return array<string, string>
-     */
-    private function registeredTools(): array
-    {
-        $di = file_get_contents(__DIR__ . '/../../../../etc/di.xml');
-        self::assertIsString($di);
-
-        preg_match_all(
-            '#<item name="([a-z0-9_]+)" xsi:type="object">(Magenx\\\\AiMcp\\\\Model\\\\Tool\\\\[A-Za-z\\\\]+)</item>#',
-            $di,
-            $matches,
-            PREG_SET_ORDER
-        );
-        self::assertNotEmpty($matches, 'No tools found in di.xml — the pattern has drifted.');
-
-        $tools = [];
-        foreach ($matches as $match) {
-            $tools[$match[1]] = $match[2];
-        }
-
-        return $tools;
-    }
 
     /**
      * Reads the tool's advertised hints without constructing it.

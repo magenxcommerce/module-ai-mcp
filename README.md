@@ -908,6 +908,26 @@ Add a tool from another module by contributing to the `tools` argument of
 `Magenx\AiMcp\Model\Tool\ToolRegistry` in `di.xml` and implementing
 `Magenx\AiMcp\Api\ToolInterface`. Every guard below applies to it automatically.
 
+Two conventions go with that, both load-bearing and neither enforced at runtime.
+**Register the class as a `\Proxy`** — `Acme\Foo\Model\Tool\DoThing\Proxy` — and
+**make the item's key the tool's own `getName()`**:
+
+```xml
+<item name="do_thing" xsi:type="object">Acme\Foo\Model\Tool\DoThing\Proxy</item>
+```
+
+The object manager builds an array argument eagerly, so an unproxied tool is
+constructed on every request that reaches this server — along with every
+repository, factory and collection factory it asks for — whatever that request
+actually called. With 238 tools registered, that is the difference between
+building one tool per `tools/call` and building all of them. The key carries the
+name because the registry has to file a tool without asking it anything: asking
+is what wakes the proxy, and doing it in a loop is the eager construction the
+proxies exist to avoid. A key that disagrees with `getName()` puts the tool in
+the registry under a name it does not answer to, which nothing throws over — the
+tools in this module are held to both by
+`Test/Unit/Model/Tool/RegistrationConventionsTest.php`.
+
 ### Erasure is confirmed by name, not by id
 
 `approve_gdpr_request` is the most irreversible tool here. Approving a
@@ -1315,6 +1335,11 @@ hand, so a tool added tomorrow lands in a domain without anyone maintaining
 anything. A tool contributed by another module that does not sit under
 `Model/Tool/` is grouped under its vendor and module instead, so a whole
 third-party module can be switched off in one tick.
+
+Both filters are applied before a tool is built rather than after. Every tool is
+registered as a lazy `\Proxy`, so narrowing the toolset makes the request cheaper
+as well as the context smaller: the tools in a domain you switched off are never
+constructed, and neither are their repositories and collection factories.
 
 `disabled_tools` is applied after the domain selection, so a name listed there
 is withheld even when its domain is enabled. Saving a name that no tool answers

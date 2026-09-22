@@ -159,10 +159,21 @@ class Server
     private function listTools(Identity $identity): array
     {
         $tools = [];
-        foreach ($this->registry->getAll() as $tool) {
-            if (!$this->isAvailable($tool, $identity)) {
+        foreach ($this->registry->getNames() as $name) {
+            // The operator's own filters run first because they are answerable
+            // from the name and the registered class alone. Everything past
+            // this point needs the built tool, and the tools are registered as
+            // proxies precisely so that a domain switched off costs nothing to
+            // leave out.
+            if (!$this->isEnabledByConfiguration($name)) {
                 continue;
             }
+
+            $tool = $this->registry->get($name);
+            if ($tool === null || !$this->isAvailable($tool, $identity)) {
+                continue;
+            }
+
             $tools[] = $this->describeTool($tool);
         }
 
@@ -249,7 +260,7 @@ class Server
             return $this->fail($id, JsonRpc::METHOD_NOT_FOUND, sprintf('Unknown tool: %s', $name));
         }
 
-        if (!$this->isEnabledByConfiguration($tool)) {
+        if (!$this->isEnabledByConfiguration($name)) {
             // Same answer again, for the same reason: a tool the operator has
             // switched off should not be something the agent knows to keep
             // asking about. But unlike the two cases above this one is a
@@ -259,7 +270,7 @@ class Server
             $this->auditLogger->info('[magenx-mcp] tool withheld by configuration', [
                 'tool' => $name,
                 'caller' => $identity->getLabel(),
-                'domain' => $this->catalog->getDomain($tool),
+                'domain' => $this->catalog->getDomainForName($name),
             ]);
 
             return $this->fail($id, JsonRpc::METHOD_NOT_FOUND, sprintf('Unknown tool: %s', $name));
@@ -311,7 +322,11 @@ class Server
     }
 
     /**
-     * Whether a tool is both permitted by ACL and enabled by the store switch.
+     * Whether a built tool is permitted to this caller.
+     *
+     * Only the checks that need the tool itself live here; the operator's
+     * toolset settings are {@see isEnabledByConfiguration()}, applied before
+     * the tool is built.
      *
      * @param ToolInterface $tool
      * @param Identity $identity
@@ -323,7 +338,7 @@ class Server
             return false;
         }
 
-        return $identity->isAllowed($tool->getAclResource()) && $this->isEnabledByConfiguration($tool);
+        return $identity->isAllowed($tool->getAclResource());
     }
 
     /**
@@ -333,18 +348,22 @@ class Server
      * client spending context on this", which is why an empty domain list means
      * every domain rather than none.
      *
-     * @param ToolInterface $tool
+     * Takes the registered name rather than the tool, because both callers can
+     * answer it before building one and `tools/list` would otherwise construct
+     * every tool in a domain the operator has switched off.
+     *
+     * @param string $name
      * @return bool
      */
-    private function isEnabledByConfiguration(ToolInterface $tool): bool
+    private function isEnabledByConfiguration(string $name): bool
     {
-        if (in_array($tool->getName(), $this->config->getDisabledTools(), true)) {
+        if (in_array($name, $this->config->getDisabledTools(), true)) {
             return false;
         }
 
         $domains = $this->config->getEnabledToolDomains();
 
-        return $domains === [] || in_array($this->catalog->getDomain($tool), $domains, true);
+        return $domains === [] || in_array($this->catalog->getDomainForName($name), $domains, true);
     }
 
     /**

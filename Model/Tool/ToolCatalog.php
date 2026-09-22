@@ -19,6 +19,11 @@ use Magenx\AiMcp\Api\ToolInterface;
  *
  * Nothing here is a security boundary — ACL is. This decides only what an
  * operator wants a client to *see*, which is a context-window question.
+ *
+ * Every derivation here works from a class name rather than from anything the
+ * tool would have to be asked, so grouping the catalog never wakes the proxies
+ * {@see ToolRegistry} holds. The class name the object manager hands over may
+ * be a generated one, which is why {@see segment()} unwraps it first.
  */
 class ToolCatalog
 {
@@ -27,6 +32,9 @@ class ToolCatalog
 
     /** Domain used when a class name yields nothing usable at all. */
     private const FALLBACK_DOMAIN = 'other';
+
+    /** Class-name suffixes the object manager generates. */
+    private const GENERATED_SUFFIXES = ['\\Interceptor', '\\Proxy'];
 
     /** @var array<string, string>|null */
     private ?array $domains = null;
@@ -61,6 +69,25 @@ class ToolCatalog
     }
 
     /**
+     * The domain code for one registered tool, found by name.
+     *
+     * Same answer as {@see getDomain()} without building the tool, for the
+     * server's listing path — where the whole point is to decide whether a tool
+     * is wanted before paying to construct it. An unregistered name has no
+     * class to derive from and falls back, which no caller reaches: both ask
+     * the registry for the name first.
+     *
+     * @param string $name
+     * @return string
+     */
+    public function getDomainForName(string $name): string
+    {
+        $class = $this->registry->getClass($name);
+
+        return $class === null ? self::FALLBACK_DOMAIN : strtolower($this->segment($class));
+    }
+
+    /**
      * Every domain in the registry, as code => label, sorted by label.
      *
      * @return array<string, string>
@@ -72,8 +99,8 @@ class ToolCatalog
         }
 
         $domains = [];
-        foreach ($this->registry->getAll() as $tool) {
-            $segment = $this->segment($tool::class);
+        foreach ($this->registry->getClasses() as $class) {
+            $segment = $this->segment($class);
             $domains[strtolower($segment)] = $this->label($segment);
         }
         asort($domains);
@@ -90,7 +117,40 @@ class ToolCatalog
      */
     public function getToolNames(): array
     {
-        return array_keys($this->registry->getAll());
+        return $this->registry->getNames();
+    }
+
+    /**
+     * The tool's own class, with the object manager's generated wrappers off.
+     *
+     * A tool registered as a `\Proxy` — which every tool in this module is —
+     * arrives as `...\Sales\SearchOrders\Proxy`, and an intercepted one as
+     * `...\Interceptor`. Left on, the suffix is just another namespace segment:
+     * harmless for a tool nested in a domain directory, but a tool sitting
+     * directly in `Model\Tool\` would acquire a domain named after itself, and
+     * an operator would find it under a heading no other tool shares.
+     *
+     * The suffixes are stripped repeatedly because the two can stack. A tool
+     * whose own class is genuinely named `Proxy` would be misread here, which
+     * is the same ambiguity the object manager itself carries.
+     *
+     * @param string $class
+     * @return string
+     */
+    private function unwrap(string $class): string
+    {
+        $stripped = true;
+        while ($stripped) {
+            $stripped = false;
+            foreach (self::GENERATED_SUFFIXES as $suffix) {
+                if (str_ends_with($class, $suffix)) {
+                    $class = substr($class, 0, -strlen($suffix));
+                    $stripped = true;
+                }
+            }
+        }
+
+        return $class;
     }
 
     /**
@@ -101,6 +161,7 @@ class ToolCatalog
      */
     private function segment(string $class): string
     {
+        $class = $this->unwrap($class);
         $position = strpos($class, self::TOOL_NAMESPACE);
         if ($position !== false) {
             $rest = explode('\\', substr($class, $position + strlen(self::TOOL_NAMESPACE)));
