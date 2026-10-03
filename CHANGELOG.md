@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.4.0](https://github.com/magenxcommerce/module-ai-mcp/compare/v1.3.2...v1.4.0) (2026-10-03)
+
+
+### Features
+
+* add quick search promotion tools ([2a7298b](https://github.com/magenxcommerce/module-ai-mcp/commit/2a7298b538b16e573d427876be25333c9b36defc))
+
+
+### Bug Fixes
+
+* Add quick search promotion management tools ([#20](https://github.com/magenxcommerce/module-ai-mcp/issues/20)) ([2a7298b](https://github.com/magenxcommerce/module-ai-mcp/commit/2a7298b538b16e573d427876be25333c9b36defc))
+
 ## [1.3.2](https://github.com/magenxcommerce/module-ai-mcp/compare/v1.3.1...v1.3.2) (2026-09-22)
 
 
