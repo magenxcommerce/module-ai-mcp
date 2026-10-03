@@ -25,6 +25,7 @@
             <module name="Magenx_Helpdesk"/>
             <module name="Magenx_Platform"/>
             <module name="Magenx_ProductFeed"/>
+            <module name="Magenx_QuickSearchGraphQl"/>
             <module name="Magenx_Rma"/>
             <module name="Magento_Newsletter"/>
             <module name="Magento_Quote"/>
