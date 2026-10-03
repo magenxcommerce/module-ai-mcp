@@ -107,6 +107,7 @@ namespace Magento\Framework\Stdlib\DateTime {
     }
     interface TimezoneInterface {
         public function getConfigTimezone($scopeType = null, $scopeCode = null);
+        public function scopeDate($scope = null, $date = null, $includeTime = false);
         public function date($date = null, $locale = null, $useTimezone = true, $includeTime = true);
     }
 }
@@ -627,7 +628,7 @@ namespace Magento\Framework\App\Filesystem {
 
 namespace Magento\Framework\Filesystem\Directory {
     interface ReadInterface {
-        public function isExist($path = null); public function stat($path);
+        public function isExist($path = null); public function isFile($path); public function stat($path);
         public function openFile($path, $flag = 'r'); public function readFile($path);
     }
 }
@@ -1541,5 +1542,50 @@ namespace Magento\Checkout\Api {
 namespace Magento\Store\Model {
     class Store {
         public const DEFAULT_STORE_ID = 0;
+        public function getId() { return null; }
+        public function getCode() { return null; }
+        public function getRootCategoryId() { return null; }
+    }
+    interface StoreManagerInterface {
+        public function getStore($storeId = null);
+        public function getStores($withDefault = false, $codeKey = false);
     }
 }
+
+namespace Magenx\QuickSearchGraphQl\Model\Source {
+    class Type {
+        public const PRODUCT = 'product';
+        public const CATEGORY = 'category';
+        public const BRAND = 'brand';
+    }
+}
+
+namespace Magenx\QuickSearchGraphQl\Model {
+    class Promotion {
+        private $d = [];
+        public function getId() { return $this->d['promotion_id'] ?? null; }
+        public function getData($k = null, $i = null) {
+            return $k === null ? $this->d : ($this->d[$k] ?? null);
+        }
+        public function setData($k, $v = null) { $this->d[$k] = $v; return $this; }
+    }
+    class PromotionFactory { public function create(array $data = []) { return null; } }
+    class PromotionRepository {
+        public function getById(int $promotionId) { return null; }
+        public function save($promotion) { return $promotion; }
+        public function delete($promotion): void {}
+    }
+    class Config {
+        public function isPromotionsEnabled(?int $storeId = null): bool { return true; }
+        public function getPromotionsMaxItems(?int $storeId = null): int { return 10; }
+    }
+    class PromotionProvider {
+        public function getActive(int $storeId, int $limit): array { return []; }
+    }
+    class TargetLoader {
+        public function loadProducts(array $skus, int $storeId): array { return []; }
+        public function loadCategories(array $categoryIds, int $storeId, int $rootCategoryId): array { return []; }
+        public function loadBrands(array $optionIds, int $storeId): array { return []; }
+    }
+}
+

@@ -346,6 +346,11 @@ same ACL role, so nothing is lost but the serializer.
 | `update_feed` | ✓ | `Magenx_ProductFeed::feed` |
 | `delete_feed` | ✓ | `Magenx_ProductFeed::feed` |
 | `generate_feed` | ✓ | `Magenx_ProductFeed::generate` |
+| `search_quick_search_promotions` |   | `Magenx_QuickSearchGraphQl::promotion` |
+| `get_quick_search_promotion` |   | `Magenx_QuickSearchGraphQl::promotion` |
+| `create_quick_search_promotion` | ✓ | `Magenx_QuickSearchGraphQl::promotion` |
+| `update_quick_search_promotion` | ✓ | `Magenx_QuickSearchGraphQl::promotion` |
+| `delete_quick_search_promotion` | ✓ | `Magenx_QuickSearchGraphQl::promotion` |
 | `search_carts` |  | `Magento_Cart::cart` |
 | `get_cart` |  | `Magento_Cart::cart` |
 | `list_cart_payment_methods` |  | `Magento_Cart::cart` |
@@ -919,7 +924,7 @@ Two conventions go with that, both load-bearing and neither enforced at runtime.
 The object manager builds an array argument eagerly, so an unproxied tool is
 constructed on every request that reaches this server — along with every
 repository, factory and collection factory it asks for — whatever that request
-actually called. With 238 tools registered, that is the difference between
+actually called. With 243 tools registered, that is the difference between
 building one tool per `tools/call` and building all of them. The key carries the
 name because the registry has to file a tool without asking it anything: asking
 is what wakes the proxy, and doing it in a loop is the eager construction the
@@ -1199,6 +1204,54 @@ anyone remembering to add it; copying the rule rather than a list of key names
 means this cannot drift into printing a credential. Withheld keys are reported
 by name, because knowing a password is configured at all is what distinguishes a
 broken destination from one nobody ever set up.
+
+### Quick search promotions: a saved row is not a shown one
+
+The promotion tools wrap `Magenx_QuickSearchGraphQl`'s sponsored items — the
+products, categories and brands its `quickSearchSuggestions` query puts in the
+storefront's search dropdown. They sit behind the module's one grant,
+`Magenx_QuickSearchGraphQl::promotion`, which guards the admin grid and every
+action on it.
+
+**The admin's checks are repeated, and tightened.** The module validates in its
+admin controller, not its model, so the tools carry the checks themselves: a
+known type, a product SKU that exists, a numeric category or brand id, and
+`active_to` not before `active_from`. They also refuse three things the admin
+lets through, because each saves cleanly and then shows nothing: a category or
+brand id that does not exist, a store view that does not exist, and an image
+that is a URL or a path to no file. The storefront loads images only through its
+own `/media` proxy, so `image` is a path under `pub/media` — the one
+`upload_media_gallery_asset` returns. Dates are `YYYY-MM-DD`; the admin parses
+them in the admin user's locale, and there is no locale here. Keywords are an
+array, and a keyword containing a comma is refused rather than split, because
+the column is comma-separated.
+
+**Whether it shows is answered per store view.** `get_quick_search_promotion`
+and the result of every create and update carry a `storefront` entry for each
+store view the promotion applies to — every store view, for `store_id` 0 —
+saying whether the dropdown shows it today and, if not, the first reason why.
+The reasons are checked in the order the resolver applies them, by calling the
+module's own `Config`, `PromotionProvider` and `TargetLoader`, so the answer
+cannot drift from the storefront: promotions switched off, the row disabled,
+today outside its dates in that store's timezone, past the **Maximum Items** cap,
+or a target the storefront drops (a disabled, invisible or out-of-stock product,
+an inactive category, a deleted brand option). The cap is applied to the pool
+before targets resolve, so a promotion past it is reported as cut by the cap
+even when its target is fine. Keyword matching is not checked; it happens in
+the browser. A disabled or out-of-stock target is reported, not refused —
+scheduling a promotion ahead of a launch is ordinary.
+
+**Writes go through the module's repository,** so the model's cache tag is
+cleaned and the cached pool is rebuilt on the next dropdown open; nothing needs
+flushing. `delete_quick_search_promotion` returns the deleted row, which is the
+only undo there is.
+
+**The module's settings are not tools.** Switching promotions or popular terms
+on and off, and their counts, is `get_config` / `set_config` on
+`magenx_quick_search/promotions/{enabled,max_items}` and
+`magenx_popular_search/general/{enabled,count}` — the popular-terms fields keep
+the paths of the module they replaced. Add those to
+`magenx_ai_mcp/security/allowed_config_paths` for `set_config` to write them.
 
 ### Carts and orders: the one place this server commits money
 

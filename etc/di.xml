@@ -129,6 +129,11 @@
                 <item name="update_feed" xsi:type="object">Magenx\AiMcp\Model\Tool\ProductFeed\UpdateFeed\Proxy</item>
                 <item name="delete_feed" xsi:type="object">Magenx\AiMcp\Model\Tool\ProductFeed\DeleteFeed\Proxy</item>
                 <item name="generate_feed" xsi:type="object">Magenx\AiMcp\Model\Tool\ProductFeed\GenerateFeed\Proxy</item>
+                <item name="search_quick_search_promotions" xsi:type="object">Magenx\AiMcp\Model\Tool\QuickSearch\SearchQuickSearchPromotions\Proxy</item>
+                <item name="get_quick_search_promotion" xsi:type="object">Magenx\AiMcp\Model\Tool\QuickSearch\GetQuickSearchPromotion\Proxy</item>
+                <item name="create_quick_search_promotion" xsi:type="object">Magenx\AiMcp\Model\Tool\QuickSearch\CreateQuickSearchPromotion\Proxy</item>
+                <item name="update_quick_search_promotion" xsi:type="object">Magenx\AiMcp\Model\Tool\QuickSearch\UpdateQuickSearchPromotion\Proxy</item>
+                <item name="delete_quick_search_promotion" xsi:type="object">Magenx\AiMcp\Model\Tool\QuickSearch\DeleteQuickSearchPromotion\Proxy</item>
                 <item name="search_carts" xsi:type="object">Magenx\AiMcp\Model\Tool\Quote\SearchCarts\Proxy</item>
                 <item name="get_cart" xsi:type="object">Magenx\AiMcp\Model\Tool\Quote\GetCart\Proxy</item>
                 <item name="list_cart_payment_methods" xsi:type="object">Magenx\AiMcp\Model\Tool\Quote\ListCartPaymentMethods\Proxy</item>
