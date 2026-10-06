@@ -295,6 +295,9 @@ same ACL role, so nothing is lost but the serializer.
 | `cron_status` | | `Magenx_AiMcp::ops` |
 | `list_modules` | | `Magenx_AiMcp::ops` |
 | `read_audit_log` | | `Magenx_AiMcp::ops` |
+| `list_logs` | | `Magenx_AiMcp::logs` |
+| `read_log` | | `Magenx_AiMcp::logs` |
+| `read_error_report` | | `Magenx_AiMcp::logs` |
 | `save_helpdesk_priority` | ✓ | `Magenx_Helpdesk::priority` |
 | `delete_helpdesk_priority` | ✓ | `Magenx_Helpdesk::priority` |
 | `save_helpdesk_department` | ✓ | `Magenx_Helpdesk::department` |
@@ -1025,8 +1028,8 @@ re-enabling it through this same endpoint would be the first thing to time out.
 `bin/magento cache:disable` is still there for someone who means it.
 
 Three tools have no stock Magento resource that fits, because they describe the
-installation rather than the store, so they sit behind **`Magenx_AiMcp::ops`** —
-the only resource this module defines for tools of its own. It is declared under
+installation rather than the store, so they sit behind **`Magenx_AiMcp::ops`**,
+one of the three resources this module defines for tools of its own. It is declared under
 `Magenx_AiMcp::server` in `etc/acl.xml`, so ticking the server in a role's tree
 offers them together, and leaving it unticked means an integration can use the
 endpoint without reading any of them:
@@ -1042,6 +1045,48 @@ endpoint without reading any of them:
 - `read_audit_log` reads this server's own log, and only that file: the name is
   fixed and there is no path argument, because a log tool that can be pointed
   elsewhere is a tool for reading any file the web server can.
+
+### Logs: read by name, tail only, masked
+
+`list_logs`, `read_log` and `read_error_report` read Magento's own logs in
+`var/log` and the error reports in `var/report`, behind
+**`Magenx_AiMcp::logs`** — a grant of its own, not part of `ops`. Logs hold
+whatever any installed module chose to write: customer e-mail addresses in
+exception messages, request payloads from payment modules, now and then the
+header that authenticated a failed API call. Reading them is a decision about
+an integration, not a side effect of letting it check cron.
+
+- **No path argument.** `read_log` takes a file *name*, and honours it only if
+  it is one `list_logs` produced: a top-level `*.log` file in `var/log`, or a
+  rotated `*.log.N` sibling. What is read is the listing's own entry, never the
+  request's string, so `../app/etc/env.php` has nothing to match and is refused
+  as an unknown log. Subdirectories and other extensions are not listed.
+  `read_error_report` takes a report id, which must be digits and nothing else.
+- **Not the audit log.** `magenx_ai_mcp.log` is left out of the listing;
+  `read_audit_log` reads it behind `ops`, so `logs` cannot be used to see which
+  integration changed what.
+- **Tail only, bounded everywhere.** At most the last 1 MB of a file is read off
+  disk, at most 500 entries are returned (50 by default), and one answer is
+  capped at 200,000 characters, dropping the oldest entries first.
+- **Entries, not lines.** An exception's stack trace is written on the lines
+  after its record; counting lines would let one exception crowd out
+  everything, and filtering lines would split a trace from its message. So the
+  tail is grouped into entries at each `[YYYY-MM-DD` timestamp, `contains`
+  filters whole entries, and each trace keeps its first `trace_frames` frames
+  (5 by default, 15 for a report, at most 50) with a count of the rest. Lines
+  longer than 1,000 characters are clipped.
+- **Masked, best effort.** Every line returned passes through
+  `Model/Tool/Log/LogRedactor.php`: e-mail addresses, `Bearer`/`Basic`
+  credentials, the value of any `password`/`secret`/`token`/`api_key`-like
+  pair (in `key=value`, query-string and JSON form), digit runs that pass the
+  Luhn check as card numbers, long opaque tokens containing digits, and the
+  host octet of IPv4 addresses. `contains` matches the masked text, so it cannot
+  be used to confirm an address is in the log. What no pattern recognises —
+  names, street addresses, phone numbers in free text — can remain, which is
+  why this is a grant to give narrowly rather than a filter to rely on.
+- **Reports in the stock layout.** Reports written with
+  `MAGE_ERROR_REPORT_DIR_NESTING_LEVEL` above zero live in subdirectories and
+  are not found.
 
 ### Reports: the only SQL in the module, and why
 

@@ -321,3 +321,6 @@
 "date_from and date_to go together; pass both, or a named ""period"" instead.","date_from and date_to go together; pass both, or a named ""period"" instead."
 "order_item_id %1 appears more than once; give it one combined qty.","order_item_id %1 appears more than once; give it one combined qty."
 "qty_requested for order item %1 must be above 0 and at most %2, which is what was ordered on that line.","qty_requested for order item %1 must be above 0 and at most %2, which is what was ordered on that line."
+"There is no readable log named ""%1"". Call list_logs for the names that can be read.","There is no readable log named ""%1"". Call list_logs for the names that can be read."
+"The ""report_id"" argument must be the digits of a report id.","The ""report_id"" argument must be the digits of a report id."
+"There is no error report %1.","There is no error report %1."

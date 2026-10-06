@@ -623,6 +623,7 @@ namespace Magento\Framework\App\Filesystem {
     class DirectoryList {
         public const LOG = 'log';
         public const MEDIA = 'media';
+        public const VAR_DIR = 'var';
     }
 }
 
@@ -630,6 +631,7 @@ namespace Magento\Framework\Filesystem\Directory {
     interface ReadInterface {
         public function isExist($path = null); public function isFile($path); public function stat($path);
         public function openFile($path, $flag = 'r'); public function readFile($path);
+        public function read($path = null);
     }
 }
 

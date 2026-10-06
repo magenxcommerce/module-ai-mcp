@@ -255,6 +255,9 @@
                 <item name="cron_status" xsi:type="object">Magenx\AiMcp\Model\Tool\Ops\CronStatus\Proxy</item>
                 <item name="list_modules" xsi:type="object">Magenx\AiMcp\Model\Tool\Ops\ListModules\Proxy</item>
                 <item name="read_audit_log" xsi:type="object">Magenx\AiMcp\Model\Tool\Ops\ReadAuditLog\Proxy</item>
+                <item name="list_logs" xsi:type="object">Magenx\AiMcp\Model\Tool\Log\ListLogs\Proxy</item>
+                <item name="read_log" xsi:type="object">Magenx\AiMcp\Model\Tool\Log\ReadLog\Proxy</item>
+                <item name="read_error_report" xsi:type="object">Magenx\AiMcp\Model\Tool\Log\ReadErrorReport\Proxy</item>
                 <item name="platform_status" xsi:type="object">Magenx\AiMcp\Model\Tool\Platform\PlatformStatus\Proxy</item>
                 <item name="search_admin_activity" xsi:type="object">Magenx\AiMcp\Model\Tool\AdminActivity\SearchAdminActivity\Proxy</item>
                 <item name="get_admin_activity" xsi:type="object">Magenx\AiMcp\Model\Tool\AdminActivity\GetAdminActivity\Proxy</item>
