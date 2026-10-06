@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.5.0](https://github.com/magenxcommerce/module-ai-mcp/compare/v1.4.0...v1.5.0) (2026-10-06)
+
+
+### Features
+
+* add read-only log tools behind their own ACL resource ([8ce14d7](https://github.com/magenxcommerce/module-ai-mcp/commit/8ce14d7b2b6933711ce73c8ca4b0878a2aa62fc7))
+
+
+### Bug Fixes
+
+* Add log reading tools for AI agent diagnostics ([#22](https://github.com/magenxcommerce/module-ai-mcp/issues/22)) ([8ce14d7](https://github.com/magenxcommerce/module-ai-mcp/commit/8ce14d7b2b6933711ce73c8ca4b0878a2aa62fc7))
+
 ## [1.4.0](https://github.com/magenxcommerce/module-ai-mcp/compare/v1.3.2...v1.4.0) (2026-10-03)
 
 
