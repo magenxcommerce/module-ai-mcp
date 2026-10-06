@@ -10,9 +10,9 @@
  * Magento_Sales::creditmemo, ...), so an integration can be scoped to exactly
  * the surface it should manage. The sales resources are the finest grained of
  * these on purpose: refunding is a separate grant from invoicing, which is a
- * separate grant from viewing an order. Magenx_AiMcp::ops is the one resource this module
- * defines for tools of its own: the diagnostics that describe the installation rather than
- * the store, which Magento has no resource for.
+ * separate grant from viewing an order. Magenx_AiMcp::ops, ::reports and ::logs are the
+ * resources this module defines for tools of its own: diagnostics, aggregate figures and log
+ * reading, none of which Magento has a resource for.
  */
 -->
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:Acl/etc/acl.xsd">
@@ -38,6 +38,15 @@
                         and none of its code is used — the figures are computed directly.
                     -->
                     <resource id="Magenx_AiMcp::reports" title="AI MCP Server Reports" translate="title" sortOrder="20"/>
+                    <!--
+                        The Magento logs in var/log and the error reports in var/report. Not
+                        folded into ops, which describes the installation: these hold whatever
+                        any module chose to write, customer e-mail addresses, request payloads
+                        and the occasional credential among them. The tools mask what they can
+                        recognise, but masking is best effort, so reading them is a grant an
+                        integration has to be given on purpose.
+                    -->
+                    <resource id="Magenx_AiMcp::logs" title="AI MCP Server Logs" translate="title" sortOrder="30"/>
                 </resource>
                 <resource id="Magento_Backend::stores">
                     <resource id="Magento_Backend::stores_settings">
