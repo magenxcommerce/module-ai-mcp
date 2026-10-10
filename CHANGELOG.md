@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.1](https://github.com/magenxcommerce/module-ai-mcp/compare/v1.5.0...v1.5.1) (2026-10-10)
+
+
+### Bug Fixes
+
+* use canRestore in system.xml so Magento accepts the config ([#24](https://github.com/magenxcommerce/module-ai-mcp/issues/24)) ([6e427a3](https://github.com/magenxcommerce/module-ai-mcp/commit/6e427a3b86f06a07867125376f1021d4ed5607a4))
+
 ## [1.5.0](https://github.com/magenxcommerce/module-ai-mcp/compare/v1.4.0...v1.5.0) (2026-10-06)
 
 
