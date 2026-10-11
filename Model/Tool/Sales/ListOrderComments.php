@@ -6,13 +6,14 @@ declare(strict_types=1);
 
 namespace Magenx\AiMcp\Model\Tool\Sales;
 
+use Magenx\AiMcp\Api\PersonalDataToolInterface;
 use Magenx\AiMcp\Model\Tool\AbstractTool;
 use Magento\Sales\Api\Data\OrderStatusHistoryInterface;
 
 /**
  * Read an order's comment and status history.
  */
-class ListOrderComments extends AbstractTool
+class ListOrderComments extends AbstractTool implements PersonalDataToolInterface
 {
     /**
      * @param OrderLocator $locator

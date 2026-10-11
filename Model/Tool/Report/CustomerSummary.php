@@ -6,12 +6,13 @@ declare(strict_types=1);
 
 namespace Magenx\AiMcp\Model\Tool\Report;
 
+use Magenx\AiMcp\Api\PersonalDataToolInterface;
 use Magenx\AiMcp\Model\Tool\AbstractTool;
 
 /**
  * Who bought over a period, and who spent the most.
  */
-class CustomerSummary extends AbstractTool
+class CustomerSummary extends AbstractTool implements PersonalDataToolInterface
 {
     private const DEFAULT_LIMIT = 20;
     private const MAX_LIMIT = 100;

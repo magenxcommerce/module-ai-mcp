@@ -271,7 +271,8 @@
     </type>
 
     <!-- Every attempted write lands in var/log/magenx_ai_mcp.log, separate from
-         the general log so an operator can audit agent activity on its own. -->
+         the general log so an operator can audit agent activity on its own.
+         Successful reads join it when magenx_ai_mcp/security/audit_reads asks. -->
     <virtualType name="MagenxAiMcpAuditHandler" type="Magento\Framework\Logger\Handler\Base">
         <arguments>
             <argument name="fileName" xsi:type="string">/var/log/magenx_ai_mcp.log</argument>
@@ -294,6 +295,7 @@
                  as a generic extra-file, and the marker on the line below is what
                  that updater rewrites. Keep the two on the same line. -->
             <argument name="serverVersion" xsi:type="string">1.5.1</argument><!-- x-release-please-version -->
+            <argument name="toolsetResolver" xsi:type="object">Magenx\AiMcp\Model\Tool\ToolsetResolver</argument>
         </arguments>
     </type>
 

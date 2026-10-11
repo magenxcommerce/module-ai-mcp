@@ -449,12 +449,28 @@ and leave an order in a status its state does not allow.
 Everything the customer tools return is personal data: names, email addresses,
 dates of birth, tax ids, postal addresses, phone numbers. Two things follow.
 
-**Reads are not audited.** The audit log in `var/log/magenx_ai_mcp.log` records
-every attempted *write* with the calling integration. It does not record reads,
-so there is no trail of which customer records an agent looked at. If that
-matters for your obligations, grant `Magento_Customer::manage` only to
-integrations that need it, and treat the endpoint as a system with access to the
-customer base rather than a read-only convenience.
+**Reads are audited only if you ask.** The audit log in
+`var/log/magenx_ai_mcp.log` always records every attempted *write* with the
+calling integration. Reads are recorded only when
+`magenx_ai_mcp/security/audit_reads` says so:
+
+- `off` (the default) — no reads, as before this setting existed.
+- `personal_data` — reads of tools that return people: customers, orders and
+  their invoices, shipments and credit memos, carts, returns, help desk tickets,
+  GDPR requests and the consent log, admin users and admin activity, and
+  `customer_summary`. These tools carry `Api/PersonalDataToolInterface`, and a
+  unit test fails if a new read in those domains forgets it.
+- `all` — every successful read.
+
+A recorded read names the tool, the integration, the arguments, the
+`total_count` and the identifiers of the records returned (an order's increment
+id, otherwise an entity id) — **never the records themselves**. A copy of every
+address an agent looked at would make the audit file the most sensitive file on
+the server, and the ids already answer "whose data did it see".
+
+Either way, grant `Magento_Customer::manage` only to integrations that need it,
+and treat the endpoint as a system with access to the customer base rather than
+a read-only convenience.
 
 **Three tools are visible to the customer or irreversible:**
 
@@ -1002,8 +1018,8 @@ should not enumerate staff simply does not get it, and the tool is then neither
 listed nor callable.
 
 Admin identities are personal data too, and the note about customer reads
-applies unchanged here: reads are not audited, so grant the resource to the
-integrations that need it rather than by default.
+applies unchanged here: reads are audited only under `audit_reads`, so grant the
+resource to the integrations that need it rather than by default.
 
 There is deliberately no tool that creates, edits or disables an admin user, and
 none that touches roles. An endpoint that could mint an admin account, or widen
@@ -1393,12 +1409,13 @@ the paths they want managed. `get_config` redacts secret values rather than
 returning them.
 
 Every attempted write is logged to `var/log/magenx_ai_mcp.log` with the calling
-integration, the arguments and the verdict. `read_audit_log` reads the end of
+integration, the arguments and the verdict, and successful reads too when
+`audit_reads` asks for them. `read_audit_log` reads the end of
 that file back, which is worth a deliberate decision rather than a reflex: the
 log cannot be erased or altered through this server, but an integration holding
 `Magenx_AiMcp::ops` can see which integration changed what. Grant it narrowly.
-That is the same argument as the "reads are not audited" note in the customer
-section, pointing the other way.
+That is the same argument as the read-audit note in the customer section,
+pointing the other way.
 
 ## Configuration
 
@@ -1411,6 +1428,7 @@ section, pointing the other way.
 | `magenx_ai_mcp/security/allowed_ips` | *(empty)* | Optional source-address allowlist; plain addresses and CIDR ranges. **See the proxy caveat below** |
 | `magenx_ai_mcp/security/allowed_origins` | *(empty)* | Browser origins permitted to call the endpoint. Requests with no `Origin` header are unaffected; empty therefore means "no browser" |
 | `magenx_ai_mcp/security/allowed_config_paths` | *(empty)* | Glob patterns `set_config` may write; empty denies all |
+| `magenx_ai_mcp/security/audit_reads` | `off` | Also record successful reads: `off`, `personal_data` or `all`. Records ids, never contents |
 | `magenx_ai_mcp/tools/enabled_domains` | *(empty)* | Tool domains to offer; **empty means all** |
 | `magenx_ai_mcp/tools/disabled_tools` | *(empty)* | Individual tool names to withhold |
 
@@ -1453,6 +1471,45 @@ Because that answer says nothing, the refusal is written to
 "why can't the agent see this tool". If the settings ever leave `tools/list`
 completely empty, that is logged too — a handshake that succeeds and then offers
 nothing otherwise reads as a broken server with no error anywhere to explain it.
+
+### Narrowing per connection, from the URL
+
+The two settings above apply to every integration. A client can narrow further
+for itself, with no admin change, by putting the slice it wants in the endpoint
+URL:
+
+```
+https://your-magento-host/magenx-mcp/server?profile=analytics
+https://your-magento-host/magenx-mcp/server?domains=sales,report,store
+https://your-magento-host/magenx-mcp/server?tools=search_orders,get_order
+```
+
+- `profile` is a named domain set: `analytics` (reports, sales, customers,
+  carts, promotions, stock), `catalog` (products and everything hanging off
+  them), `content` (CMS, widgets, e-mail, design, media, blog), `support`
+  (orders, customers, carts, returns, help desk, GDPR, admin users) and `ops`
+  (caches, indexers, cron, logs, config, platform, admin activity). Each also
+  includes `store`, because most tasks start with `list_stores`.
+- `domains` is a comma-separated list of domain codes — the same codes as the
+  Enabled Tool Domains setting.
+- `tools` is a comma-separated list of tool names.
+
+They combine by intersection, and **they only ever narrow**: the URL is applied
+on top of the store's own toolset settings, ACL and the write switch, never
+instead of them, so nothing a client puts in its URL reaches a tool those would
+withhold. A tool outside the slice is not listed and is answered `Unknown tool`.
+
+A name that matches nothing is refused with `-32602` rather than ignored — a
+typo silently dropped would leave the client with either far fewer tools than
+intended or no narrowing at all. An unknown domain is answered with the list of
+real ones; an unknown tool name is not, because the full list includes tools the
+caller's role may not reach.
+
+This is the cheapest way to point several agents at one store: register the
+same endpoint twice in `.mcp.json` under different names and profiles, and each
+pays only for the tools its task needs. The `initialize` handshake names the
+areas the connection offers, so the first thing an agent reads already matches
+what `tools/list` will hold.
 
 ### `allowed_ips` measures `REMOTE_ADDR`, not `X-Forwarded-For`
 

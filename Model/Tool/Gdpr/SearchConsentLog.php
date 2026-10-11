@@ -6,6 +6,7 @@ declare(strict_types=1);
 
 namespace Magenx\AiMcp\Model\Tool\Gdpr;
 
+use Magenx\AiMcp\Api\PersonalDataToolInterface;
 use Magenx\AiMcp\Model\Tool\AbstractTool;
 use Magenx\Gdpr\Model\ResourceModel\ConsentLog\CollectionFactory;
 
@@ -17,7 +18,7 @@ use Magenx\Gdpr\Model\ResourceModel\ConsentLog\CollectionFactory;
  * came from a particular place. A consent log with the IP stripped out does not
  * demonstrate anything, which is the only reason to keep one.
  */
-class SearchConsentLog extends AbstractTool
+class SearchConsentLog extends AbstractTool implements PersonalDataToolInterface
 {
     /**
      * @param CollectionFactory $collectionFactory

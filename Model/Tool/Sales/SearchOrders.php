@@ -6,6 +6,7 @@ declare(strict_types=1);
 
 namespace Magenx\AiMcp\Model\Tool\Sales;
 
+use Magenx\AiMcp\Api\PersonalDataToolInterface;
 use Magenx\AiMcp\Model\Tool\AbstractTool;
 use Magento\Framework\Api\FilterBuilder;
 use Magento\Framework\Api\Search\FilterGroupBuilder;
@@ -16,7 +17,7 @@ use Magento\Sales\Api\OrderRepositoryInterface;
 /**
  * Find orders by status, customer, store or date.
  */
-class SearchOrders extends AbstractTool
+class SearchOrders extends AbstractTool implements PersonalDataToolInterface
 {
     /**
      * @param OrderRepositoryInterface $orderRepository

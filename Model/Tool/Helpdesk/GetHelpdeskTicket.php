@@ -6,12 +6,13 @@ declare(strict_types=1);
 
 namespace Magenx\AiMcp\Model\Tool\Helpdesk;
 
+use Magenx\AiMcp\Api\PersonalDataToolInterface;
 use Magenx\AiMcp\Model\Tool\AbstractTool;
 
 /**
  * Read one ticket.
  */
-class GetHelpdeskTicket extends AbstractTool
+class GetHelpdeskTicket extends AbstractTool implements PersonalDataToolInterface
 {
     /**
      * @param TicketLocator $locator

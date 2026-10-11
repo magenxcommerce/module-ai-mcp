@@ -6,6 +6,7 @@ declare(strict_types=1);
 
 namespace Magenx\AiMcp\Model\Tool\Quote;
 
+use Magenx\AiMcp\Api\PersonalDataToolInterface;
 use Magenx\AiMcp\Model\Tool\AbstractTool;
 use Magento\Framework\Api\SearchCriteriaBuilder;
 use Magento\Framework\Api\SortOrderBuilder;
@@ -28,7 +29,7 @@ use Magento\Quote\Api\Data\CartInterface;
  * reported here at all — a cart carries none, and fetching totals is a service
  * call per cart, which a page of them cannot afford. get_cart reads one in full.
  */
-class SearchCarts extends AbstractTool
+class SearchCarts extends AbstractTool implements PersonalDataToolInterface
 {
     /**
      * @param CartRepositoryInterface $cartRepository

@@ -19,6 +19,7 @@
                 <allowed_ips/>
                 <allowed_config_paths/>
                 <allowed_origins/>
+                <audit_reads>off</audit_reads>
             </security>
             <!--
                 Both empty, which here means "offer every tool". This is the one

@@ -6,6 +6,7 @@ declare(strict_types=1);
 
 namespace Magenx\AiMcp\Model\Tool\Helpdesk;
 
+use Magenx\AiMcp\Api\PersonalDataToolInterface;
 use Magenx\AiMcp\Model\Tool\AbstractTool;
 use Magenx\Helpdesk\Model\ResourceModel\Attachment\CollectionFactory;
 
@@ -20,7 +21,7 @@ use Magenx\Helpdesk\Model\ResourceModel\Attachment\CollectionFactory;
  * actually needs to decide what to do next, and the admin is one click away for
  * the file itself.
  */
-class ListHelpdeskAttachments extends AbstractTool
+class ListHelpdeskAttachments extends AbstractTool implements PersonalDataToolInterface
 {
     /**
      * @param TicketLocator $locator
