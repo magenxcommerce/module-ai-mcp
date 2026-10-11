@@ -41,9 +41,35 @@ class PeriodResolver
         'last_30_days',
         'this_month',
         'last_month',
+        'this_quarter',
+        'last_quarter',
         'this_year',
         'last_year',
+        'mtd',
+        'qtd',
+        'ytd',
     ];
+
+    /**
+     * "last_18_months" and its kin: a rolling window of N units ending today.
+     *
+     * Rolling rather than whole calendar units because that is what the
+     * existing last_7_days and last_30_days already mean, and one word should
+     * not mean two things. Whole months are last_month, or date_from/date_to.
+     */
+    private const RELATIVE_PATTERN = '/^last_([1-9][0-9]{0,3})_(days|weeks|months|years)$/';
+
+    /**
+     * Longest window each unit may name — ten years either way. Not a cost
+     * limit: a number past this is far more likely a typo than a question.
+     */
+    private const RELATIVE_LIMITS = ['days' => 3660, 'weeks' => 522, 'months' => 120, 'years' => 10];
+
+    /** compare_to: the window of equal length immediately before. */
+    public const COMPARE_PREVIOUS_PERIOD = 'previous_period';
+
+    /** compare_to: the same window one year earlier. */
+    public const COMPARE_PREVIOUS_YEAR = 'previous_year';
 
     /**
      * Most buckets a single answer may contain.
@@ -83,11 +109,14 @@ class PeriodResolver
         $properties = [
             'period' => [
                 'type' => 'string',
-                'enum' => self::NAMED_PERIODS,
-                'description' => 'A named period, resolved against the store\'s own timezone so it '
-                    . 'matches what the admin shows. "last_7_days" and "last_30_days" end today, '
-                    . 'inclusive. Defaults to "last_30_days". Pass date_from/date_to instead for '
-                    . 'anything else.',
+                'pattern' => '^(' . implode('|', self::NAMED_PERIODS)
+                    . '|last_[1-9][0-9]{0,3}_(days|weeks|months|years))$',
+                'examples' => ['last_30_days', 'last_month', 'ytd', 'last_quarter', 'last_18_months'],
+                'description' => 'A named period, resolved in the store\'s own timezone: '
+                    . implode(', ', self::NAMED_PERIODS) . ', or last_<n>_days|weeks|months|years '
+                    . '(a rolling window ending today, e.g. last_18_months). mtd, qtd and ytd end '
+                    . 'today; this_quarter and this_year run to their end. Defaults to "last_30_days". '
+                    . 'Pass date_from/date_to instead for anything else.',
             ],
             'date_from' => [
                 'type' => 'string',
@@ -139,6 +168,108 @@ class PeriodResolver
 
         $this->assertBucketsAreReadable($from, $to, $granularity);
 
+        return $this->build($from, $to, $zone, $granularity);
+    }
+
+    /**
+     * The compare_to argument, for the tools that offer a comparison.
+     *
+     * @return array<string, mixed>
+     */
+    public function comparisonSchemaProperties(): array
+    {
+        return [
+            'compare_to' => [
+                'type' => 'string',
+                'enum' => [self::COMPARE_PREVIOUS_PERIOD, self::COMPARE_PREVIOUS_YEAR],
+                'description' => 'Also report a second period to compare against: "previous_period" '
+                    . '(the same length immediately before; whole months shift by whole months) or '
+                    . '"previous_year" (the same dates a year earlier). Omit for no comparison.',
+            ],
+        ];
+    }
+
+    /**
+     * The compare_to argument, validated, or null when none was asked for.
+     *
+     * @param array<string, mixed> $arguments
+     * @return string|null
+     * @throws LocalizedException
+     */
+    public function compareTo(array $arguments): ?string
+    {
+        $value = $arguments['compare_to'] ?? null;
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        if (!in_array($value, [self::COMPARE_PREVIOUS_PERIOD, self::COMPARE_PREVIOUS_YEAR], true)) {
+            throw new LocalizedException(
+                __('The "compare_to" argument must be "previous_period" or "previous_year".')
+            );
+        }
+
+        return $value;
+    }
+
+    /**
+     * The period a resolved one is compared against.
+     *
+     * Three shapes, because "the period before" means different things for
+     * each. A range of whole calendar months — last_month, a quarter, a year —
+     * shifts by whole months, so February is compared with January and not
+     * with the 28 days before it. A range of whole days shifts by that many
+     * days. Anything cut at a time of day shifts by its exact length.
+     *
+     * A year back keeps month ends as month ends, so February 2025 compares
+     * with February 2024 including its 29th.
+     *
+     * @param Period $period
+     * @param string $compareTo One of the COMPARE_* constants.
+     * @return Period
+     */
+    public function comparison(Period $period, string $compareTo): Period
+    {
+        $zone = new \DateTimeZone($period->getTimezone());
+        $from = $this->fromLocal($period->getLocalFrom(), $zone);
+        $to = $this->fromLocal($period->getLocalTo(), $zone);
+        $months = $this->wholeMonths($from, $to);
+
+        if ($compareTo === self::COMPARE_PREVIOUS_YEAR) {
+            $lastMonth = $to->modify('first day of this month')->modify('-12 months');
+            [$from, $to] = $months !== null
+                ? [$from->modify('-12 months'), $this->endOfMonth($lastMonth)]
+                : [$from->modify('-1 year'), $to->modify('-1 year')];
+        } elseif ($months !== null) {
+            [$from, $to] = [
+                $from->modify(sprintf('-%d months', $months)),
+                $this->endOfMonth($from->modify('-1 month')),
+            ];
+        } elseif ($this->isWholeDays($from, $to)) {
+            $days = (int) $from->diff($to->setTime(0, 0))->days + 1;
+            [$from, $to] = [$from->modify(sprintf('-%d days', $days)), $this->endOfDay($from->modify('-1 day'))];
+        } else {
+            $length = $to->getTimestamp() - $from->getTimestamp();
+            $to = $from->modify('-1 second');
+            $from = $to->modify(sprintf('-%d seconds', $length));
+        }
+
+        return $this->build($from, $to, $zone, $period->getGranularity());
+    }
+
+    /**
+     * @param \DateTimeImmutable $from
+     * @param \DateTimeImmutable $to
+     * @param \DateTimeZone $zone
+     * @param string $granularity
+     * @return Period
+     */
+    private function build(
+        \DateTimeImmutable $from,
+        \DateTimeImmutable $to,
+        \DateTimeZone $zone,
+        string $granularity
+    ): Period {
         $utc = new \DateTimeZone('UTC');
 
         return new Period(
@@ -150,6 +281,52 @@ class PeriodResolver
             $granularity,
             $from->getOffset()
         );
+    }
+
+    /**
+     * @param string $local
+     * @param \DateTimeZone $zone
+     * @return \DateTimeImmutable
+     */
+    private function fromLocal(string $local, \DateTimeZone $zone): \DateTimeImmutable
+    {
+        $parsed = \DateTimeImmutable::createFromFormat('!Y-m-d H:i:s', $local, $zone);
+        if ($parsed === false) {
+            throw new \InvalidArgumentException(sprintf('Not a resolved local time: "%s".', $local));
+        }
+
+        return $parsed;
+    }
+
+    /**
+     * How many calendar months the range covers, when it is exactly whole
+     * months; otherwise null.
+     *
+     * @param \DateTimeImmutable $from
+     * @param \DateTimeImmutable $to
+     * @return int|null
+     */
+    private function wholeMonths(\DateTimeImmutable $from, \DateTimeImmutable $to): ?int
+    {
+        if ($from->format('d H:i:s') !== '01 00:00:00'
+            || $to->format('H:i:s') !== '23:59:59'
+            || $to->format('d') !== $to->format('t')
+        ) {
+            return null;
+        }
+
+        return ((int) $to->format('Y') * 12 + (int) $to->format('n'))
+            - ((int) $from->format('Y') * 12 + (int) $from->format('n')) + 1;
+    }
+
+    /**
+     * @param \DateTimeImmutable $from
+     * @param \DateTimeImmutable $to
+     * @return bool
+     */
+    private function isWholeDays(\DateTimeImmutable $from, \DateTimeImmutable $to): bool
+    {
+        return $from->format('H:i:s') === '00:00:00' && $to->format('H:i:s') === '23:59:59';
     }
 
     /**
@@ -255,15 +432,21 @@ class PeriodResolver
      */
     private function namedRange(string $name, \DateTimeZone $zone): array
     {
+        if (preg_match(self::RELATIVE_PATTERN, $name, $match) === 1) {
+            return $this->relativeRange((int) $match[1], $match[2], $zone);
+        }
+
         if (!in_array($name, self::NAMED_PERIODS, true)) {
             throw new LocalizedException(__(
-                'Unknown period "%1". Use one of: %2 — or pass date_from and date_to.',
+                'Unknown period "%1". Use one of: %2, last_<n>_days|weeks|months|years — or pass '
+                . 'date_from and date_to.',
                 $name,
                 implode(', ', self::NAMED_PERIODS)
             ));
         }
 
         $today = $this->today($zone);
+        $quarter = $this->startOfQuarter($today);
 
         return match ($name) {
             'today' => [$today, $this->endOfDay($today)],
@@ -275,12 +458,73 @@ class PeriodResolver
                 $today->modify('first day of last month'),
                 $this->endOfMonth($today->modify('first day of last month')),
             ],
+            'this_quarter' => [$quarter, $this->endOfMonth($quarter->modify('+2 months'))],
+            'last_quarter' => [$quarter->modify('-3 months'), $this->endOfMonth($quarter->modify('-1 month'))],
             'this_year' => [$today->setDate((int) $today->format('Y'), 1, 1), $this->endOfYear($today)],
             'last_year' => [
                 $today->setDate((int) $today->format('Y') - 1, 1, 1),
                 $this->endOfYear($today->setDate((int) $today->format('Y') - 1, 1, 1)),
             ],
+            'mtd' => [$today->modify('first day of this month'), $this->endOfDay($today)],
+            'qtd' => [$quarter, $this->endOfDay($today)],
+            'ytd' => [$today->setDate((int) $today->format('Y'), 1, 1), $this->endOfDay($today)],
         };
+    }
+
+    /**
+     * A rolling window of $count units ending today, inclusive.
+     *
+     * Months are counted on the calendar rather than as 30 days, and a day of
+     * the month that the earlier month lacks is clamped to its last day, so
+     * last_1_months on 31 March starts on 1 March rather than overflowing into
+     * it from a February 31st.
+     *
+     * @param int $count
+     * @param string $unit
+     * @param \DateTimeZone $zone
+     * @return array{0: \DateTimeImmutable, 1: \DateTimeImmutable}
+     * @throws LocalizedException
+     */
+    private function relativeRange(int $count, string $unit, \DateTimeZone $zone): array
+    {
+        if ($count > self::RELATIVE_LIMITS[$unit]) {
+            throw new LocalizedException(__(
+                'last_%1_%2 is longer than this server reports over; the most is %3 %2.',
+                $count,
+                $unit,
+                self::RELATIVE_LIMITS[$unit]
+            ));
+        }
+
+        $today = $this->today($zone);
+        $end = $this->endOfDay($today);
+
+        if ($unit === 'days' || $unit === 'weeks') {
+            $days = $unit === 'weeks' ? $count * 7 : $count;
+
+            return [$today->modify(sprintf('-%d days', $days - 1)), $end];
+        }
+
+        $months = $unit === 'years' ? $count * 12 : $count;
+        $target = $today->modify('first day of this month')->modify(sprintf('-%d months', $months));
+        $day = min((int) $today->format('j'), (int) $target->format('t'));
+
+        $start = $target->setDate((int) $target->format('Y'), (int) $target->format('n'), $day);
+
+        return [$start->modify('+1 day'), $end];
+    }
+
+    /**
+     * Midnight on the first day of the quarter $day falls in.
+     *
+     * @param \DateTimeImmutable $day
+     * @return \DateTimeImmutable
+     */
+    private function startOfQuarter(\DateTimeImmutable $day): \DateTimeImmutable
+    {
+        $month = intdiv((int) $day->format('n') - 1, 3) * 3 + 1;
+
+        return $day->setDate((int) $day->format('Y'), $month, 1);
     }
 
     /**

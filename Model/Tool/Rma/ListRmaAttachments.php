@@ -6,6 +6,7 @@ declare(strict_types=1);
 
 namespace Magenx\AiMcp\Model\Tool\Rma;
 
+use Magenx\AiMcp\Api\PersonalDataToolInterface;
 use Magenx\AiMcp\Model\Tool\AbstractTool;
 use Magenx\Rma\Api\AttachmentRepositoryInterface;
 use Magenx\Rma\Api\Data\AttachmentInterface;
@@ -21,7 +22,7 @@ use Magento\Framework\Api\SearchCriteriaBuilder;
  * guess. Whether a photo of the damage exists, and how big it is, is what
  * decides the next step.
  */
-class ListRmaAttachments extends AbstractTool
+class ListRmaAttachments extends AbstractTool implements PersonalDataToolInterface
 {
     /**
      * @param RmaLocator $locator

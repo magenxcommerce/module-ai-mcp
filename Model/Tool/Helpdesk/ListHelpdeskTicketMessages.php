@@ -6,6 +6,7 @@ declare(strict_types=1);
 
 namespace Magenx\AiMcp\Model\Tool\Helpdesk;
 
+use Magenx\AiMcp\Api\PersonalDataToolInterface;
 use Magenx\AiMcp\Model\Tool\AbstractTool;
 use Magenx\Helpdesk\Model\Message;
 use Magenx\Helpdesk\Model\ResourceModel\Message\CollectionFactory;
@@ -13,7 +14,7 @@ use Magenx\Helpdesk\Model\ResourceModel\Message\CollectionFactory;
 /**
  * Read a ticket's conversation.
  */
-class ListHelpdeskTicketMessages extends AbstractTool
+class ListHelpdeskTicketMessages extends AbstractTool implements PersonalDataToolInterface
 {
     /**
      * @param TicketLocator $locator

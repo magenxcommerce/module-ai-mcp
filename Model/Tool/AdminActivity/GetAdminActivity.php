@@ -9,6 +9,7 @@ namespace Magenx\AiMcp\Model\Tool\AdminActivity;
 use Magenx\AdminActivity\Model\ActivityDetail;
 use Magenx\AdminActivity\Model\ActivityFactory;
 use Magenx\AdminActivity\Model\ResourceModel\ActivityDetail\CollectionFactory as DetailCollectionFactory;
+use Magenx\AiMcp\Api\PersonalDataToolInterface;
 use Magenx\AiMcp\Model\Tool\AbstractTool;
 use Magento\Framework\Exception\LocalizedException;
 
@@ -19,7 +20,7 @@ use Magento\Framework\Exception\LocalizedException;
  * edited this product" into "the price went from 19.99 to 9.99 at 14:02", which
  * is the only form of the answer anyone can act on.
  */
-class GetAdminActivity extends AbstractTool
+class GetAdminActivity extends AbstractTool implements PersonalDataToolInterface
 {
     /**
      * @param ActivityFactory $activityFactory

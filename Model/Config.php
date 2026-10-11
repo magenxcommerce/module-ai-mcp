@@ -23,6 +23,16 @@ class Config
     private const XML_PATH_ALLOWED_ORIGINS = 'magenx_ai_mcp/security/allowed_origins';
     private const XML_PATH_ENABLED_TOOL_DOMAINS = 'magenx_ai_mcp/tools/enabled_domains';
     private const XML_PATH_DISABLED_TOOLS = 'magenx_ai_mcp/tools/disabled_tools';
+    private const XML_PATH_AUDIT_READS = 'magenx_ai_mcp/security/audit_reads';
+
+    /** Reads are not recorded. The default, and what every existing installation had. */
+    public const AUDIT_READS_OFF = 'off';
+
+    /** Only reads of tools that return personal data are recorded. */
+    public const AUDIT_READS_PERSONAL_DATA = 'personal_data';
+
+    /** Every successful read is recorded. */
+    public const AUDIT_READS_ALL = 'all';
 
     /**
      * @param ScopeConfigInterface $scopeConfig
@@ -111,6 +121,23 @@ class Config
     public function getDisabledTools(): array
     {
         return $this->splitList((string) $this->scopeConfig->getValue(self::XML_PATH_DISABLED_TOOLS));
+    }
+
+    /**
+     * Which successful reads are written to the audit log.
+     *
+     * Anything other than a known mode reads as off, the same answer an unset
+     * value gets: a mistyped mode is not a reason to start logging every read.
+     *
+     * @return string One of the AUDIT_READS_* constants.
+     */
+    public function getReadAuditMode(): string
+    {
+        $mode = trim((string) $this->scopeConfig->getValue(self::XML_PATH_AUDIT_READS));
+
+        return in_array($mode, [self::AUDIT_READS_PERSONAL_DATA, self::AUDIT_READS_ALL], true)
+            ? $mode
+            : self::AUDIT_READS_OFF;
     }
 
     /**

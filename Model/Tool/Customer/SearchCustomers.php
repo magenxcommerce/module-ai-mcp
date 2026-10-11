@@ -6,6 +6,7 @@ declare(strict_types=1);
 
 namespace Magenx\AiMcp\Model\Tool\Customer;
 
+use Magenx\AiMcp\Api\PersonalDataToolInterface;
 use Magenx\AiMcp\Model\Tool\AbstractTool;
 use Magento\Customer\Api\CustomerRepositoryInterface;
 use Magento\Framework\Api\FilterBuilder;
@@ -16,7 +17,7 @@ use Magento\Framework\Api\SortOrderBuilder;
 /**
  * Find customer accounts.
  */
-class SearchCustomers extends AbstractTool
+class SearchCustomers extends AbstractTool implements PersonalDataToolInterface
 {
     /**
      * @param CustomerRepositoryInterface $customerRepository

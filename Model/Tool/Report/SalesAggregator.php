@@ -10,9 +10,10 @@ use Magento\Framework\App\ResourceConnection;
 use Magento\Framework\DB\Select;
 
 /**
- * The only SQL in this module.
+ * The order-level report SQL; its siblings in this directory cover categories,
+ * buyers, carts and stock the same way.
  *
- * Everything else reads through a repository or a collection, which is right
+ * Nearly everything else reads through a repository or a collection, which is right
  * for the tools that return records. It is wrong here: a period total means
  * SUM and GROUP BY, and the alternative — fetching orders and adding them up in
  * PHP — is exactly the "pull rows into a model's context" this server exists to
@@ -39,6 +40,9 @@ class SalesAggregator
 {
     /** Magento's own name for an order that was called off. */
     private const STATE_CANCELED = 'canceled';
+
+    /** \Magento\Sales\Model\Order\Creditmemo::STATE_CANCELED — a refund that did not happen. */
+    private const CREDITMEMO_STATE_CANCELED = 3;
 
     /**
      * @param ResourceConnection $resource
@@ -79,6 +83,133 @@ class SalesAggregator
             ->columns(['bucket' => $bucket] + $this->totalColumns())
             ->group([$bucket, 'o.base_currency_code'])
             ->order('bucket ASC');
+
+        return $this->fetch($select);
+    }
+
+    /**
+     * Refunds issued in the period, by the credit memo's own date.
+     *
+     * The other half of `refund_basis: refund_date`. A credit memo carries its
+     * own base currency and store, so neither needs the order. Canceled credit
+     * memos are left out: no money moved.
+     *
+     * @param Period $period
+     * @param int|null $storeId
+     * @return array<int, array<string, mixed>>
+     */
+    public function refundsByRefundDate(Period $period, ?int $storeId): array
+    {
+        return $this->fetch($this->creditMemos($period, $storeId)->group('c.base_currency_code'));
+    }
+
+    /**
+     * The same refunds, bucketed on the credit memo's date.
+     *
+     * @param Period $period
+     * @param int|null $storeId
+     * @return array<int, array<string, mixed>>
+     */
+    public function refundsByRefundDateBucket(Period $period, ?int $storeId): array
+    {
+        $bucket = $this->bucketExpression($period, 'c.created_at');
+        $select = $this->creditMemos($period, $storeId)
+            ->columns(['bucket' => $bucket])
+            ->group([$bucket, 'c.base_currency_code']);
+
+        return $this->fetch($select);
+    }
+
+    /**
+     * The period totals per country, read from the order's billing or
+     * shipping address.
+     *
+     * A left join, so an order with no address of that type — a virtual order
+     * has no shipping address — is reported under a null country instead of
+     * disappearing, and the countries add up to sales_summary.
+     *
+     * @param Period $period
+     * @param int|null $storeId
+     * @param string $addressType "billing" or "shipping".
+     * @param int $limit
+     * @return array<int, array<string, mixed>>
+     */
+    public function totalsByCountry(Period $period, ?int $storeId, string $addressType, int $limit): array
+    {
+        $select = $this->orders($period, $storeId)
+            ->joinLeft(
+                ['a' => $this->table('sales_order_address')],
+                $this->connection()->quoteInto('a.parent_id = o.entity_id AND a.address_type = ?', $addressType),
+                []
+            )
+            ->columns(['country_id' => 'a.country_id'] + $this->totalColumns())
+            ->group(['a.country_id', 'o.base_currency_code'])
+            ->order('ordered_total DESC')
+            ->limit($limit);
+
+        return $this->fetch($select);
+    }
+
+    /**
+     * Orders, revenue and discount per coupon code.
+     *
+     * The rule is joined through the coupon table rather than read from
+     * `applied_rule_ids`, because an order can carry several automatic rules
+     * beside the one its coupon belongs to. A code whose coupon has since been
+     * deleted still reports, with no rule. Canceled orders are left out.
+     *
+     * @param Period $period
+     * @param int|null $storeId
+     * @param int $limit
+     * @return array<int, array<string, mixed>>
+     */
+    public function couponPerformance(Period $period, ?int $storeId, int $limit): array
+    {
+        $select = $this->orders($period, $storeId)
+            ->joinLeft(['sc' => $this->table('salesrule_coupon')], 'sc.code = o.coupon_code', [])
+            ->joinLeft(['r' => $this->table('salesrule')], 'r.rule_id = sc.rule_id', [])
+            ->columns([
+                'coupon_code' => 'o.coupon_code',
+                'rule_id' => 'MAX(sc.rule_id)',
+                'rule_name' => 'MAX(r.name)',
+                'currency' => 'o.base_currency_code',
+                'orders' => 'COUNT(*)',
+                'ordered_total' => 'SUM(o.base_grand_total)',
+                'discount_total' => 'SUM(o.base_discount_amount)',
+            ])
+            ->where("o.coupon_code IS NOT NULL AND o.coupon_code <> ''")
+            ->where('o.state <> ?', self::STATE_CANCELED)
+            ->group(['o.coupon_code', 'o.base_currency_code'])
+            ->order('orders DESC')
+            ->limit($limit);
+
+        return $this->fetch($select);
+    }
+
+    /**
+     * Orders with and without a coupon, for the baseline a coupon is judged
+     * against.
+     *
+     * @param Period $period
+     * @param int|null $storeId
+     * @return array<int, array<string, mixed>>
+     */
+    public function couponBaseline(Period $period, ?int $storeId): array
+    {
+        $hasCoupon = "o.coupon_code IS NOT NULL AND o.coupon_code <> ''";
+        $select = $this->orders($period, $storeId)
+            ->columns([
+                'currency' => 'o.base_currency_code',
+                'orders_with_coupon' => sprintf('SUM(CASE WHEN %s THEN 1 ELSE 0 END)', $hasCoupon),
+                'ordered_with_coupon' => sprintf('SUM(CASE WHEN %s THEN o.base_grand_total ELSE 0 END)', $hasCoupon),
+                'orders_without_coupon' => sprintf('SUM(CASE WHEN %s THEN 0 ELSE 1 END)', $hasCoupon),
+                'ordered_without_coupon' => sprintf(
+                    'SUM(CASE WHEN %s THEN 0 ELSE o.base_grand_total END)',
+                    $hasCoupon
+                ),
+            ])
+            ->where('o.state <> ?', self::STATE_CANCELED)
+            ->group('o.base_currency_code');
 
         return $this->fetch($select);
     }
@@ -246,6 +377,33 @@ class SalesAggregator
     }
 
     /**
+     * Credit memos issued in the period, summed per currency.
+     *
+     * @param Period $period
+     * @param int|null $storeId
+     * @return Select
+     */
+    private function creditMemos(Period $period, ?int $storeId): Select
+    {
+        $select = $this->connection()->select()
+            ->from(['c' => $this->table('sales_creditmemo')], [])
+            ->columns([
+                'currency' => 'c.base_currency_code',
+                'refunded_total' => 'SUM(c.base_grand_total)',
+                'credit_memos' => 'COUNT(*)',
+            ])
+            ->where('c.created_at >= ?', $period->getUtcFrom())
+            ->where('c.created_at <= ?', $period->getUtcTo())
+            ->where('c.state <> ?', self::CREDITMEMO_STATE_CANCELED);
+
+        if ($storeId !== null) {
+            $select->where('c.store_id = ?', $storeId);
+        }
+
+        return $select;
+    }
+
+    /**
      * A Select over sales_order already bounded to the period and store.
      *
      * @param Period $period
@@ -286,12 +444,14 @@ class SalesAggregator
      * boundaries are computed in PHP from the real timezone.
      *
      * @param Period $period
+     * @param string $column The UTC datetime column to bucket.
      * @return string
      */
-    private function bucketExpression(Period $period): string
+    private function bucketExpression(Period $period, string $column = 'o.created_at'): string
     {
         $local = sprintf(
-            "CONVERT_TZ(o.created_at, '+00:00', %s)",
+            "CONVERT_TZ(%s, '+00:00', %s)",
+            $column,
             $this->connection()->quote($period->getOffsetForSql())
         );
 

@@ -6,12 +6,13 @@ declare(strict_types=1);
 
 namespace Magenx\AiMcp\Model\Tool\Customer;
 
+use Magenx\AiMcp\Api\PersonalDataToolInterface;
 use Magenx\AiMcp\Model\Tool\AbstractTool;
 
 /**
  * Read one customer account in full, including its addresses.
  */
-class GetCustomer extends AbstractTool
+class GetCustomer extends AbstractTool implements PersonalDataToolInterface
 {
     /**
      * @param CustomerLocator $locator

@@ -13,5 +13,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
-        with:
-          release-type: php
+        # Configured by release-please-config.json and .release-please-manifest.json
+        # rather than inline inputs, because only the config file can name the
+        # extra files whose version line has to move with the release.

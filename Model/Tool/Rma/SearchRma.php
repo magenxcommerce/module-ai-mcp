@@ -6,6 +6,7 @@ declare(strict_types=1);
 
 namespace Magenx\AiMcp\Model\Tool\Rma;
 
+use Magenx\AiMcp\Api\PersonalDataToolInterface;
 use Magenx\AiMcp\Model\Tool\AbstractTool;
 use Magenx\Rma\Api\RMARepositoryInterface;
 use Magento\Framework\Api\FilterBuilder;
@@ -16,7 +17,7 @@ use Magento\Framework\Api\SortOrderBuilder;
 /**
  * Find return requests.
  */
-class SearchRma extends AbstractTool
+class SearchRma extends AbstractTool implements PersonalDataToolInterface
 {
     /**
      * @param RMARepositoryInterface $rmaRepository

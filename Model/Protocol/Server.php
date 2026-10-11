@@ -6,6 +6,7 @@ declare(strict_types=1);
 
 namespace Magenx\AiMcp\Model\Protocol;
 
+use Magenx\AiMcp\Api\PersonalDataToolInterface;
 use Magenx\AiMcp\Api\StructuredToolInterface;
 use Magenx\AiMcp\Api\ToolAnnotationsInterface;
 use Magenx\AiMcp\Api\ToolInterface;
@@ -13,6 +14,9 @@ use Magenx\AiMcp\Model\Auth\Identity;
 use Magenx\AiMcp\Model\Config;
 use Magenx\AiMcp\Model\Tool\ToolCatalog;
 use Magenx\AiMcp\Model\Tool\ToolRegistry;
+use Magenx\AiMcp\Model\Tool\Toolset;
+use Magenx\AiMcp\Model\Tool\ToolsetProfiles;
+use Magenx\AiMcp\Model\Tool\ToolsetResolver;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Serialize\Serializer\Json;
 use Psr\Log\LoggerInterface;
@@ -29,7 +33,8 @@ use Psr\Log\LoggerInterface;
  *     while it is off.
  *  4. The confirm gate — a write tool called without `confirm: true` returns a
  *     preview of what it would do and changes nothing.
- *  5. The audit log — every attempted write is recorded with the caller.
+ *  5. The audit log — every attempted write is recorded with the caller, and
+ *     successful reads too when the store asks for it.
  *
  * A tool that is not permitted is also not *listed*, so an agent never plans
  * around a capability it cannot use.
@@ -54,6 +59,29 @@ class Server
     private const MAX_AUDITED_VALUE_LENGTH = 512;
 
     /**
+     * Keys a result record is identified by, most specific first.
+     *
+     * The read audit records which records a call returned, never what they
+     * contained, so it needs one identifier per record. `increment_id` leads
+     * because an order's is the number a person would search for; the generic
+     * keys follow, and the domain-specific ones catch projectors that use
+     * neither.
+     */
+    private const RECORD_ID_KEYS = [
+        'increment_id', 'entity_id', 'id', 'customer_id', 'cart_id', 'order_id', 'rma_id',
+        'ticket_id', 'message_id', 'request_id', 'user_id', 'activity_id', 'item_id',
+    ];
+
+    /**
+     * Most record ids one audit line carries. A page is capped at 100 already;
+     * this is the backstop for a tool that returns a list outside the envelope.
+     */
+    private const MAX_AUDITED_RECORD_IDS = 100;
+
+    /** Narrows the toolset per connection; see {@see Toolset}. */
+    private readonly ToolsetResolver $toolsetResolver;
+
+    /**
      * @param ToolRegistry $registry
      * @param ToolCatalog $catalog
      * @param Config $config
@@ -61,6 +89,7 @@ class Server
      * @param Json $serializer
      * @param LoggerInterface $auditLogger
      * @param string $serverVersion Set from di.xml so the advertised version tracks the release.
+     * @param ToolsetResolver|null $toolsetResolver Built from the catalog when not injected.
      */
     public function __construct(
         private readonly ToolRegistry $registry,
@@ -69,8 +98,10 @@ class Server
         private readonly JsonRpc $jsonRpc,
         private readonly Json $serializer,
         private readonly LoggerInterface $auditLogger,
-        private readonly string $serverVersion = '0.0.0'
+        private readonly string $serverVersion = '0.0.0',
+        ?ToolsetResolver $toolsetResolver = null
     ) {
+        $this->toolsetResolver = $toolsetResolver ?? new ToolsetResolver($catalog, new ToolsetProfiles());
     }
 
     /**
@@ -80,10 +111,17 @@ class Server
      * @param array<string, mixed> $params
      * @param string|int|null $id
      * @param Identity $identity
+     * @param array<string, string|null> $toolsetArguments The endpoint URL's `profile`, `domains`
+     *     and `tools` query values, unparsed. Empty for no narrowing.
      * @return Outcome
      */
-    public function dispatch(string $method, array $params, string|int|null $id, Identity $identity): Outcome
-    {
+    public function dispatch(
+        string $method,
+        array $params,
+        string|int|null $id,
+        Identity $identity,
+        array $toolsetArguments = []
+    ): Outcome {
         // The endpoint grant is checked before anything else, so a caller
         // without it cannot even complete the handshake or reach a tool whose
         // own ACL resource is empty.
@@ -109,13 +147,26 @@ class Server
             return new Outcome(202, null);
         }
 
+        // Resolved only once the caller is known to hold the endpoint grant, so
+        // the domain list an unknown name is answered with is not something a
+        // token without it can read.
+        try {
+            $toolset = $this->toolsetResolver->resolve(
+                $toolsetArguments['profile'] ?? null,
+                $toolsetArguments['domains'] ?? null,
+                $toolsetArguments['tools'] ?? null
+            );
+        } catch (LocalizedException $e) {
+            return $this->fail($id, JsonRpc::INVALID_PARAMS, $e->getMessage());
+        }
+
         return match ($method) {
-            'initialize' => $this->ok($id, $this->initialize()),
+            'initialize' => $this->ok($id, $this->initialize($toolset)),
             // MCP's ping result is an empty *object*; an empty PHP array would
             // serialize as `[]` and some clients reject that.
             'ping' => $this->ok($id, new \stdClass()),
-            'tools/list' => $this->ok($id, ['tools' => $this->listTools($identity)]),
-            'tools/call' => $this->callTool($params, $id, $identity),
+            'tools/list' => $this->ok($id, ['tools' => $this->listTools($identity, $toolset)]),
+            'tools/call' => $this->callTool($params, $id, $identity, $toolset),
             default => $this->fail($id, JsonRpc::METHOD_NOT_FOUND, sprintf('Unknown method: %s', $method)),
         };
     }
@@ -123,40 +174,67 @@ class Server
     /**
      * Handshake payload.
      *
+     * The areas named in the instructions are read from the registry and the
+     * same filters `tools/list` applies by name, rather than written out here,
+     * because a hand-kept sentence beside 250 tools was wrong within a few
+     * releases. ACL and the write switch are not applied — they need the tools
+     * built — so the sentence says what the server offers, and points at
+     * `tools/list` for what this caller may use.
+     *
+     * @param Toolset $toolset
      * @return array<string, mixed>
      */
-    private function initialize(): array
+    private function initialize(Toolset $toolset): array
     {
         return [
             'protocolVersion' => self::PROTOCOL_VERSION,
             'capabilities' => ['tools' => ['listChanged' => false]],
             'serverInfo' => ['name' => self::SERVER_NAME, 'version' => $this->serverVersion],
-            'instructions' => 'Manage this Magento store: read and edit products with their images, '
-                . 'linked products and configurable variants, categories, orders '
-                . 'and their invoices, shipments and credit memos, customer accounts and their '
-                . 'addresses, stock levels, tier prices, cart and catalog price rules, CMS '
-                . 'pages and blocks, product attributes and attribute sets, return requests, '
-                . 'help desk tickets, '
-                . 'and store configuration; look up URL rewrites; and flush caches or invalidate '
-                . 'indexers. '
-                . 'Customer tools return personal data, so read only what the task needs. A stock '
-                . 'or price change reaches the storefront only once the relevant indexer has run. '
-                . 'Only the tools in '
-                . 'tools/list are available to this caller — its integration role decides which, '
-                . 'so treat that list as the whole surface rather than this sentence. Call '
-                . 'list_stores first when a change should apply to one store view rather than the '
-                . 'default scope. Tools that change data require "confirm": true — calling them '
-                . 'without it returns a preview and changes nothing.',
+            'instructions' => 'Manage this Magento store. Tool areas on this connection: '
+                . implode(', ', $this->offeredDomainLabels($toolset)) . '. '
+                . 'Only the tools in tools/list are available to this caller — its integration '
+                . 'role decides which, so treat that list as the whole surface rather than this '
+                . 'sentence. Customer, order, cart, return and ticket tools return personal data, '
+                . 'so read only what the task needs. A stock or price change reaches the '
+                . 'storefront only once the relevant indexer has run. Call list_stores first when '
+                . 'a change should apply to one store view rather than the default scope. Tools '
+                . 'that change data require "confirm": true — calling them without it returns a '
+                . 'preview and changes nothing.',
         ];
+    }
+
+    /**
+     * The labels of every domain with at least one tool the filters leave in.
+     *
+     * Answered from names and registered classes alone, so a handshake builds
+     * no tool.
+     *
+     * @param Toolset $toolset
+     * @return string[]
+     */
+    private function offeredDomainLabels(Toolset $toolset): array
+    {
+        $labels = $this->catalog->getDomains();
+        $offered = [];
+        foreach ($this->registry->getNames() as $name) {
+            if ($this->isEnabledByConfiguration($name, $toolset)) {
+                $domain = $this->catalog->getDomainForName($name);
+                $offered[$domain] = $labels[$domain] ?? $domain;
+            }
+        }
+        asort($offered);
+
+        return $offered === [] ? ['none'] : array_values($offered);
     }
 
     /**
      * The tools this caller may actually use.
      *
      * @param Identity $identity
+     * @param Toolset $toolset
      * @return array<int, array<string, mixed>>
      */
-    private function listTools(Identity $identity): array
+    private function listTools(Identity $identity, Toolset $toolset): array
     {
         $tools = [];
         foreach ($this->registry->getNames() as $name) {
@@ -165,7 +243,7 @@ class Server
             // this point needs the built tool, and the tools are registered as
             // proxies precisely so that a domain switched off costs nothing to
             // leave out.
-            if (!$this->isEnabledByConfiguration($name)) {
+            if (!$this->isEnabledByConfiguration($name, $toolset)) {
                 continue;
             }
 
@@ -184,6 +262,7 @@ class Server
             $this->auditLogger->warning('[magenx-mcp] tools/list is empty', [
                 'caller' => $identity->getLabel(),
                 'reason' => 'no registered tool passed the ACL, write-switch and toolset settings',
+                'url_toolset' => $toolset->isRestricted(),
             ]);
         }
 
@@ -243,9 +322,10 @@ class Server
      * @param array<string, mixed> $params
      * @param string|int|null $id
      * @param Identity $identity
+     * @param Toolset $toolset
      * @return Outcome
      */
-    private function callTool(array $params, string|int|null $id, Identity $identity): Outcome
+    private function callTool(array $params, string|int|null $id, Identity $identity, Toolset $toolset): Outcome
     {
         $name = $params['name'] ?? null;
         if (!is_string($name) || $name === '') {
@@ -260,7 +340,14 @@ class Server
             return $this->fail($id, JsonRpc::METHOD_NOT_FOUND, sprintf('Unknown tool: %s', $name));
         }
 
-        if (!$this->isEnabledByConfiguration($name)) {
+        if (!$toolset->permits($name, $this->catalog->getDomainForName($name))) {
+            // Outside the slice this connection asked for. The client chose
+            // that in its own URL, so there is nothing for an operator to
+            // trace and nothing is logged.
+            return $this->fail($id, JsonRpc::METHOD_NOT_FOUND, sprintf('Unknown tool: %s', $name));
+        }
+
+        if (!$this->isEnabledByConfiguration($name, null)) {
             // Same answer again, for the same reason: a tool the operator has
             // switched off should not be something the agent knows to keep
             // asking about. But unlike the two cases above this one is a
@@ -298,6 +385,8 @@ class Server
             $result = $tool->execute($arguments);
             if ($tool->isWrite()) {
                 $this->audit($tool, $arguments, $identity, 'applied');
+            } elseif ($this->isReadAudited($tool)) {
+                $this->auditRead($tool, $arguments, $identity, $result);
             }
 
             return $this->ok($id, $this->toolResult($result));
@@ -352,18 +441,43 @@ class Server
      * answer it before building one and `tools/list` would otherwise construct
      * every tool in a domain the operator has switched off.
      *
+     * The connection's own {@see Toolset} is applied here too when given, so
+     * every path that lists tools narrows the same way. It can only remove
+     * tools: it is an extra condition, never an alternative to the settings.
+     *
      * @param string $name
+     * @param Toolset|null $toolset
      * @return bool
      */
-    private function isEnabledByConfiguration(string $name): bool
+    private function isEnabledByConfiguration(string $name, ?Toolset $toolset): bool
     {
         if (in_array($name, $this->config->getDisabledTools(), true)) {
             return false;
         }
 
+        $domain = $this->catalog->getDomainForName($name);
+        if ($toolset !== null && !$toolset->permits($name, $domain)) {
+            return false;
+        }
+
         $domains = $this->config->getEnabledToolDomains();
 
-        return $domains === [] || in_array($this->catalog->getDomainForName($name), $domains, true);
+        return $domains === [] || in_array($domain, $domains, true);
+    }
+
+    /**
+     * Whether a successful read of this tool goes to the audit log.
+     *
+     * @param ToolInterface $tool
+     * @return bool
+     */
+    private function isReadAudited(ToolInterface $tool): bool
+    {
+        return match ($this->config->getReadAuditMode()) {
+            Config::AUDIT_READS_ALL => true,
+            Config::AUDIT_READS_PERSONAL_DATA => $tool instanceof PersonalDataToolInterface,
+            default => false,
+        };
     }
 
     /**
@@ -506,6 +620,70 @@ class Server
             'verdict' => $verdict,
             'arguments' => $this->summarizeArguments($arguments),
         ]);
+    }
+
+    /**
+     * Record a successful read: who asked, with what, and which records came
+     * back — never the records themselves.
+     *
+     * The audit file is read by people who are not entitled to everything the
+     * agent was, and a copy of every customer an agent looked at would turn
+     * the log into the most sensitive file on the server. Identifiers answer
+     * "whose data did it see" without repeating the data.
+     *
+     * @param ToolInterface $tool
+     * @param array<string, mixed> $arguments
+     * @param Identity $identity
+     * @param array<string, mixed> $result
+     * @return void
+     */
+    private function auditRead(ToolInterface $tool, array $arguments, Identity $identity, array $result): void
+    {
+        $context = [
+            'tool' => $tool->getName(),
+            'caller' => $identity->getLabel(),
+            'user_type' => $identity->getUserType(),
+            'user_id' => $identity->getUserId(),
+            'arguments' => $this->summarizeArguments($arguments),
+        ];
+        if (isset($result['total_count']) && is_int($result['total_count'])) {
+            $context['total_count'] = $result['total_count'];
+        }
+        $context['records'] = $this->recordIds($result);
+
+        $this->auditLogger->info('[magenx-mcp] read', $context);
+    }
+
+    /**
+     * The identifiers of the records a result carries.
+     *
+     * A list result is read from its `items`; anything else is treated as one
+     * record and identified by its own top-level keys.
+     *
+     * @param array<string, mixed> $result
+     * @return array<int, int|string>
+     */
+    private function recordIds(array $result): array
+    {
+        $records = isset($result['items']) && is_array($result['items']) ? $result['items'] : [$result];
+
+        $ids = [];
+        foreach ($records as $record) {
+            if (!is_array($record)) {
+                continue;
+            }
+            foreach (self::RECORD_ID_KEYS as $key) {
+                if (isset($record[$key]) && (is_int($record[$key]) || is_string($record[$key]))) {
+                    $ids[] = $record[$key];
+                    break;
+                }
+            }
+            if (count($ids) >= self::MAX_AUDITED_RECORD_IDS) {
+                break;
+            }
+        }
+
+        return $ids;
     }
 
     /**

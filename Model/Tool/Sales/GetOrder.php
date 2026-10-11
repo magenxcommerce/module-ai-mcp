@@ -6,12 +6,13 @@ declare(strict_types=1);
 
 namespace Magenx\AiMcp\Model\Tool\Sales;
 
+use Magenx\AiMcp\Api\PersonalDataToolInterface;
 use Magenx\AiMcp\Model\Tool\AbstractTool;
 
 /**
  * Read one order in full, including what can still be done to it.
  */
-class GetOrder extends AbstractTool
+class GetOrder extends AbstractTool implements PersonalDataToolInterface
 {
     /**
      * @param OrderLocator $locator

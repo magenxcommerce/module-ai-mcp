@@ -6,6 +6,7 @@ declare(strict_types=1);
 
 namespace Magenx\AiMcp\Model\Tool\Gdpr;
 
+use Magenx\AiMcp\Api\PersonalDataToolInterface;
 use Magenx\AiMcp\Model\Tool\AbstractTool;
 use Magenx\Gdpr\Model\DsrRequestFactory;
 use Magenx\Gdpr\Model\ResourceModel\DsrRequest as RequestResource;
@@ -18,7 +19,7 @@ use Magento\Framework\Exception\LocalizedException;
  * {@see ApproveGdprRequest} requires as confirmation, so reading it is the step
  * that makes an erasure deliberate rather than positional.
  */
-class GetGdprRequest extends AbstractTool
+class GetGdprRequest extends AbstractTool implements PersonalDataToolInterface
 {
     /**
      * @param DsrRequestFactory $requestFactory

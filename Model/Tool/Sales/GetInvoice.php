@@ -6,13 +6,14 @@ declare(strict_types=1);
 
 namespace Magenx\AiMcp\Model\Tool\Sales;
 
+use Magenx\AiMcp\Api\PersonalDataToolInterface;
 use Magenx\AiMcp\Model\Tool\AbstractTool;
 use Magento\Sales\Api\Data\InvoiceInterface;
 
 /**
  * Read one invoice in full.
  */
-class GetInvoice extends AbstractTool
+class GetInvoice extends AbstractTool implements PersonalDataToolInterface
 {
     /**
      * @param InvoiceLocator $locator

@@ -6,13 +6,14 @@ declare(strict_types=1);
 
 namespace Magenx\AiMcp\Model\Tool\Sales;
 
+use Magenx\AiMcp\Api\PersonalDataToolInterface;
 use Magenx\AiMcp\Model\Tool\AbstractTool;
 use Magento\Sales\Api\Data\CreditmemoInterface;
 
 /**
  * Read one credit memo in full.
  */
-class GetCreditMemo extends AbstractTool
+class GetCreditMemo extends AbstractTool implements PersonalDataToolInterface
 {
     /**
      * @param CreditMemoLocator $locator

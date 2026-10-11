@@ -6,6 +6,7 @@ declare(strict_types=1);
 
 namespace Magenx\AiMcp\Model\Tool\User;
 
+use Magenx\AiMcp\Api\PersonalDataToolInterface;
 use Magenx\AiMcp\Model\Tool\AbstractTool;
 use Magento\User\Model\ResourceModel\User\CollectionFactory;
 
@@ -27,7 +28,7 @@ use Magento\User\Model\ResourceModel\User\CollectionFactory;
  * lookup that handed those back would turn "who can I assign this to" into
  * credential disclosure.
  */
-class SearchAdminUsers extends AbstractTool
+class SearchAdminUsers extends AbstractTool implements PersonalDataToolInterface
 {
     /** Columns a free-text query is matched against, as an OR. */
     private const QUERY_COLUMNS = ['username', 'firstname', 'lastname', 'email'];

@@ -6,6 +6,7 @@ declare(strict_types=1);
 
 namespace Magenx\AiMcp\Model\Tool\Sales;
 
+use Magenx\AiMcp\Api\PersonalDataToolInterface;
 use Magenx\AiMcp\Model\Tool\AbstractTool;
 use Magento\Framework\Api\SearchCriteriaBuilder;
 use Magento\Framework\Api\SearchCriteriaInterface;
@@ -20,7 +21,7 @@ use Magento\Framework\Api\SortOrderBuilder;
  * and which fields are worth returning. Those two things are what a subclass
  * supplies.
  */
-abstract class AbstractDocumentSearch extends AbstractTool
+abstract class AbstractDocumentSearch extends AbstractTool implements PersonalDataToolInterface
 {
     /**
      * @param SearchCriteriaBuilder $searchCriteriaBuilder

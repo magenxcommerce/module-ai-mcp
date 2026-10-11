@@ -6,6 +6,7 @@ declare(strict_types=1);
 
 namespace Magenx\AiMcp\Model\Tool\Rma;
 
+use Magenx\AiMcp\Api\PersonalDataToolInterface;
 use Magenx\AiMcp\Model\Tool\AbstractTool;
 use Magenx\Rma\Api\Data\CommentInterface;
 use Magenx\Rma\Api\RmaCommentManagementInterface;
@@ -15,7 +16,7 @@ use Magento\Framework\Api\SortOrderBuilder;
 /**
  * Read a return's correspondence.
  */
-class ListRmaComments extends AbstractTool
+class ListRmaComments extends AbstractTool implements PersonalDataToolInterface
 {
     /**
      * @param RmaLocator $locator

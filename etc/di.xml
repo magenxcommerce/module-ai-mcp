@@ -266,12 +266,24 @@
                 <item name="top_products" xsi:type="object">Magenx\AiMcp\Model\Tool\Report\TopProducts\Proxy</item>
                 <item name="order_status_breakdown" xsi:type="object">Magenx\AiMcp\Model\Tool\Report\OrderStatusBreakdown\Proxy</item>
                 <item name="customer_summary" xsi:type="object">Magenx\AiMcp\Model\Tool\Report\CustomerSummary\Proxy</item>
+                <item name="sales_by_country" xsi:type="object">Magenx\AiMcp\Model\Tool\Report\SalesByCountry\Proxy</item>
+                <item name="category_sales" xsi:type="object">Magenx\AiMcp\Model\Tool\Report\CategorySales\Proxy</item>
+                <item name="coupon_performance" xsi:type="object">Magenx\AiMcp\Model\Tool\Report\CouponPerformance\Proxy</item>
+                <item name="buyer_segments" xsi:type="object">Magenx\AiMcp\Model\Tool\Report\BuyerSegments\Proxy</item>
+                <item name="abandoned_carts" xsi:type="object">Magenx\AiMcp\Model\Tool\Report\AbandonedCarts\Proxy</item>
+                <item name="inventory_risk" xsi:type="object">Magenx\AiMcp\Model\Tool\Report\InventoryRisk\Proxy</item>
+                <item name="search_terms" xsi:type="object">Magenx\AiMcp\Model\Tool\Search\SearchTerms\Proxy</item>
+                <item name="search_reviews" xsi:type="object">Magenx\AiMcp\Model\Tool\Review\SearchReviews\Proxy</item>
+                <item name="get_review" xsi:type="object">Magenx\AiMcp\Model\Tool\Review\GetReview\Proxy</item>
+                <item name="set_review_status" xsi:type="object">Magenx\AiMcp\Model\Tool\Review\SetReviewStatus\Proxy</item>
+                <item name="get_contextual_price" xsi:type="object">Magenx\AiMcp\Model\Tool\Price\GetContextualPrice\Proxy</item>
             </argument>
         </arguments>
     </type>
 
     <!-- Every attempted write lands in var/log/magenx_ai_mcp.log, separate from
-         the general log so an operator can audit agent activity on its own. -->
+         the general log so an operator can audit agent activity on its own.
+         Successful reads join it when magenx_ai_mcp/security/audit_reads asks. -->
     <virtualType name="MagenxAiMcpAuditHandler" type="Magento\Framework\Logger\Handler\Base">
         <arguments>
             <argument name="fileName" xsi:type="string">/var/log/magenx_ai_mcp.log</argument>
@@ -290,8 +302,11 @@
             <argument name="auditLogger" xsi:type="object">MagenxAiMcpAuditLogger</argument>
             <!-- Advertised to the MCP client as serverInfo.version. Kept here rather
                  than as a class constant so release-please's version bump has one
-                 obvious place to land. -->
-            <argument name="serverVersion" xsi:type="string">1.0.0</argument>
+                 obvious place to land: release-please-config.json lists this file
+                 as a generic extra-file, and the marker on the line below is what
+                 that updater rewrites. Keep the two on the same line. -->
+            <argument name="serverVersion" xsi:type="string">1.5.1</argument><!-- x-release-please-version -->
+            <argument name="toolsetResolver" xsi:type="object">Magenx\AiMcp\Model\Tool\ToolsetResolver</argument>
         </arguments>
     </type>
 

@@ -6,12 +6,13 @@ declare(strict_types=1);
 
 namespace Magenx\AiMcp\Model\Tool\Rma;
 
+use Magenx\AiMcp\Api\PersonalDataToolInterface;
 use Magenx\AiMcp\Model\Tool\AbstractTool;
 
 /**
  * Read one return request.
  */
-class GetRma extends AbstractTool
+class GetRma extends AbstractTool implements PersonalDataToolInterface
 {
     /**
      * @param RmaLocator $locator

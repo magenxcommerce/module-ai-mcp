@@ -6,6 +6,7 @@ declare(strict_types=1);
 
 namespace Magenx\AiMcp\Model\Tool\Gdpr;
 
+use Magenx\AiMcp\Api\PersonalDataToolInterface;
 use Magenx\AiMcp\Model\Tool\AbstractTool;
 use Magenx\Gdpr\Model\DsrRequest;
 use Magenx\Gdpr\Model\ResourceModel\DsrRequest\CollectionFactory;
@@ -18,7 +19,7 @@ use Magento\Framework\Exception\LocalizedException;
  * deliberate: these carry a statutory deadline, so the one that has been
  * waiting longest is the one that matters, not the one that arrived last.
  */
-class SearchGdprRequests extends AbstractTool
+class SearchGdprRequests extends AbstractTool implements PersonalDataToolInterface
 {
     /**
      * @param CollectionFactory $collectionFactory

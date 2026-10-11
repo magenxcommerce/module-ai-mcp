@@ -40,6 +40,12 @@ use Magento\Framework\Serialize\Serializer\Json;
  * {@see Authenticator}, against the same integration tokens and the same ACL.
  *
  * Batching is rejected: MCP dropped JSON-RPC batch support in 2025-06-18.
+ *
+ * The URL may narrow the toolset for the connection — see
+ * {@see \Magenx\AiMcp\Model\Tool\Toolset}. That lives in the query string
+ * rather than in a JSON-RPC parameter because it has to apply to every call a
+ * client makes, and the query string is the one part of the request every MCP
+ * client lets a user set once, in its server configuration.
  */
 class Index implements HttpPostActionInterface, HttpGetActionInterface, CsrfAwareActionInterface
 {
@@ -132,7 +138,38 @@ class Index implements HttpPostActionInterface, HttpGetActionInterface, CsrfAwar
 
         $params = $decoded['params'] ?? [];
 
-        return $this->emit($this->server->dispatch($method, is_array($params) ? $params : [], $id, $identity));
+        return $this->emit($this->server->dispatch(
+            $method,
+            is_array($params) ? $params : [],
+            $id,
+            $identity,
+            $this->toolsetArguments()
+        ));
+    }
+
+    /**
+     * The toolset narrowing a client put in the endpoint URL, unparsed.
+     *
+     * `?profile=analytics`, `?domains=sales,report`, `?tools=get_order` — the
+     * server validates and applies them. Only string values are passed on: an
+     * array (`?domains[]=sales`) is not a form any documented client produces,
+     * and treating it as "nothing asked for" would quietly widen the toolset,
+     * so it is passed as a value no domain matches and refused there.
+     *
+     * @return array<string, string|null>
+     */
+    private function toolsetArguments(): array
+    {
+        $arguments = [];
+        foreach (['profile', 'domains', 'tools'] as $key) {
+            $value = $this->request->getQuery($key);
+            if ($value === null) {
+                continue;
+            }
+            $arguments[$key] = is_string($value) ? $value : '[array]';
+        }
+
+        return $arguments;
     }
 
     /**

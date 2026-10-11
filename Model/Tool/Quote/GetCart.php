@@ -6,12 +6,13 @@ declare(strict_types=1);
 
 namespace Magenx\AiMcp\Model\Tool\Quote;
 
+use Magenx\AiMcp\Api\PersonalDataToolInterface;
 use Magenx\AiMcp\Model\Tool\AbstractTool;
 
 /**
  * Read one cart in full: its items and what it comes to.
  */
-class GetCart extends AbstractTool
+class GetCart extends AbstractTool implements PersonalDataToolInterface
 {
     /**
      * @param CartLocator $locator

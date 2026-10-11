@@ -6,6 +6,7 @@ declare(strict_types=1);
 
 namespace Magenx\AiMcp\Model\Tool\Helpdesk;
 
+use Magenx\AiMcp\Api\PersonalDataToolInterface;
 use Magenx\AiMcp\Model\Tool\AbstractTool;
 use Magenx\Helpdesk\Model\ResourceModel\Ticket\CollectionFactory;
 use Magenx\Helpdesk\Model\Ticket;
@@ -19,7 +20,7 @@ use Magento\Framework\Exception\LocalizedException;
  * grid uses. Every write in this domain still goes through TicketManager, which
  * is the module's single write path.
  */
-class SearchHelpdeskTickets extends AbstractTool
+class SearchHelpdeskTickets extends AbstractTool implements PersonalDataToolInterface
 {
     /**
      * @param CollectionFactory $collectionFactory

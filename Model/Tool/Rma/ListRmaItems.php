@@ -6,6 +6,7 @@ declare(strict_types=1);
 
 namespace Magenx\AiMcp\Model\Tool\Rma;
 
+use Magenx\AiMcp\Api\PersonalDataToolInterface;
 use Magenx\AiMcp\Model\Tool\AbstractTool;
 use Magenx\Rma\Api\Data\ItemInterface;
 use Magenx\Rma\Api\RmaItemManagementInterface;
@@ -14,7 +15,7 @@ use Magento\Framework\Api\SearchCriteriaBuilder;
 /**
  * Read the lines of a return.
  */
-class ListRmaItems extends AbstractTool
+class ListRmaItems extends AbstractTool implements PersonalDataToolInterface
 {
     /**
      * @param RmaLocator $locator

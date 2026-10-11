@@ -10,6 +10,7 @@ use Magenx\AdminActivity\Model\Activity;
 use Magenx\AdminActivity\Model\Activity\ActionType;
 use Magenx\AdminActivity\Model\Config;
 use Magenx\AdminActivity\Model\ResourceModel\Activity\CollectionFactory;
+use Magenx\AiMcp\Api\PersonalDataToolInterface;
 use Magenx\AiMcp\Model\Tool\AbstractTool;
 use Magento\Framework\Exception\LocalizedException;
 
@@ -24,7 +25,7 @@ use Magento\Framework\Exception\LocalizedException;
  * Reads through the module's collection: it has no service-contract layer, and
  * the collection is what its own grid uses.
  */
-class SearchAdminActivity extends AbstractTool
+class SearchAdminActivity extends AbstractTool implements PersonalDataToolInterface
 {
     /**
      * @param CollectionFactory $collectionFactory

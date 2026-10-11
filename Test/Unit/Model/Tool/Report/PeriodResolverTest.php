@@ -252,10 +252,10 @@ class PeriodResolverTest extends TestCase
     public function testAnUnknownNamedPeriodIsRefusedWithTheRealOnes(): void
     {
         try {
-            $this->resolver('UTC')->resolve(['period' => 'last_quarter']);
+            $this->resolver('UTC')->resolve(['period' => 'last_fortnight']);
             $this->fail('An unknown period must be refused.');
         } catch (LocalizedException $e) {
-            $this->assertStringContainsString('last_quarter', $e->getMessage());
+            $this->assertStringContainsString('last_fortnight', $e->getMessage());
             $this->assertStringContainsString('last_30_days', $e->getMessage());
         }
     }
@@ -330,6 +330,181 @@ class PeriodResolverTest extends TestCase
         $this->expectExceptionMessage('timezone PHP does not recognise');
 
         $this->resolver('Mars/Olympus_Mons')->resolve(['period' => 'today']);
+    }
+
+    /**
+     * @return array<string, array{0: string, 1: string, 2: string}>
+     */
+    public static function calendarPeriodProvider(): array
+    {
+        return [
+            'mtd ends today' => ['mtd', '2026-03-01 00:00:00', '2026-03-15 23:59:59'],
+            'qtd ends today' => ['qtd', '2026-01-01 00:00:00', '2026-03-15 23:59:59'],
+            'ytd ends today' => ['ytd', '2026-01-01 00:00:00', '2026-03-15 23:59:59'],
+            'this_quarter runs to its end' => ['this_quarter', '2026-01-01 00:00:00', '2026-03-31 23:59:59'],
+            'last_quarter crosses the year' => ['last_quarter', '2025-10-01 00:00:00', '2025-12-31 23:59:59'],
+            'last_2_weeks is fourteen days' => ['last_2_weeks', '2026-03-02 00:00:00', '2026-03-15 23:59:59'],
+            'last_90_days' => ['last_90_days', '2025-12-16 00:00:00', '2026-03-15 23:59:59'],
+            'last_18_months rolls' => ['last_18_months', '2024-09-16 00:00:00', '2026-03-15 23:59:59'],
+            'last_1_years rolls' => ['last_1_years', '2025-03-16 00:00:00', '2026-03-15 23:59:59'],
+        ];
+    }
+
+    /**
+     * @param string $name
+     * @param string $from
+     * @param string $to
+     * @return void
+     */
+    #[\PHPUnit\Framework\Attributes\DataProvider('calendarPeriodProvider')]
+    public function testCalendarAndRollingPeriods(string $name, string $from, string $to): void
+    {
+        $period = $this->resolver('UTC')->resolve(['period' => $name]);
+
+        $this->assertSame($from, $period->getUtcFrom());
+        $this->assertSame($to, $period->getUtcTo());
+    }
+
+    /**
+     * A rolling month from the 31st must not start inside the month it meant
+     * to skip, which is what "-1 month" from a March 31st does.
+     *
+     * @return void
+     */
+    public function testARollingMonthClampsAShortMonth(): void
+    {
+        $zone = $this->createMock(TimezoneInterface::class);
+        $zone->method('getConfigTimezone')->willReturn('UTC');
+        $clock = $this->createMock(CoreDate::class);
+        $clock->method('gmtTimestamp')->willReturn(1774958400); // 2026-03-31 12:00:00 UTC
+
+        $period = (new PeriodResolver($zone, $clock))->resolve(['period' => 'last_1_months']);
+
+        $this->assertSame('2026-03-01 00:00:00', $period->getUtcFrom());
+    }
+
+    /**
+     * @return array<string, array{0: string}>
+     */
+    public static function badRelativeProvider(): array
+    {
+        return [
+            'zero' => ['last_0_days'],
+            'too many months' => ['last_121_months'],
+            'unknown unit' => ['last_3_fortnights'],
+            'leading zero' => ['last_07_days'],
+        ];
+    }
+
+    /**
+     * @param string $name
+     * @return void
+     */
+    #[\PHPUnit\Framework\Attributes\DataProvider('badRelativeProvider')]
+    public function testANonsenseRelativePeriodIsRefused(string $name): void
+    {
+        $this->expectException(LocalizedException::class);
+
+        $this->resolver('UTC')->resolve(['period' => $name]);
+    }
+
+    /**
+     * February is compared with January, not with the 28 days before it.
+     *
+     * @return void
+     */
+    public function testThePreviousPeriodOfAMonthIsTheMonthBefore(): void
+    {
+        $resolver = $this->resolver('UTC');
+        $previous = $resolver->comparison($resolver->resolve(['period' => 'last_month']), 'previous_period');
+
+        $this->assertSame('2026-01-01 00:00:00', $previous->getUtcFrom());
+        $this->assertSame('2026-01-31 23:59:59', $previous->getUtcTo());
+    }
+
+    /**
+     * @return void
+     */
+    public function testThePreviousPeriodOfAQuarterIsTheQuarterBefore(): void
+    {
+        $resolver = $this->resolver('UTC');
+        $previous = $resolver->comparison($resolver->resolve(['period' => 'last_quarter']), 'previous_period');
+
+        $this->assertSame('2025-07-01 00:00:00', $previous->getUtcFrom());
+        $this->assertSame('2025-09-30 23:59:59', $previous->getUtcTo());
+    }
+
+    /**
+     * @return void
+     */
+    public function testThePreviousPeriodOfSevenDaysIsTheSevenBefore(): void
+    {
+        $resolver = $this->resolver('UTC');
+        $previous = $resolver->comparison($resolver->resolve(['period' => 'last_7_days']), 'previous_period');
+
+        $this->assertSame('2026-03-02 00:00:00', $previous->getUtcFrom());
+        $this->assertSame('2026-03-08 23:59:59', $previous->getUtcTo());
+    }
+
+    /**
+     * @return void
+     */
+    public function testThePreviousPeriodOfATimeRangeIsTheSameLength(): void
+    {
+        $resolver = $this->resolver('UTC');
+        $previous = $resolver->comparison(
+            $resolver->resolve(['date_from' => '2026-03-10 09:00:00', 'date_to' => '2026-03-10 17:00:00']),
+            'previous_period'
+        );
+
+        $this->assertSame('2026-03-10 00:59:59', $previous->getUtcFrom());
+        $this->assertSame('2026-03-10 08:59:59', $previous->getUtcTo());
+    }
+
+    /**
+     * A year back keeps a month end a month end, leap day included.
+     *
+     * @return void
+     */
+    public function testThePreviousYearOfFebruaryIncludesTheLeapDay(): void
+    {
+        $resolver = $this->resolver('UTC');
+        $previous = $resolver->comparison(
+            $resolver->resolve(['date_from' => '2025-02-01', 'date_to' => '2025-02-28']),
+            'previous_year'
+        );
+
+        $this->assertSame('2024-02-01 00:00:00', $previous->getUtcFrom());
+        $this->assertSame('2024-02-29 23:59:59', $previous->getUtcTo());
+    }
+
+    /**
+     * The comparison is computed in the store's calendar, so a week that
+     * contains the spring change still starts and ends at local midnight.
+     *
+     * @return void
+     */
+    public function testTheComparisonIsCutAtLocalMidnightAcrossADaylightSavingChange(): void
+    {
+        $resolver = $this->resolver('Europe/Berlin');
+        $previous = $resolver->comparison(
+            $resolver->resolve(['date_from' => '2026-03-30', 'date_to' => '2026-04-05']),
+            'previous_period'
+        );
+
+        $this->assertSame('2026-03-23 00:00:00', $previous->toArray()['from']);
+        $this->assertSame('2026-03-22 23:00:00', $previous->getUtcFrom());
+        $this->assertSame('2026-03-29 21:59:59', $previous->getUtcTo());
+    }
+
+    /**
+     * @return void
+     */
+    public function testAnUnknownComparisonIsRefused(): void
+    {
+        $this->expectException(LocalizedException::class);
+
+        $this->resolver('UTC')->compareTo(['compare_to' => 'last_year']);
     }
 
     /**
