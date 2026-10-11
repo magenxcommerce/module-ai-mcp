@@ -8,7 +8,7 @@ namespace Magenx\AiMcp\Model\Tool\Price;
 
 use Magento\Catalog\Model\Indexer\Product\Price\PriceTableResolver;
 use Magento\Framework\App\ResourceConnection;
-use Magento\Framework\Indexer\Dimension\DimensionFactory;
+use Magento\Framework\Indexer\DimensionFactory;
 
 /**
  * Reads what the storefront will charge one customer group for one product.

@@ -1194,6 +1194,9 @@ namespace Magento\Framework\Indexer {
     class IndexerRegistry {
         public function get($indexerId) { return null; }
     }
+    class DimensionFactory {
+        public function create(string $name, string $value) { return null; }
+    }
 }
 
 namespace Magenx\ProductFeed\Model\Template\Exception {
@@ -1620,12 +1623,6 @@ namespace Magento\Catalog\Model\ResourceModel\Category {
 namespace Magento\Catalog\Model\Indexer\Product\Price {
     class PriceTableResolver {
         public function resolve(string $index, array $dimensions) { return $index; }
-    }
-}
-
-namespace Magento\Framework\Indexer\Dimension {
-    class DimensionFactory {
-        public function create(string $name, string $value) { return null; }
     }
 }
 
