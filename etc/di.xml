@@ -305,7 +305,7 @@
                  obvious place to land: release-please-config.json lists this file
                  as a generic extra-file, and the marker on the line below is what
                  that updater rewrites. Keep the two on the same line. -->
-            <argument name="serverVersion" xsi:type="string">1.5.1</argument><!-- x-release-please-version -->
+            <argument name="serverVersion" xsi:type="string">1.6.0</argument><!-- x-release-please-version -->
             <argument name="toolsetResolver" xsi:type="object">Magenx\AiMcp\Model\Tool\ToolsetResolver</argument>
         </arguments>
     </type>

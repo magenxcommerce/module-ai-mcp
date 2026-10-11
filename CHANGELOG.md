@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.6.0](https://github.com/magenxcommerce/module-ai-mcp/compare/v1.5.1...v1.6.0) (2026-10-11)
+
+
+### Features
+
+* optionally audit reads, recording record ids and never contents ([3810435](https://github.com/magenxcommerce/module-ai-mcp/commit/38104357f2af4bb2a67babaab23d201d4841eef2))
+* per-connection toolsets, read audit and merchant analytics reports ([#26](https://github.com/magenxcommerce/module-ai-mcp/issues/26)) ([3810435](https://github.com/magenxcommerce/module-ai-mcp/commit/38104357f2af4bb2a67babaab23d201d4841eef2))
+
 ## [1.5.1](https://github.com/magenxcommerce/module-ai-mcp/compare/v1.5.0...v1.5.1) (2026-10-10)
 
 
