@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.7.0](https://github.com/magenxcommerce/module-ai-mcp/compare/v1.6.0...v1.7.0) (2026-10-11)
+
+
+### Features
+
+* optionally audit reads, recording record ids and never contents ([e7238c3](https://github.com/magenxcommerce/module-ai-mcp/commit/e7238c3c651f4b74120ef0f19709b0a74ce0d5f0))
+
+
+### Bug Fixes
+
+* Fix setup:di:compile failure in ContextualPriceReader ([#28](https://github.com/magenxcommerce/module-ai-mcp/issues/28)) ([e7238c3](https://github.com/magenxcommerce/module-ai-mcp/commit/e7238c3c651f4b74120ef0f19709b0a74ce0d5f0))
+
 ## [1.6.0](https://github.com/magenxcommerce/module-ai-mcp/compare/v1.5.1...v1.6.0) (2026-10-11)
 
 
