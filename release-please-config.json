@@ -1,0 +1,14 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "packages": {
+    ".": {
+      "release-type": "php",
+      "extra-files": [
+        {
+          "type": "generic",
+          "path": "etc/di.xml"
+        }
+      ]
+    }
+  }
+}
