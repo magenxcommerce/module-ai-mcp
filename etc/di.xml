@@ -266,6 +266,17 @@
                 <item name="top_products" xsi:type="object">Magenx\AiMcp\Model\Tool\Report\TopProducts\Proxy</item>
                 <item name="order_status_breakdown" xsi:type="object">Magenx\AiMcp\Model\Tool\Report\OrderStatusBreakdown\Proxy</item>
                 <item name="customer_summary" xsi:type="object">Magenx\AiMcp\Model\Tool\Report\CustomerSummary\Proxy</item>
+                <item name="sales_by_country" xsi:type="object">Magenx\AiMcp\Model\Tool\Report\SalesByCountry\Proxy</item>
+                <item name="category_sales" xsi:type="object">Magenx\AiMcp\Model\Tool\Report\CategorySales\Proxy</item>
+                <item name="coupon_performance" xsi:type="object">Magenx\AiMcp\Model\Tool\Report\CouponPerformance\Proxy</item>
+                <item name="buyer_segments" xsi:type="object">Magenx\AiMcp\Model\Tool\Report\BuyerSegments\Proxy</item>
+                <item name="abandoned_carts" xsi:type="object">Magenx\AiMcp\Model\Tool\Report\AbandonedCarts\Proxy</item>
+                <item name="inventory_risk" xsi:type="object">Magenx\AiMcp\Model\Tool\Report\InventoryRisk\Proxy</item>
+                <item name="search_terms" xsi:type="object">Magenx\AiMcp\Model\Tool\Search\SearchTerms\Proxy</item>
+                <item name="search_reviews" xsi:type="object">Magenx\AiMcp\Model\Tool\Review\SearchReviews\Proxy</item>
+                <item name="get_review" xsi:type="object">Magenx\AiMcp\Model\Tool\Review\GetReview\Proxy</item>
+                <item name="set_review_status" xsi:type="object">Magenx\AiMcp\Model\Tool\Review\SetReviewStatus\Proxy</item>
+                <item name="get_contextual_price" xsi:type="object">Magenx\AiMcp\Model\Tool\Price\GetContextualPrice\Proxy</item>
             </argument>
         </arguments>
     </type>

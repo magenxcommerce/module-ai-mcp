@@ -42,6 +42,9 @@ class SalesAggregatorTest extends TestCase
     /** @var array<int, mixed> Groupings passed to group(). */
     private array $groups = [];
 
+    /** @var array<int, string> Conditions passed to joinLeft(). */
+    private array $joins = [];
+
     /**
      * @return void
      */
@@ -50,6 +53,11 @@ class SalesAggregatorTest extends TestCase
         $this->select = $this->createMock(Select::class);
         $this->select->method('from')->willReturnSelf();
         $this->select->method('joinInner')->willReturnSelf();
+        $this->select->method('joinLeft')->willReturnCallback(function ($name, $cond) {
+            $this->joins[] = (string) $cond;
+
+            return $this->select;
+        });
         $this->select->method('order')->willReturnSelf();
         $this->select->method('limit')->willReturnSelf();
         $this->select->method('columns')->willReturnCallback(function ($cols) {
@@ -77,6 +85,9 @@ class SalesAggregatorTest extends TestCase
         $this->connection->method('fetchAll')->willReturn([]);
         $this->connection->method('quote')->willReturnCallback(
             static fn ($value): string => "'" . $value . "'"
+        );
+        $this->connection->method('quoteInto')->willReturnCallback(
+            static fn ($text, $value): string => str_replace('?', "'" . $value . "'", $text)
         );
 
         $resource = $this->createMock(ResourceConnection::class);
@@ -266,6 +277,47 @@ class SalesAggregatorTest extends TestCase
         $this->aggregator->refundsByRefundDateBucket($this->period(PeriodResolver::GRANULARITY_DAY), null);
 
         $this->assertStringContainsString('CONVERT_TZ(c.created_at', $this->columns['bucket']);
+    }
+
+    /**
+     * The country comes from the chosen address type, joined leftwards so an
+     * order without one is reported rather than dropped.
+     *
+     * @return void
+     */
+    public function testCountryTotalsJoinTheChosenAddressTypeLeftwards(): void
+    {
+        $this->aggregator->totalsByCountry($this->period(), null, 'shipping', 10);
+
+        $this->assertSame(["a.parent_id = o.entity_id AND a.address_type = 'shipping'"], $this->joins);
+        $this->assertSame('a.country_id', $this->columns['country_id']);
+        $this->assertStringContainsString("o.state = 'canceled' THEN 0", $this->columns['ordered_total']);
+        $this->assertSame(['a.country_id', 'o.base_currency_code'], $this->groups);
+    }
+
+    /**
+     * @return void
+     */
+    public function testCouponsAreGroupedByCodeAndCurrencyWithoutCanceledOrders(): void
+    {
+        $this->aggregator->couponPerformance($this->period(), null, 10);
+
+        $this->assertContains('o.state <> ? => canceled', $this->conditions);
+        $this->assertContains("o.coupon_code IS NOT NULL AND o.coupon_code <> ''", $this->conditions);
+        $this->assertSame(['o.coupon_code', 'o.base_currency_code'], $this->groups);
+        $this->assertContains('r.rule_id = sc.rule_id', $this->joins);
+    }
+
+    /**
+     * @return void
+     */
+    public function testTheCouponBaselineSplitsOrdersWithAndWithout(): void
+    {
+        $this->aggregator->couponBaseline($this->period(), null);
+
+        $this->assertStringContainsString('THEN 1 ELSE 0', $this->columns['orders_with_coupon']);
+        $this->assertStringContainsString('THEN 0 ELSE 1', $this->columns['orders_without_coupon']);
+        $this->assertContains('o.state <> ? => canceled', $this->conditions);
     }
 
     /**

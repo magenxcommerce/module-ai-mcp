@@ -177,6 +177,7 @@ same ACL role, so nothing is lost but the serializer.
 | `get_tier_prices` | | `Magento_Catalog::products` |
 | `set_tier_prices` | ✓ | `Magento_Catalog::products` |
 | `delete_tier_prices` | ✓ | `Magento_Catalog::products` |
+| `get_contextual_price` | | `Magento_Catalog::products` |
 | `search_cart_price_rules` | | `Magento_SalesRule::quote` |
 | `get_cart_price_rule` | | `Magento_SalesRule::quote` |
 | `update_cart_price_rule` | ✓ | `Magento_SalesRule::quote` |
@@ -321,6 +322,16 @@ same ACL role, so nothing is lost but the serializer.
 | `top_products` |  | `Magenx_AiMcp::reports` |
 | `order_status_breakdown` |  | `Magenx_AiMcp::reports` |
 | `customer_summary` |  | `Magenx_AiMcp::reports` |
+| `sales_by_country` |  | `Magenx_AiMcp::reports` |
+| `category_sales` |  | `Magenx_AiMcp::reports` |
+| `coupon_performance` |  | `Magenx_AiMcp::reports` |
+| `buyer_segments` |  | `Magenx_AiMcp::reports` |
+| `abandoned_carts` |  | `Magenx_AiMcp::reports` |
+| `inventory_risk` |  | `Magenx_AiMcp::reports` |
+| `search_terms` |  | `Magento_Search::search` |
+| `search_reviews` |  | `Magento_Review::reviews_all` |
+| `get_review` |  | `Magento_Review::reviews_all` |
+| `set_review_status` | ✓ | `Magento_Review::reviews_all` |
 | `search_blog_posts` |  | `Magenx_Blog::post` |
 | `get_blog_post` |  | `Magenx_Blog::post` |
 | `create_blog_post` | ✓ | `Magenx_Blog::post` |
@@ -537,6 +548,16 @@ never reads — a change that reports success and does nothing. So `get_stock`
 reports each setting as `{value, uses_config_default}`, and `update_stock`
 clears the flag whenever you set one; pass the field as `null` to go back to
 inheriting.
+
+**`get_contextual_price` answers from the price index**, which is what the
+storefront reads, so it gives the price a shopper in that customer group sees —
+including a stale one when the index is behind, which is why it also reports the
+price indexer's state. Beside the indexed regular and final price it reports
+today's catalog rule price (today in the store view's timezone, which is how
+`catalogrule_product_price` is dated), the tier price that applies at the given
+quantity, and the resulting unit price. The index table is resolved for the
+website and group, so a price indexer in dimension mode is read correctly. Tier
+prices are read keyed on `entity_id`, Magento Open Source's layout.
 
 **Nothing here reindexes.** A stock change, a tier price or an activated
 catalog rule reaches the storefront only after the relevant indexer runs. The
@@ -1104,16 +1125,19 @@ an integration, not a side effect of letting it check cron.
   `MAGE_ERROR_REPORT_DIR_NESTING_LEVEL` above zero live in subdirectories and
   are not found.
 
-### Reports: the only SQL in the module, and why
+### Reports: SQL where it has to be, and why
 
-`sales_summary`, `sales_by_period`, `top_products`, `order_status_breakdown` and
-`customer_summary` sit behind **`Magenx_AiMcp::reports`**, a grant of their own.
+`sales_summary`, `sales_by_period`, `top_products`, `order_status_breakdown`,
+`customer_summary`, `sales_by_country`, `category_sales`, `coupon_performance`,
+`buyer_segments`, `abandoned_carts` and `inventory_risk` sit behind
+**`Magenx_AiMcp::reports`**, a grant of their own.
 "What did we take last month" and "show me this customer's order" are different
 permissions — which is why Magento's own reports live under a separate tree —
 so these do not borrow `Magento_Sales::actions_view` like the order tools.
 
-Every other tool here reads through a repository or a collection. These compute
-`SUM` and `GROUP BY` directly, because the alternative is fetching orders and
+Almost every other tool here reads through a repository or a collection — the
+exception is `get_contextual_price`, which reads the price index the same way.
+These compute `SUM` and `GROUP BY` directly, because the alternative is fetching orders and
 adding them up in PHP, which is the "pull rows into a model's context" this
 server exists to avoid and is capped at 100 rows a page anyway. Magento's
 aggregate tables were the other option and are deliberately **not** used: a
@@ -1176,9 +1200,70 @@ left out. Ordered and invoiced stay by order date either way, so under
 `refund_date` the net is "invoiced on this period's orders, less everything
 refunded in it", which is what a cash view wants and is labelled as such.
 
-`customer_summary` does not report new versus returning. Answering it correctly
-means reading every customer's whole order history, and a cheap approximation of
-it is precisely the kind of number somebody would quote.
+**`sales_by_country`** is the `sales_summary` block per country, by billing
+(default) or shipping address. The address is joined leftwards, so an order
+without that address type — a virtual order has no shipping address — is
+reported under a `null` country rather than dropped, and the countries add up
+to `sales_summary`.
+
+**`category_sales`** has to choose how a product in several categories is
+counted, and makes the caller choose too. `split` (the default) divides each
+line between the product's categories, so the categories add up to exactly what
+was sold — `line_totals` is that figure, less sales of products in no category.
+`full` counts the line in every category, which answers "how much did anything
+in Shoes sell" but adds up to more than was sold, and the result says
+`sums_exceed_total: true` so nobody adds it up by accident. Root categories are
+left out of both. `parent_category_id` reports only that category's
+descendants, and the split is then between those alone. A category's average
+order value is its revenue over the orders containing it. Membership is
+today's: Magento keeps no history of which category a product was in.
+
+**`coupon_performance`** groups by coupon code and reaches the rule through the
+coupon table, not `applied_rule_ids`, which also lists automatic rules. Beside
+the codes it reports the baseline — orders and average order value with and
+without a coupon — because a coupon's average order value means nothing on its
+own. Discounts are negative, as Magento stores them.
+
+**`buyer_segments`** reports new versus returning, which `customer_summary`
+does not. "New" needs each buyer's first order ever, so it reads every buyer's
+history up to the end of the period — still one query: an inner `GROUP BY` per
+buyer yields first order, last order and the period's orders and revenue, and an
+outer one counts buyers into segments. No row reaches PHP but the totals. A
+buyer is a lower-cased e-mail address, so a guest checkout and a later account
+are one person; `inactive_buyers` counts known buyers whose last order is more
+than `inactive_days` before the period end. On a large store this is the
+heaviest query here: it scans `sales_order` up to the period end.
+
+**`abandoned_carts`** reads `quote` rather than orders: active, with items, last
+changed at least `inactivity_hours` ago and no more than `max_age_days` ago. It
+returns count, subtotal and items per base currency, how many carts have an
+e-mail address to follow up on, and the most valuable carts with that address —
+which makes it the one report carrying personal data. It is marked so, and is
+recorded by the personal-data read audit.
+
+**`inventory_risk`** divides quantity on hand by units sold per day over the last
+`velocity_days`, and lists what runs out within `threshold_days`, soonest first.
+Units are counted on simple, virtual and downloadable lines — a configurable
+sale counts against the variant that left the shelf — less any canceled
+quantity. Quantity is the legacy `cataloginventory_stock_item` figure that
+`get_stock` reads, which under MSI is the default source only. A row inheriting
+"manage stock" from configuration is assumed managed, Magento's default.
+
+### Search terms and reviews
+
+`search_terms` reads Magento's own search log, `search_query`, which keeps one
+row per term and store with a running popularity count and the result count of
+the latest search. By default it lists only terms whose latest search found
+nothing — the gaps in the catalogue or its synonyms. The log keeps no history,
+so there is no period: popularity is since the term was first searched.
+
+`search_reviews`, `get_review` and `set_review_status` cover the moderation
+queue: list pending reviews with their rating votes, read one, approve or reject
+it. Status is reported by name (`approved`, `pending`, `not_approved`) as well
+as Magento's id. After a status change the product's rating summary is
+re-aggregated straight away, as the admin does. Reviews carry the reviewer's
+nickname and customer id, so the two reads are marked personal data. All three
+sit behind `Magento_Review::reviews_all`.
 
 ### Beneath and beside Magento
 
@@ -1513,10 +1598,11 @@ https://your-magento-host/magenx-mcp/server?tools=search_orders,get_order
 ```
 
 - `profile` is a named domain set: `analytics` (reports, sales, customers,
-  carts, promotions, stock), `catalog` (products and everything hanging off
-  them), `content` (CMS, widgets, e-mail, design, media, blog), `support`
-  (orders, customers, carts, returns, help desk, GDPR, admin users) and `ops`
-  (caches, indexers, cron, logs, config, platform, admin activity). Each also
+  carts, promotions, stock, search terms, reviews), `catalog` (products and
+  everything hanging off them, plus reviews and search terms), `content` (CMS,
+  widgets, e-mail, design, media, blog), `support` (orders, customers, carts,
+  returns, help desk, GDPR, admin users, reviews) and `ops` (caches, indexers,
+  cron, logs, config, platform, admin activity). Each also
   includes `store`, because most tasks start with `list_stores`.
 - `domains` is a comma-separated list of domain codes — the same codes as the
   Enabled Tool Domains setting.

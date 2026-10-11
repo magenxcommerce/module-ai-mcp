@@ -141,6 +141,47 @@ class ReportArguments
     }
 
     /**
+     * Schema for a `limit` argument.
+     *
+     * @param string $what What is being limited, for the description: "countries".
+     * @param int $default
+     * @param int $max
+     * @return array<string, mixed>
+     */
+    public function limitSchema(string $what, int $default, int $max): array
+    {
+        return [
+            'limit' => [
+                'type' => 'integer',
+                'minimum' => 1,
+                'maximum' => $max,
+                'description' => sprintf('How many %s to return (default %d, maximum %d).', $what, $default, $max),
+            ],
+        ];
+    }
+
+    /**
+     * A whole-number argument clamped into range, or its default.
+     *
+     * Clamped rather than refused, the way page_size is everywhere else: a
+     * model asking for 500 rows wants "as many as allowed", not an error.
+     *
+     * @param array<string, mixed> $arguments
+     * @param string $key
+     * @param int $default
+     * @param int $min
+     * @param int $max
+     * @return int
+     */
+    public function boundedInt(array $arguments, string $key, int $default, int $min, int $max): int
+    {
+        $value = $arguments[$key] ?? null;
+        $value = is_int($value) || (is_string($value) && ctype_digit($value)) ? (int) $value : $default;
+
+        return max($min, min($value, $max));
+    }
+
+    /**
      * @param array<string, mixed> $arguments
      * @param int|null $storeId
      * @param bool $withGranularity

@@ -36,7 +36,7 @@ class ContextBudgetTest extends TestCase
     private const MAX_DESCRIPTION_BYTES = 600;
 
     /** All descriptions together, in bytes. Roughly a quarter of that in tokens. */
-    private const MAX_TOTAL_DESCRIPTION_BYTES = 76000;
+    private const MAX_TOTAL_DESCRIPTION_BYTES = 79000;
 
     /**
      * @return void

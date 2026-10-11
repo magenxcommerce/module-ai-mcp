@@ -648,6 +648,7 @@ namespace Magento\Framework {
         public function getCacheType() { return $this->data['cache_type'] ?? null; }
         public function getDescription() { return $this->data['description'] ?? null; }
         public function getId() { return $this->data['id'] ?? null; }
+        public function getData($key = '', $index = null) { return $key === '' ? $this->data : ($this->data[$key] ?? null); }
     }
 }
 
@@ -1591,3 +1592,103 @@ namespace Magenx\QuickSearchGraphQl\Model {
     }
 }
 
+
+namespace Magento\Store\Api {
+    interface StoreRepositoryInterface {
+        public function get($code);
+        public function getById($id);
+    }
+}
+
+namespace Magento\Catalog\Model\ResourceModel {
+    class Product {
+        public function getIdBySku($sku) { return false; }
+    }
+}
+
+namespace Magento\Catalog\Model\ResourceModel\Category {
+    class Collection implements \IteratorAggregate {
+        public function addAttributeToSelect($attribute, $joinType = false) { return $this; }
+        public function addIdFilter($categoryIds) { return $this; }
+        public function getIterator(): \Traversable { return new \ArrayIterator([]); }
+    }
+    class CollectionFactory {
+        public function create(array $data = []) { return null; }
+    }
+}
+
+namespace Magento\Catalog\Model\Indexer\Product\Price {
+    class PriceTableResolver {
+        public function resolve(string $index, array $dimensions) { return $index; }
+    }
+}
+
+namespace Magento\Framework\Indexer\Dimension {
+    class DimensionFactory {
+        public function create(string $name, string $value) { return null; }
+    }
+}
+
+namespace Magento\Search\Model\ResourceModel\Query {
+    class Collection implements \IteratorAggregate {
+        public function addFieldToFilter($field, $condition = null) { return $this; }
+        public function setOrder($field, $direction = 'DESC') { return $this; }
+        public function setPageSize($size) { return $this; }
+        public function setCurPage($page) { return $this; }
+        public function getSize() { return 0; }
+        public function getIterator(): \Traversable { return new \ArrayIterator([]); }
+    }
+    class CollectionFactory {
+        public function create(array $data = []) { return null; }
+    }
+}
+
+namespace Magento\Review\Model {
+    class Review {
+        public function getId() { return null; }
+        public function getData($key = '', $index = null) { return null; }
+        public function setData($key, $value = null) { return $this; }
+        public function getRatingVotes() { return null; }
+        public function aggregate() { return $this; }
+    }
+    class ReviewFactory {
+        public function create(array $data = []) { return null; }
+    }
+}
+
+namespace Magento\Review\Model\ResourceModel {
+    class Review {
+        public function load($object, $value, $field = null) { return $this; }
+        public function save($object) { return $this; }
+    }
+}
+
+namespace Magento\Review\Model\ResourceModel\Review {
+    class Collection implements \IteratorAggregate {
+        public function addStatusFilter($status) { return $this; }
+        public function addEntityFilter($entity, $pkValue) { return $this; }
+        public function addCustomerFilter($customerId) { return $this; }
+        public function addStoreFilter($storeId) { return $this; }
+        public function addFieldToFilter($field, $condition = null) { return $this; }
+        public function setDateOrder($dir = 'DESC') { return $this; }
+        public function setPageSize($size) { return $this; }
+        public function setCurPage($page) { return $this; }
+        public function addRateVotes() { return $this; }
+        public function getSize() { return 0; }
+        public function getIterator(): \Traversable { return new \ArrayIterator([]); }
+    }
+    class CollectionFactory {
+        public function create(array $data = []) { return null; }
+    }
+}
+
+namespace Magento\Review\Model\ResourceModel\Rating\Option\Vote {
+    class Collection implements \IteratorAggregate {
+        public function setReviewFilter($reviewId) { return $this; }
+        public function addRatingInfo($storeId = null) { return $this; }
+        public function getIterator(): \Traversable { return new \ArrayIterator([]); }
+    }
+    class CollectionFactory {
+        public function create(array $data = []) { return null; }
+    }
+}

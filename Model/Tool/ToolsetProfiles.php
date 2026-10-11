@@ -23,14 +23,16 @@ class ToolsetProfiles
 {
     /** @var array<string, string[]> */
     private const PROFILES = [
-        'analytics' => ['report', 'sales', 'customer', 'quote', 'promotion', 'inventory', 'store'],
+        'analytics' => [
+            'report', 'sales', 'customer', 'quote', 'promotion', 'inventory', 'search', 'review', 'store',
+        ],
         'catalog' => [
             'catalog', 'category', 'attribute', 'configurable', 'bundle', 'downloadable', 'link',
             'media', 'mediagallery', 'price', 'inventory', 'urlrewrite', 'productfeed', 'quicksearch',
-            'store',
+            'review', 'search', 'store',
         ],
         'content' => ['cms', 'widget', 'email', 'design', 'mediagallery', 'blog', 'store'],
-        'support' => ['sales', 'customer', 'quote', 'rma', 'helpdesk', 'gdpr', 'user', 'store'],
+        'support' => ['sales', 'customer', 'quote', 'rma', 'helpdesk', 'gdpr', 'user', 'review', 'store'],
         'ops' => ['ops', 'log', 'config', 'platform', 'adminactivity', 'store'],
     ];
 
