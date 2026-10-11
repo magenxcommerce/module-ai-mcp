@@ -38,14 +38,12 @@ class SalesSummary extends AbstractTool
      */
     public function getDescription(): string
     {
-        return 'Sales totals for a period: order count, what was ordered, what was actually '
-            . 'invoiced, what was refunded, net, tax, shipping, discount and average order value. '
-            . 'Canceled orders are excluded from the totals and reported separately, so nothing is '
-            . 'silently counted or silently dropped. Figures are in the store\'s base currency and '
-            . 'one block is returned per base currency — a multi-currency store gets several, '
-            . 'because adding them together would be meaningless. Periods are read in the store\'s '
-            . 'own timezone, unlike the date arguments on search_orders; the result reports both '
-            . 'that range and the UTC one it queried.';
+        return 'Sales totals for a period: order count, ordered, invoiced, refunded, net, tax, '
+            . 'shipping, discount and average order value. Canceled orders are excluded from the '
+            . 'totals and reported separately. Figures are in base currency, one block per base '
+            . 'currency, since adding currencies together would be meaningless. Periods are read in '
+            . 'the store\'s timezone, unlike the dates on search_orders; the result reports both that '
+            . 'range and the UTC one it queried.';
     }
 
     /**
