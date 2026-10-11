@@ -241,6 +241,34 @@ class SalesAggregatorTest extends TestCase
     }
 
     /**
+     * Refunds by refund date come from the credit memo's own date and
+     * currency, and a canceled credit memo moved no money.
+     *
+     * @return void
+     */
+    public function testRefundsByRefundDateReadCreditMemosByTheirOwnDate(): void
+    {
+        $this->aggregator->refundsByRefundDate($this->period(), 4);
+
+        $this->assertSame('SUM(c.base_grand_total)', $this->columns['refunded_total']);
+        $this->assertSame('c.base_currency_code', $this->columns['currency']);
+        $this->assertContains('c.created_at >= ? => 2026-02-28 23:00:00', $this->conditions);
+        $this->assertContains('c.state <> ? => 3', $this->conditions);
+        $this->assertContains('c.store_id = ? => 4', $this->conditions);
+        $this->assertContains('c.base_currency_code', $this->groups);
+    }
+
+    /**
+     * @return void
+     */
+    public function testBucketedRefundsAreCutOnTheCreditMemoDate(): void
+    {
+        $this->aggregator->refundsByRefundDateBucket($this->period(PeriodResolver::GRANULARITY_DAY), null);
+
+        $this->assertStringContainsString('CONVERT_TZ(c.created_at', $this->columns['bucket']);
+    }
+
+    /**
      * @param string $granularity
      * @return Period
      */

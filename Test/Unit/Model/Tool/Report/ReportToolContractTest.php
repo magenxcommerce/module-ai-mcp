@@ -111,6 +111,72 @@ class ReportToolContractTest extends TestCase
     }
 
     /**
+     * A comparison queries the earlier period and reports the movement, and
+     * refund_date swaps in credit memo refunds for both periods.
+     *
+     * @return void
+     */
+    public function testSalesSummaryComparesAndDatesRefundsByCreditMemo(): void
+    {
+        $aggregator = $this->createMock(SalesAggregator::class);
+        $aggregator->expects($this->exactly(2))->method('totals')->willReturnOnConsecutiveCalls(
+            [['currency' => 'EUR', 'orders' => '12', 'ordered_total' => '1200', 'invoiced_total' => '1000']],
+            [['currency' => 'EUR', 'orders' => '10', 'ordered_total' => '800', 'invoiced_total' => '800']]
+        );
+        $aggregator->expects($this->exactly(2))->method('refundsByRefundDate')->willReturnOnConsecutiveCalls(
+            [['currency' => 'EUR', 'refunded_total' => '100']],
+            []
+        );
+
+        $result = (new SalesSummary($this->arguments(), $aggregator, new TotalsProjector()))->execute([
+            'period' => 'last_month',
+            'compare_to' => 'previous_period',
+            'refund_basis' => 'refund_date',
+        ]);
+
+        $this->assertSame('refund_date', $result['refund_basis']);
+        $this->assertSame(900.0, $result['totals'][0]['net_total']);
+        $this->assertSame('2026-01-01 00:00:00', $result['comparison']['period']['from']);
+        $this->assertSame(['change' => 2.0, 'percent' => 20.0], $result['comparison']['change'][0]['orders']);
+    }
+
+    /**
+     * @return void
+     */
+    public function testSalesByPeriodReturnsTheEarlierPeriodsOwnBuckets(): void
+    {
+        $aggregator = $this->createMock(SalesAggregator::class);
+        $aggregator->method('totalsByBucket')->willReturnOnConsecutiveCalls(
+            [['bucket' => '2026-02-01', 'currency' => 'EUR', 'orders' => '3']],
+            [['bucket' => '2025-02-01', 'currency' => 'EUR', 'orders' => '2']]
+        );
+
+        $result = (new SalesByPeriod($this->arguments(), $aggregator, new TotalsProjector()))->execute([
+            'period' => 'last_month',
+            'granularity' => 'month',
+            'compare_to' => 'previous_year',
+        ]);
+
+        $this->assertSame('order_date', $result['refund_basis']);
+        $this->assertSame('2025-02-01', $result['comparison']['buckets'][0]['bucket']);
+        $this->assertSame('2025-02-28 23:59:59', $result['comparison']['period']['to']);
+    }
+
+    /**
+     * @return ReportArguments
+     */
+    private function arguments(): ReportArguments
+    {
+        $timezone = $this->createMock(TimezoneInterface::class);
+        $timezone->method('getConfigTimezone')->willReturn('UTC');
+
+        $clock = $this->createMock(CoreDate::class);
+        $clock->method('gmtTimestamp')->willReturn(1773576000);
+
+        return new ReportArguments(new PeriodResolver($timezone, $clock), $this->createMock(StoreResolver::class));
+    }
+
+    /**
      * @param string $class
      * @return ToolInterface
      */

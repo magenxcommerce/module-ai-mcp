@@ -1148,6 +1148,34 @@ totals are exact across a daylight-saving change; individual buckets near one
 can be an hour out at the edge, which is the same approximation Magento's own
 reports make.
 
+**Named and rolling periods.** Besides `today`, `yesterday`, `last_7_days`,
+`last_30_days`, `this_month`, `last_month`, `this_year` and `last_year`, every
+report takes `this_quarter`, `last_quarter`, `mtd`, `qtd`, `ytd` and a rolling
+`last_<n>_days|weeks|months|years` — `last_18_months` is the eighteen months
+ending today. Rolling rather than whole calendar months because that is what
+`last_30_days` already meant; for whole months use `last_month` or
+`date_from`/`date_to`. A month counted back from the 31st clamps to the shorter
+month rather than overflowing into the next one.
+
+**`compare_to`** on `sales_summary` and `sales_by_period` adds a second period:
+`previous_period` (the same length immediately before — and a range of whole
+months shifts by whole months, so February is compared with January, not with
+the 28 days before it) or `previous_year` (the same dates a year earlier, month
+ends kept as month ends). `sales_summary` reports the change for each figure,
+absolute and in percent; the percentage is `null` when the earlier figure was
+zero rather than an invented 100%. `sales_by_period` returns the earlier
+period's own buckets rather than pairing them day by day, since a month back
+from a 31-day month does not have 31 days to pair with.
+
+**`refund_basis`** on the same two tools decides how refunds are dated.
+`order_date`, the default, is what these tools always did: refunds made at any
+time against orders placed in the period. `refund_date` counts credit memos
+issued in the period instead, whatever order they belong to — the money that
+left in that period — read from `sales_creditmemo` with canceled credit memos
+left out. Ordered and invoiced stay by order date either way, so under
+`refund_date` the net is "invoiced on this period's orders, less everything
+refunded in it", which is what a cash view wants and is labelled as such.
+
 `customer_summary` does not report new versus returning. Answering it correctly
 means reading every customer's whole order history, and a cheap approximation of
 it is precisely the kind of number somebody would quote.

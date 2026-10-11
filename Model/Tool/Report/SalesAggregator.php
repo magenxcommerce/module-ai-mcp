@@ -40,6 +40,9 @@ class SalesAggregator
     /** Magento's own name for an order that was called off. */
     private const STATE_CANCELED = 'canceled';
 
+    /** \Magento\Sales\Model\Order\Creditmemo::STATE_CANCELED — a refund that did not happen. */
+    private const CREDITMEMO_STATE_CANCELED = 3;
+
     /**
      * @param ResourceConnection $resource
      */
@@ -79,6 +82,39 @@ class SalesAggregator
             ->columns(['bucket' => $bucket] + $this->totalColumns())
             ->group([$bucket, 'o.base_currency_code'])
             ->order('bucket ASC');
+
+        return $this->fetch($select);
+    }
+
+    /**
+     * Refunds issued in the period, by the credit memo's own date.
+     *
+     * The other half of `refund_basis: refund_date`. A credit memo carries its
+     * own base currency and store, so neither needs the order. Canceled credit
+     * memos are left out: no money moved.
+     *
+     * @param Period $period
+     * @param int|null $storeId
+     * @return array<int, array<string, mixed>>
+     */
+    public function refundsByRefundDate(Period $period, ?int $storeId): array
+    {
+        return $this->fetch($this->creditMemos($period, $storeId)->group('c.base_currency_code'));
+    }
+
+    /**
+     * The same refunds, bucketed on the credit memo's date.
+     *
+     * @param Period $period
+     * @param int|null $storeId
+     * @return array<int, array<string, mixed>>
+     */
+    public function refundsByRefundDateBucket(Period $period, ?int $storeId): array
+    {
+        $bucket = $this->bucketExpression($period, 'c.created_at');
+        $select = $this->creditMemos($period, $storeId)
+            ->columns(['bucket' => $bucket])
+            ->group([$bucket, 'c.base_currency_code']);
 
         return $this->fetch($select);
     }
@@ -246,6 +282,33 @@ class SalesAggregator
     }
 
     /**
+     * Credit memos issued in the period, summed per currency.
+     *
+     * @param Period $period
+     * @param int|null $storeId
+     * @return Select
+     */
+    private function creditMemos(Period $period, ?int $storeId): Select
+    {
+        $select = $this->connection()->select()
+            ->from(['c' => $this->table('sales_creditmemo')], [])
+            ->columns([
+                'currency' => 'c.base_currency_code',
+                'refunded_total' => 'SUM(c.base_grand_total)',
+                'credit_memos' => 'COUNT(*)',
+            ])
+            ->where('c.created_at >= ?', $period->getUtcFrom())
+            ->where('c.created_at <= ?', $period->getUtcTo())
+            ->where('c.state <> ?', self::CREDITMEMO_STATE_CANCELED);
+
+        if ($storeId !== null) {
+            $select->where('c.store_id = ?', $storeId);
+        }
+
+        return $select;
+    }
+
+    /**
      * A Select over sales_order already bounded to the period and store.
      *
      * @param Period $period
@@ -286,12 +349,14 @@ class SalesAggregator
      * boundaries are computed in PHP from the real timezone.
      *
      * @param Period $period
+     * @param string $column The UTC datetime column to bucket.
      * @return string
      */
-    private function bucketExpression(Period $period): string
+    private function bucketExpression(Period $period, string $column = 'o.created_at'): string
     {
         $local = sprintf(
-            "CONVERT_TZ(o.created_at, '+00:00', %s)",
+            "CONVERT_TZ(%s, '+00:00', %s)",
+            $column,
             $this->connection()->quote($period->getOffsetForSql())
         );
 

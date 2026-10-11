@@ -42,7 +42,8 @@ class SalesByPeriod extends AbstractTool
             . 'a trend or a bad week is visible. Weeks start on Monday. Buckets are cut in the '
             . 'store\'s own timezone; where a range crosses a daylight-saving change an individual '
             . 'bucket can be an hour out at its edge, though the period total is exact. At most '
-            . '200 buckets are returned — a longer range needs a coarser granularity.';
+            . '200 buckets are returned — a longer range needs a coarser granularity. compare_to '
+            . 'adds the earlier period\'s buckets; refund_basis works as on sales_summary.';
     }
 
     /**
@@ -52,7 +53,8 @@ class SalesByPeriod extends AbstractTool
     {
         return [
             'type' => 'object',
-            'properties' => $this->arguments->schemaProperties(true),
+            'properties' => $this->arguments->schemaProperties(true)
+                + $this->arguments->totalsOptionSchemaProperties(),
             'additionalProperties' => false,
         ];
     }
@@ -72,10 +74,47 @@ class SalesByPeriod extends AbstractTool
     {
         $storeId = $this->arguments->storeId($arguments);
         $period = $this->arguments->period($arguments, $storeId, true);
+        $refundBasis = $this->arguments->refundBasis($arguments);
+        $compareTo = $this->arguments->compareTo($arguments);
 
-        return [
+        $result = [
             'period' => $period->toArray(),
-            'buckets' => $this->projector->toBuckets($this->aggregator->totalsByBucket($period, $storeId)),
+            'refund_basis' => $refundBasis,
+            'buckets' => $this->buckets($period, $storeId, $refundBasis),
         ];
+
+        if ($compareTo !== null) {
+            // The earlier period's own buckets, oldest first. Not paired with
+            // this period's bucket by bucket: a month back from a 31-day month
+            // has a different number of days, and a pairing would have to
+            // invent which day matches which.
+            $previous = $this->arguments->comparison($period, $compareTo);
+            $result['comparison'] = [
+                'compare_to' => $compareTo,
+                'period' => $previous->toArray(),
+                'buckets' => $this->buckets($previous, $storeId, $refundBasis),
+            ];
+        }
+
+        return $result;
+    }
+
+    /**
+     * @param Period $period
+     * @param int|null $storeId
+     * @param string $refundBasis
+     * @return array<int, array<string, mixed>>
+     */
+    private function buckets(Period $period, ?int $storeId, string $refundBasis): array
+    {
+        $rows = $this->aggregator->totalsByBucket($period, $storeId);
+        if ($refundBasis === ReportArguments::REFUND_BASIS_REFUND_DATE) {
+            $rows = $this->projector->withRefundsByRefundDate(
+                $rows,
+                $this->aggregator->refundsByRefundDateBucket($period, $storeId)
+            );
+        }
+
+        return $this->projector->toBuckets($rows);
     }
 }

@@ -40,6 +40,30 @@ class Period
     /**
      * @return string
      */
+    public function getTimezone(): string
+    {
+        return $this->timezone;
+    }
+
+    /**
+     * @return string
+     */
+    public function getLocalFrom(): string
+    {
+        return $this->localFrom;
+    }
+
+    /**
+     * @return string
+     */
+    public function getLocalTo(): string
+    {
+        return $this->localTo;
+    }
+
+    /**
+     * @return string
+     */
     public function getUtcFrom(): string
     {
         return $this->utcFrom;

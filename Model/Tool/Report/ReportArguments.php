@@ -22,6 +22,12 @@ class ReportArguments
     /** The grant these tools sit behind. Revenue is not the same read as an order. */
     public const ACL_RESOURCE = 'Magenx_AiMcp::reports';
 
+    /** refund_basis: refunds counted against the orders placed in the period. */
+    public const REFUND_BASIS_ORDER_DATE = 'order_date';
+
+    /** refund_basis: refunds counted by the day the credit memo was issued. */
+    public const REFUND_BASIS_REFUND_DATE = 'refund_date';
+
     /**
      * @param PeriodResolver $periodResolver
      * @param StoreResolver $storeResolver
@@ -72,6 +78,66 @@ class ReportArguments
         }
 
         return $storeId;
+    }
+
+    /**
+     * The compare_to and refund_basis arguments, for the tools that take them.
+     *
+     * @return array<string, mixed>
+     */
+    public function totalsOptionSchemaProperties(): array
+    {
+        return $this->periodResolver->comparisonSchemaProperties() + [
+            'refund_basis' => [
+                'type' => 'string',
+                'enum' => [self::REFUND_BASIS_ORDER_DATE, self::REFUND_BASIS_REFUND_DATE],
+                'description' => 'How refunds are dated. "order_date" (default): refunds made, at '
+                    . 'any time, against orders placed in the period. "refund_date": credit memos '
+                    . 'issued in the period, whatever order they belong to — what left the bank in '
+                    . 'that period. Ordered and invoiced figures stay by order date either way.',
+            ],
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $arguments
+     * @return string|null One of PeriodResolver::COMPARE_*, or null for no comparison.
+     * @throws LocalizedException
+     */
+    public function compareTo(array $arguments): ?string
+    {
+        return $this->periodResolver->compareTo($arguments);
+    }
+
+    /**
+     * @param Period $period
+     * @param string $compareTo
+     * @return Period
+     */
+    public function comparison(Period $period, string $compareTo): Period
+    {
+        return $this->periodResolver->comparison($period, $compareTo);
+    }
+
+    /**
+     * @param array<string, mixed> $arguments
+     * @return string One of the REFUND_BASIS_* constants.
+     * @throws LocalizedException
+     */
+    public function refundBasis(array $arguments): string
+    {
+        $value = $arguments['refund_basis'] ?? null;
+        if ($value === null || $value === '') {
+            return self::REFUND_BASIS_ORDER_DATE;
+        }
+
+        if (!in_array($value, [self::REFUND_BASIS_ORDER_DATE, self::REFUND_BASIS_REFUND_DATE], true)) {
+            throw new LocalizedException(
+                __('The "refund_basis" argument must be "order_date" or "refund_date".')
+            );
+        }
+
+        return $value;
     }
 
     /**

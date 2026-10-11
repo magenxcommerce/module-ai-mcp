@@ -177,4 +177,77 @@ class TotalsProjectorTest extends TestCase
 
         $this->assertSame(['2026-03-01', '2026-03-02', '2026-03-03'], array_column($buckets, 'bucket'));
     }
+
+    /**
+     * Refunds by refund date replace the order-dated ones, and a currency that
+     * only had refunds still appears: money left the store in it.
+     *
+     * @return void
+     */
+    public function testRefundsByRefundDateReplaceTheOrderDatedOnes(): void
+    {
+        $rows = $this->projector->withRefundsByRefundDate(
+            [
+                ['currency' => 'EUR', 'orders' => '2', 'invoiced_total' => '100', 'refunded_total' => '40'],
+                ['currency' => 'USD', 'orders' => '1', 'invoiced_total' => '50', 'refunded_total' => '10'],
+            ],
+            [
+                ['currency' => 'EUR', 'refunded_total' => '15'],
+                ['currency' => 'GBP', 'refunded_total' => '5'],
+            ]
+        );
+        $totals = array_column($this->projector->toCurrencyTotals($rows), null, 'currency');
+
+        $this->assertSame(15.0, $totals['EUR']['refunded_total']);
+        $this->assertSame(85.0, $totals['EUR']['net_total']);
+        $this->assertSame(0.0, $totals['USD']['refunded_total']);
+        $this->assertSame(0, $totals['GBP']['orders']);
+        $this->assertSame(-5.0, $totals['GBP']['net_total']);
+    }
+
+    /**
+     * @return void
+     */
+    public function testBucketedRefundsAreMatchedOnBucketAndCurrency(): void
+    {
+        $rows = $this->projector->withRefundsByRefundDate(
+            [['bucket' => '2026-03-01', 'currency' => 'EUR', 'orders' => '1']],
+            [['bucket' => '2026-03-02', 'currency' => 'EUR', 'refunded_total' => '7']]
+        );
+        $buckets = $this->projector->toBuckets($rows);
+
+        $this->assertSame(['2026-03-01', '2026-03-02'], array_column($buckets, 'bucket'));
+        $this->assertSame(0.0, $buckets[0]['totals'][0]['refunded_total']);
+        $this->assertSame(7.0, $buckets[1]['totals'][0]['refunded_total']);
+    }
+
+    /**
+     * @return void
+     */
+    public function testAChangeReportsBothTheDifferenceAndThePercentage(): void
+    {
+        $change = $this->projector->change(
+            [$this->projector->toTotals(['currency' => 'EUR', 'orders' => '12', 'ordered_total' => '1200'])],
+            [$this->projector->toTotals(['currency' => 'EUR', 'orders' => '10', 'ordered_total' => '800'])]
+        );
+
+        $this->assertSame('EUR', $change[0]['currency']);
+        $this->assertSame(['change' => 2.0, 'percent' => 20.0], $change[0]['orders']);
+        $this->assertSame(['change' => 400.0, 'percent' => 50.0], $change[0]['ordered_total']);
+    }
+
+    /**
+     * Growth from nothing has no percentage; inventing 100% would be quoted.
+     *
+     * @return void
+     */
+    public function testAChangeFromZeroHasNoPercentage(): void
+    {
+        $change = $this->projector->change(
+            [$this->projector->toTotals(['currency' => 'USD', 'orders' => '3', 'ordered_total' => '90'])],
+            []
+        );
+
+        $this->assertSame(['change' => 3.0, 'percent' => null], $change[0]['orders']);
+    }
 }

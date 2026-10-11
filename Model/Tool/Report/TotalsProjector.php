@@ -21,6 +21,17 @@ namespace Magenx\AiMcp\Model\Tool\Report;
  */
 class TotalsProjector
 {
+    /** The figures a comparison reports a change for. */
+    private const COMPARED_FIGURES = [
+        'orders',
+        'ordered_total',
+        'invoiced_total',
+        'refunded_total',
+        'net_total',
+        'discount_total',
+        'average_order_value',
+        'canceled_orders',
+    ];
     /**
      * One currency's block of figures.
      *
@@ -88,6 +99,81 @@ class TotalsProjector
         ksort($buckets);
 
         return array_values($buckets);
+    }
+
+    /**
+     * Replace each row's refunds with the ones issued in the period.
+     *
+     * Used for `refund_basis: refund_date`. Rows are matched on currency — and
+     * on bucket, when the rows are bucketed — and a currency or bucket that had
+     * refunds but no orders still gets a row, with zero orders, because money
+     * left the store in it.
+     *
+     * @param array<int, array<string, mixed>> $rows Order rows, as the aggregator returns them.
+     * @param array<int, array<string, mixed>> $refunds Credit memo rows.
+     * @return array<int, array<string, mixed>>
+     */
+    public function withRefundsByRefundDate(array $rows, array $refunds): array
+    {
+        $byKey = [];
+        foreach ($rows as $row) {
+            $row['refunded_total'] = 0.0;
+            $byKey[$this->rowKey($row)] = $row;
+        }
+
+        foreach ($refunds as $refund) {
+            $key = $this->rowKey($refund);
+            $byKey[$key] ??= array_filter([
+                'bucket' => $refund['bucket'] ?? null,
+                'currency' => $refund['currency'] ?? null,
+            ], static fn ($value): bool => $value !== null);
+            $byKey[$key]['refunded_total'] = $refund['refunded_total'] ?? 0.0;
+        }
+
+        return array_values($byKey);
+    }
+
+    /**
+     * How a period's figures moved against the period compared with.
+     *
+     * One entry per currency present in either period. A percentage is null
+     * when the earlier figure is zero, rather than infinite or a made-up 100%.
+     *
+     * @param array<int, array<string, mixed>> $current Projected totals, one per currency.
+     * @param array<int, array<string, mixed>> $previous Projected totals, one per currency.
+     * @return array<int, array<string, mixed>>
+     */
+    public function change(array $current, array $previous): array
+    {
+        $now = array_column($current, null, 'currency');
+        $then = array_column($previous, null, 'currency');
+        $currencies = array_unique(array_merge(array_keys($now), array_keys($then)));
+        sort($currencies);
+
+        $changes = [];
+        foreach ($currencies as $currency) {
+            $entry = ['currency' => $currency];
+            foreach (self::COMPARED_FIGURES as $figure) {
+                $a = (float) ($now[$currency][$figure] ?? 0);
+                $b = (float) ($then[$currency][$figure] ?? 0);
+                $entry[$figure] = [
+                    'change' => round($a - $b, 4),
+                    'percent' => $b == 0.0 ? null : round(($a - $b) / abs($b) * 100, 2),
+                ];
+            }
+            $changes[] = $entry;
+        }
+
+        return $changes;
+    }
+
+    /**
+     * @param array<string, mixed> $row
+     * @return string
+     */
+    private function rowKey(array $row): string
+    {
+        return ($row['bucket'] ?? '') . '|' . ($row['currency'] ?? '');
     }
 
     /**
