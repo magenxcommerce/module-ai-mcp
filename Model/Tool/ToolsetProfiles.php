@@ -33,7 +33,7 @@ class ToolsetProfiles
         ],
         'content' => ['cms', 'widget', 'email', 'design', 'mediagallery', 'blog', 'store'],
         'support' => ['sales', 'customer', 'quote', 'rma', 'helpdesk', 'gdpr', 'user', 'review', 'store'],
-        'ops' => ['ops', 'log', 'config', 'platform', 'adminactivity', 'store'],
+        'ops' => ['ops', 'log', 'config', 'platform', 'security', 'adminactivity', 'store'],
     ];
 
     /**

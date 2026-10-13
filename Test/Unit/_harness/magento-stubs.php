@@ -880,6 +880,18 @@ namespace Magenx\Platform\Model\Metric {
     }
 }
 
+namespace Magenx\Platform\Model\Security {
+    class MagentoWatch {
+        public const DISTRIBUTIONS = ['magento-community', 'magento-commerce', 'mage-os'];
+    }
+    class SecurityReport {
+        public function build($distribution = null, $listRecords = false) { return []; }
+    }
+    class CompatibilityReport {
+        public function build($target = null, $distribution = null, $includeOutdated = false) { return []; }
+    }
+}
+
 namespace Magenx\Platform\Model {
     class CollectorPool {
         public function get($code) { return null; }

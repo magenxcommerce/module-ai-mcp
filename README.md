@@ -47,8 +47,9 @@ route returns `404`, so a store that has not opted in advertises nothing.
 
 Each tool carries `name`, `description` and `inputSchema`, plus a `title` for a
 client's tool picker and MCP's `annotations`: `readOnlyHint` (the inverse of
-whether the tool writes), `openWorldHint` (always `false` — every tool acts on
-this one store), and, for write tools only, `destructiveHint` and
+whether the tool writes), `openWorldHint` (`false` for every tool that acts on
+this one store alone; `true` only for `security_status` and
+`upgrade_compatibility`, which also ask public advisory services), and, for write tools only, `destructiveHint` and
 `idempotentHint`. The last two are defined by MCP only when `readOnlyHint` is
 false, so a read tool advertises neither.
 
@@ -315,6 +316,8 @@ same ACL role, so nothing is lost but the serializer.
 | `list_rma_attachments` |  | `Magenx_Rma::rma_manage` |
 | `delete_rma_attachment` | ✓ | `Magenx_Rma::rma_manage` |
 | `platform_status` |  | `Magenx_Platform::platform` |
+| `security_status` |  | `Magenx_Platform::platform` |
+| `upgrade_compatibility` |  | `Magenx_Platform::platform` |
 | `search_admin_activity` |  | `Magenx_AdminActivity::activity` |
 | `get_admin_activity` |  | `Magenx_AdminActivity::activity` |
 | `sales_summary` |  | `Magenx_AiMcp::reports` |
@@ -1249,6 +1252,34 @@ quantity. Quantity is the legacy `cataloginventory_stock_item` figure that
 `get_stock` reads, which under MSI is the default source only. A row inheriting
 "manage stock" from configuration is assumed managed, Magento's default.
 
+### Security patches and upgrades: the Platform module's two tabs, as data
+
+`security_status` and `upgrade_compatibility` return the Platform module's
+**Security** and **Compatibility** tabs unrendered. Every finding is made there,
+by `Magenx\Platform\Model\Security\SecurityReport` and `CompatibilityReport`,
+so an agent and an admin reading the tab cannot disagree. Both sit behind
+`Magenx_Platform::platform`, like `platform_status`, and both advertise
+`openWorldHint`, because they ask public services about this store's release
+and locked packages. See the Platform module's README for what they read and
+from where.
+
+In short: `security_status` reports the installed release, the Adobe bulletins
+open against it (magento.watch), whether this installation records the isolated
+patch for each — composer-patches 1.x/2.x records, `composer.json`
+declarations, `m2-hotfixes/` — in the order they go on, and Packagist advisories
+against `composer.lock`, as `composer audit` would. `no_evidence` means no
+record was found, not that the patch is absent: a patch applied by hand leaves
+none.
+
+`upgrade_compatibility` checks the recommended release, the newest patch on
+this line and the newest release, or one `target_version`. PHP is a blocker only
+when the release's own composer metapackage excludes it; the services are
+warnings against the versions Adobe tested; and every third-party package in
+`composer.lock` whose requirements exclude what the release pins is a blocker,
+because composer would refuse the upgrade. `include_outdated` adds the direct
+dependencies that have a newer stable release, at one lookup per package on a
+cold cache.
+
 ### Search terms and reviews
 
 `search_terms` reads Magento's own search log, `search_query`, which keeps one
@@ -1602,7 +1633,7 @@ https://your-magento-host/magenx-mcp/server?tools=search_orders,get_order
   everything hanging off them, plus reviews and search terms), `content` (CMS,
   widgets, e-mail, design, media, blog), `support` (orders, customers, carts,
   returns, help desk, GDPR, admin users, reviews) and `ops` (caches, indexers,
-  cron, logs, config, platform, admin activity). Each also
+  cron, logs, config, platform, security patches and upgrades, admin activity). Each also
   includes `store`, because most tasks start with `list_stores`.
 - `domains` is a comma-separated list of domain codes — the same codes as the
   Enabled Tool Domains setting.

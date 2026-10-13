@@ -259,6 +259,8 @@
                 <item name="read_log" xsi:type="object">Magenx\AiMcp\Model\Tool\Log\ReadLog\Proxy</item>
                 <item name="read_error_report" xsi:type="object">Magenx\AiMcp\Model\Tool\Log\ReadErrorReport\Proxy</item>
                 <item name="platform_status" xsi:type="object">Magenx\AiMcp\Model\Tool\Platform\PlatformStatus\Proxy</item>
+                <item name="security_status" xsi:type="object">Magenx\AiMcp\Model\Tool\Security\SecurityStatus\Proxy</item>
+                <item name="upgrade_compatibility" xsi:type="object">Magenx\AiMcp\Model\Tool\Security\UpgradeCompatibility\Proxy</item>
                 <item name="search_admin_activity" xsi:type="object">Magenx\AiMcp\Model\Tool\AdminActivity\SearchAdminActivity\Proxy</item>
                 <item name="get_admin_activity" xsi:type="object">Magenx\AiMcp\Model\Tool\AdminActivity\GetAdminActivity\Proxy</item>
                 <item name="sales_summary" xsi:type="object">Magenx\AiMcp\Model\Tool\Report\SalesSummary\Proxy</item>
