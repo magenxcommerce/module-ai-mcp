@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.8.0](https://github.com/magenxcommerce/module-ai-mcp/compare/v1.7.0...v1.8.0) (2026-10-13)
+
+
+### Features
+
+* Add security_status and upgrade_compatibility tools ([#30](https://github.com/magenxcommerce/module-ai-mcp/issues/30)) ([df8e6e3](https://github.com/magenxcommerce/module-ai-mcp/commit/df8e6e3560cd39095334d47573e390fa2993919c))
+
 ## [1.7.0](https://github.com/magenxcommerce/module-ai-mcp/compare/v1.6.0...v1.7.0) (2026-10-11)
 
 
