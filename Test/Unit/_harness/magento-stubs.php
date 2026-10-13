@@ -153,6 +153,14 @@ namespace Magento\Framework\App {
         public function getConnection($resourceName = 'default') { return null; }
         public function getTableName($modelEntity, $connectionName = 'default') { return $modelEntity; }
     }
+    interface ProductMetadataInterface {
+        public function getVersion(); public function getEdition(); public function getName();
+    }
+    interface CacheInterface {
+        public function getFrontend(); public function load($identifier);
+        public function save($data, $identifier, $tags = [], $lifeTime = null);
+        public function remove($identifier); public function clean($tags = []);
+    }
 }
 
 namespace Magento\Authorization\Model {
@@ -621,6 +629,7 @@ namespace Magento\Downloadable\Api {
 
 namespace Magento\Framework\App\Filesystem {
     class DirectoryList {
+        public const ROOT = 'base';
         public const LOG = 'log';
         public const MEDIA = 'media';
         public const VAR_DIR = 'var';
@@ -877,6 +886,14 @@ namespace Magenx\Platform\Model\Metric {
         public const WARN = 'warn';
         public const UNAVAILABLE = 'unavailable';
         public const ERROR = 'error';
+    }
+}
+
+namespace Magenx\Platform\Model\Http {
+    class JsonFetcher {
+        public function fetch($url, $user = null, $password = null) { return null; }
+        public function getLastError() { return ''; }
+        public function redact($url) { return $url; }
     }
 }
 

@@ -343,3 +343,7 @@
 "There is no readable log named ""%1"". Call list_logs for the names that can be read.","There is no readable log named ""%1"". Call list_logs for the names that can be read."
 "The ""report_id"" argument must be the digits of a report id.","The ""report_id"" argument must be the digits of a report id."
 "There is no error report %1.","There is no error report %1."
+"Magento could not name its own release. It reads it from the composer metadata of magento/product-*-edition, which this installation does not expose.","Magento could not name its own release. It reads it from the composer metadata of magento/product-*-edition, which this installation does not expose."
+"Unknown distribution ""%1"". Use one of: %2.","Unknown distribution ""%1"". Use one of: %2."
+"""%1"" is not a release version such as 2.4.8-p5.","""%1"" is not a release version such as 2.4.8-p5."
+"No release data for %1: %2","No release data for %1: %2"

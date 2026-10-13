@@ -21,8 +21,8 @@
             <resource id="Magento_Backend::admin">
                 <resource id="Magenx_AiMcp::server" title="AI MCP Server" translate="title" sortOrder="200">
                     <!--
-                        Cron state, the module list and this server's own audit log have no stock
-                        Magento resource that fits them. Defaulting those to the endpoint grant
+                        Cron state, the module list, the security-patch and upgrade checks and this
+                        server's own audit log have no stock Magento resource that fits them. Defaulting those to the endpoint grant
                         would mean any integration able to reach the server could read them, so
                         they get a resource of their own, nested here because they describe this
                         server rather than any part of the catalogue or the store.

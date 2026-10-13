@@ -47,6 +47,18 @@ class AnnotationConventionsTest extends TestCase
     ];
 
     /**
+     * Read tools that ask a service outside this store.
+     *
+     * Both look the installed release up on the magento.watch advisory API,
+     * which is the open world the hint exists to flag. Every other tool acts on
+     * this one store alone.
+     */
+    private const OPEN_WORLD_READS = [
+        'security_status',
+        'upgrade_compatibility',
+    ];
+
+    /**
      * Reads the tool's advertised hints without constructing it.
      *
      * @param string $class
@@ -148,7 +160,7 @@ class AnnotationConventionsTest extends TestCase
             $checked++;
             $this->assertArrayNotHasKey('destructiveHint', $annotations, $name);
             $this->assertArrayNotHasKey('idempotentHint', $annotations, $name);
-            $this->assertFalse($annotations['openWorldHint'], $name);
+            $this->assertSame(in_array($name, self::OPEN_WORLD_READS, true), $annotations['openWorldHint'], $name);
         }
 
         $this->assertGreaterThan(0, $checked, 'No read tools were reached — the check proved nothing.');

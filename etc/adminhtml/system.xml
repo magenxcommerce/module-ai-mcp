@@ -82,6 +82,17 @@
                     </depends>
                 </field>
             </group>
+            <group id="advisories" translate="label" sortOrder="40" showInDefault="1">
+                <label>Security Advisories</label>
+                <field id="enabled" translate="label comment" type="select" sortOrder="10" showInDefault="1" canRestore="1">
+                    <label>Look Up Security Bulletins</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    <comment><![CDATA[Lets <code>security_status</code> and <code>upgrade_compatibility</code> look this store's release up on <a href="https://magento.watch/api" target="_blank" rel="noopener">magento.watch</a>, an independent index of Adobe's security bulletins and system requirements. The request carries only the release string, e.g. <code>2.4.8-p5</code>. When No, both tools report the installed release and local patch records only.]]></comment>
+                    <depends>
+                        <field id="magenx_ai_mcp/general/enabled">1</field>
+                    </depends>
+                </field>
+            </group>
         </section>
     </system>
 </config>
