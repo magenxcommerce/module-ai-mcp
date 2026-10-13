@@ -153,14 +153,6 @@ namespace Magento\Framework\App {
         public function getConnection($resourceName = 'default') { return null; }
         public function getTableName($modelEntity, $connectionName = 'default') { return $modelEntity; }
     }
-    interface ProductMetadataInterface {
-        public function getVersion(); public function getEdition(); public function getName();
-    }
-    interface CacheInterface {
-        public function getFrontend(); public function load($identifier);
-        public function save($data, $identifier, $tags = [], $lifeTime = null);
-        public function remove($identifier); public function clean($tags = []);
-    }
 }
 
 namespace Magento\Authorization\Model {
@@ -629,7 +621,6 @@ namespace Magento\Downloadable\Api {
 
 namespace Magento\Framework\App\Filesystem {
     class DirectoryList {
-        public const ROOT = 'base';
         public const LOG = 'log';
         public const MEDIA = 'media';
         public const VAR_DIR = 'var';
@@ -889,11 +880,15 @@ namespace Magenx\Platform\Model\Metric {
     }
 }
 
-namespace Magenx\Platform\Model\Http {
-    class JsonFetcher {
-        public function fetch($url, $user = null, $password = null) { return null; }
-        public function getLastError() { return ''; }
-        public function redact($url) { return $url; }
+namespace Magenx\Platform\Model\Security {
+    class MagentoWatch {
+        public const DISTRIBUTIONS = ['magento-community', 'magento-commerce', 'mage-os'];
+    }
+    class SecurityReport {
+        public function build($distribution = null, $listRecords = false) { return []; }
+    }
+    class CompatibilityReport {
+        public function build($target = null, $distribution = null, $includeOutdated = false) { return []; }
     }
 }
 

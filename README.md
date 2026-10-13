@@ -49,7 +49,7 @@ Each tool carries `name`, `description` and `inputSchema`, plus a `title` for a
 client's tool picker and MCP's `annotations`: `readOnlyHint` (the inverse of
 whether the tool writes), `openWorldHint` (`false` for every tool that acts on
 this one store alone; `true` only for `security_status` and
-`upgrade_compatibility`, which also ask the magento.watch advisory API), and, for write tools only, `destructiveHint` and
+`upgrade_compatibility`, which also ask public advisory services), and, for write tools only, `destructiveHint` and
 `idempotentHint`. The last two are defined by MCP only when `readOnlyHint` is
 false, so a read tool advertises neither.
 
@@ -316,8 +316,8 @@ same ACL role, so nothing is lost but the serializer.
 | `list_rma_attachments` |  | `Magenx_Rma::rma_manage` |
 | `delete_rma_attachment` | ✓ | `Magenx_Rma::rma_manage` |
 | `platform_status` |  | `Magenx_Platform::platform` |
-| `security_status` |  | `Magenx_AiMcp::ops` |
-| `upgrade_compatibility` |  | `Magenx_AiMcp::ops` |
+| `security_status` |  | `Magenx_Platform::platform` |
+| `upgrade_compatibility` |  | `Magenx_Platform::platform` |
 | `search_admin_activity` |  | `Magenx_AdminActivity::activity` |
 | `get_admin_activity` |  | `Magenx_AdminActivity::activity` |
 | `sales_summary` |  | `Magenx_AiMcp::reports` |
@@ -1252,56 +1252,33 @@ quantity. Quantity is the legacy `cataloginventory_stock_item` figure that
 `get_stock` reads, which under MSI is the default source only. A row inheriting
 "manage stock" from configuration is assumed managed, Magento's default.
 
-### Security patches and upgrades: the release, not the modules
+### Security patches and upgrades: the Platform module's two tabs, as data
 
-`list_modules` shows module versions (`104.0.8-p5`), which only imply the
-release, and cannot see Adobe's isolated security patches at all: those change
-files without changing a single package version. Two tools, both behind
-`Magenx_AiMcp::ops`, answer the questions that follow from that.
+`security_status` and `upgrade_compatibility` return the Platform module's
+**Security** and **Compatibility** tabs unrendered. Every finding is made there,
+by `Magenx\Platform\Model\Security\SecurityReport` and `CompatibilityReport`,
+so an agent and an admin reading the tab cannot disagree. Both sit behind
+`Magenx_Platform::platform`, like `platform_status`, and both advertise
+`openWorldHint`, because they ask public services about this store's release
+and locked packages. See the Platform module's README for what they read and
+from where.
 
-`security_status` names the installed release from Magento's own product
-metadata (2.4.8-p5, Community), looks it up on
-[magento.watch](https://magento.watch/api) — an independent, community-run index
-of Adobe's bulletins — and joins each bulletin still open against the release
-with what this installation records about the isolated patch that closes it:
+In short: `security_status` reports the installed release, the Adobe bulletins
+open against it (magento.watch), whether this installation records the isolated
+patch for each — composer-patches 1.x/2.x records, `composer.json`
+declarations, `m2-hotfixes/` — in the order they go on, and Packagist advisories
+against `composer.lock`, as `composer audit` would. `no_evidence` means no
+record was found, not that the patch is absent: a patch applied by hand leaves
+none.
 
-| Record | Read from | Reported as |
-|---|---|---|
-| composer-patches 1.x | `extra.patches_applied` in `vendor/composer/installed.json` | `applied` |
-| composer-patches 2.x | `patches.lock.json` | `applied` |
-| A declaration | `extra.patches` in `composer.json`, and the file `extra.patches-file` names | `declared` |
-| A hotfix file | `m2-hotfixes/*.patch` | `present` |
-
-A record matches when it names the patch (`VULN-39341`, `2026-jul`) or the
-bulletin (`APSB26-146`) in its description or path. A bulletin is only as
-patched as its least-evidenced patch, and `apply_order` lists what is not yet
-recorded as applied, oldest bulletin first — Adobe's isolated patches are not
-cumulative. Two limits are stated in the result rather than hidden: a patch
-applied by hand with `patch -p1` leaves no record, so the absence of one is
-`no_evidence`, never "missing"; and every source carries `read`, `absent` or
-`unreadable`, because a hardened store that keeps the PHP user out of
-`composer.json` must not read as a store with no patches. Nothing is run:
-`magento-patches status` needs process execution, which a hardened store
-disables for the PHP user.
-
-`upgrade_compatibility` compares what the store actually runs — PHP, the
-database (`SELECT VERSION()`), and the search engine, Redis and RabbitMQ from the
-Platform module's collectors, so no connection is opened twice — with the system
-requirements of the releases an upgrade is weighed between: the one
-magento.watch recommends, the newest patch on the same line and the newest
-release overall, or one `target_version`. Adobe lists the versions a release was
-*tested* with, not a range, so mismatches are warnings with a verdict
-(`older_than_tested`, `newer_than_tested`, `not_listed`, `product_not_listed`)
-— except PHP, which is a blocker, because the release's own composer constraint
-refuses an unlisted PHP. The installed release is checked the same way, since a
-store already outside its own release's tested versions is worth knowing about
-before anything moves.
-
-Both tools send one thing out: the release string, in the request path. Answers
-are cached for an hour, as the API's own `Cache-Control` asks, and only https is
-spoken. With the lookup switched off (`magenx_ai_mcp/advisories/enabled`) or
-unreachable, both still answer — the installed release, local patch records and
-measured versions — with the advisory half marked unavailable and the reason.
+`upgrade_compatibility` checks the recommended release, the newest patch on
+this line and the newest release, or one `target_version`. PHP is a blocker only
+when the release's own composer metapackage excludes it; the services are
+warnings against the versions Adobe tested; and every third-party package in
+`composer.lock` whose requirements exclude what the release pins is a blocker,
+because composer would refuse the upgrade. `include_outdated` adds the direct
+dependencies that have a newer stable release, at one lookup per package on a
+cold cache.
 
 ### Search terms and reviews
 
@@ -1598,8 +1575,6 @@ pointing the other way.
 | `magenx_ai_mcp/security/audit_reads` | `off` | Also record successful reads: `off`, `personal_data` or `all`. Records ids, never contents |
 | `magenx_ai_mcp/tools/enabled_domains` | *(empty)* | Tool domains to offer; **empty means all** |
 | `magenx_ai_mcp/tools/disabled_tools` | *(empty)* | Individual tool names to withhold |
-| `magenx_ai_mcp/advisories/enabled` | `1` | Let `security_status` and `upgrade_compatibility` look the installed release up on magento.watch. Sends only the release string |
-| `magenx_ai_mcp/advisories/api_url` | `https://magento.watch/api/v1` | Advisory API base URL; https only. No admin field — set it with `config:set` or `env.php` |
 
 ### Narrowing the toolset is about context, not permission
 

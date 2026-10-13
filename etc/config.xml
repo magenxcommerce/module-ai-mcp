@@ -33,19 +33,6 @@
                 <enabled_domains/>
                 <disabled_tools/>
             </tools>
-            <!--
-                On by default, unlike the switches above, because it grants
-                nothing: security_status and upgrade_compatibility are reads
-                behind Magenx_AiMcp::ops, and what the lookup sends out is this
-                store's release string in a URL path. Turned off, both tools
-                still report the installed release and local patch evidence.
-                The URL has no admin field on purpose; override it with
-                config:set or env.php.
-            -->
-            <advisories>
-                <enabled>1</enabled>
-                <api_url>https://magento.watch/api/v1</api_url>
-            </advisories>
         </magenx_ai_mcp>
     </default>
 </config>

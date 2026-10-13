@@ -24,8 +24,6 @@ class Config
     private const XML_PATH_ENABLED_TOOL_DOMAINS = 'magenx_ai_mcp/tools/enabled_domains';
     private const XML_PATH_DISABLED_TOOLS = 'magenx_ai_mcp/tools/disabled_tools';
     private const XML_PATH_AUDIT_READS = 'magenx_ai_mcp/security/audit_reads';
-    private const XML_PATH_ADVISORIES_ENABLED = 'magenx_ai_mcp/advisories/enabled';
-    private const XML_PATH_ADVISORIES_API_URL = 'magenx_ai_mcp/advisories/api_url';
 
     /** Reads are not recorded. The default, and what every existing installation had. */
     public const AUDIT_READS_OFF = 'off';
@@ -140,31 +138,6 @@ class Config
         return in_array($mode, [self::AUDIT_READS_PERSONAL_DATA, self::AUDIT_READS_ALL], true)
             ? $mode
             : self::AUDIT_READS_OFF;
-    }
-
-    /**
-     * Whether the security tools may look this store's release up on the
-     * advisory API. Off means they report local patch evidence only.
-     *
-     * @return bool
-     */
-    public function isAdvisoryLookupEnabled(): bool
-    {
-        return $this->scopeConfig->isSetFlag(self::XML_PATH_ADVISORIES_ENABLED);
-    }
-
-    /**
-     * Base URL of the advisory API, e.g. `https://magento.watch/api/v1`.
-     *
-     * Not an admin field: an address the server will fetch from belongs in
-     * config.xml, env.php or `config:set`, not in a form any configuration
-     * editor can point at an internal host.
-     *
-     * @return string
-     */
-    public function getAdvisoryApiUrl(): string
-    {
-        return trim((string) $this->scopeConfig->getValue(self::XML_PATH_ADVISORIES_API_URL));
     }
 
     /**
