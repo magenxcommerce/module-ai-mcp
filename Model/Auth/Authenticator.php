@@ -43,6 +43,9 @@ class Authenticator
 {
     private const BEARER_PREFIX = 'Bearer ';
 
+    /** \Magento\Integration\Model\Integration::STATUS_ACTIVE */
+    private const INTEGRATION_STATUS_ACTIVE = 1;
+
     /**
      * @param TokenFactory $tokenFactory
      * @param IntegrationServiceInterface $integrationService
@@ -102,6 +105,12 @@ class Authenticator
             $integrationId = (int) $integration->getId();
             if ($integrationId === 0) {
                 throw $this->refuse(__('The access token is not bound to an integration.'));
+            }
+            // Deactivating an integration in admin leaves its token in
+            // oauth_token. Magento's own REST API refuses it from then on, and
+            // so must this endpoint, or deactivation would not cut an agent off.
+            if ((int) $integration->getStatus() !== self::INTEGRATION_STATUS_ACTIVE) {
+                throw $this->refuse(__('The integration behind this token is not active.'));
             }
 
             $name = (string) ($integration->getName() ?: 'integration#' . $integrationId);

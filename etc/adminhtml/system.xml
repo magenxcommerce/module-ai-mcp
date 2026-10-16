@@ -53,6 +53,22 @@
                         <field id="magenx_ai_mcp/general/enabled">1</field>
                     </depends>
                 </field>
+                <field id="rate_limit" translate="label comment" type="text" sortOrder="34" showInDefault="1">
+                    <label>Tool Calls per Minute</label>
+                    <validate>validate-digits</validate>
+                    <comment><![CDATA[Per caller: one integration, or one admin across all their OAuth connections. A call over the limit is answered with an error the agent can read and wait on, and the first refusal in each minute is logged. 0 disables the limit.]]></comment>
+                    <depends>
+                        <field id="magenx_ai_mcp/general/enabled">1</field>
+                    </depends>
+                </field>
+                <field id="write_rate_limit" translate="label comment" type="text" sortOrder="36" showInDefault="1">
+                    <label>Write Calls per Minute</label>
+                    <validate>validate-digits</validate>
+                    <comment><![CDATA[Confirmed write-tool calls per caller, counted on top of the limit above. Previews (a write called without confirm) count only towards the limit above. 0 disables the limit.]]></comment>
+                    <depends>
+                        <field id="magenx_ai_mcp/general/enabled">1</field>
+                    </depends>
+                </field>
                 <field id="audit_reads" translate="label comment" type="select" sortOrder="40" showInDefault="1">
                     <label>Audit Reads</label>
                     <source_model>Magenx\AiMcp\Model\Config\Source\ReadAuditMode</source_model>

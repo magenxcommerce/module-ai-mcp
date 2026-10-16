@@ -792,7 +792,9 @@ namespace Magento\User\Model {
         public function isObjectNew($flag = null) {}
         public function dataHasChangedFor($field) {}
         public function load($modelId, $field = null) { return $this; }
+        public function loadByUsername($username) { return $this; }
         public function getUserName() {}
+        public function getIsActive() {}
         public function getRole() {}
     }
 }
@@ -1786,5 +1788,13 @@ namespace Magento\Authorization\Model\ResourceModel\Role {
     class Collection {
         public function setUserFilter($userId, $userType) { return $this; }
         public function getFirstItem() { return null; }
+    }
+}
+
+// The request the authenticator reads its bearer token from.
+namespace Magento\Framework\App\Request {
+    class Http {
+        public function __construct(private array $headers = []) {}
+        public function getHeader($name, $default = false) { return $this->headers[$name] ?? $default; }
     }
 }

@@ -24,6 +24,8 @@ class Config
     private const XML_PATH_ENABLED_TOOL_DOMAINS = 'magenx_ai_mcp/tools/enabled_domains';
     private const XML_PATH_DISABLED_TOOLS = 'magenx_ai_mcp/tools/disabled_tools';
     private const XML_PATH_AUDIT_READS = 'magenx_ai_mcp/security/audit_reads';
+    private const XML_PATH_RATE_LIMIT = 'magenx_ai_mcp/security/rate_limit';
+    private const XML_PATH_WRITE_RATE_LIMIT = 'magenx_ai_mcp/security/write_rate_limit';
 
     /** Reads are not recorded. The default, and what every existing installation had. */
     public const AUDIT_READS_OFF = 'off';
@@ -138,6 +140,39 @@ class Config
         return in_array($mode, [self::AUDIT_READS_PERSONAL_DATA, self::AUDIT_READS_ALL], true)
             ? $mode
             : self::AUDIT_READS_OFF;
+    }
+
+    /**
+     * Tool calls one caller may make per minute; 0 means no limit.
+     *
+     * @return int
+     */
+    public function getRateLimit(): int
+    {
+        return $this->nonNegativeInt(self::XML_PATH_RATE_LIMIT);
+    }
+
+    /**
+     * Confirmed write-tool calls one caller may make per minute; 0 means no limit.
+     *
+     * @return int
+     */
+    public function getWriteRateLimit(): int
+    {
+        return $this->nonNegativeInt(self::XML_PATH_WRITE_RATE_LIMIT);
+    }
+
+    /**
+     * An integer setting; anything that is not a plain number reads as 0.
+     *
+     * @param string $path
+     * @return int
+     */
+    private function nonNegativeInt(string $path): int
+    {
+        $raw = trim((string) $this->scopeConfig->getValue($path));
+
+        return ctype_digit($raw) ? (int) $raw : 0;
     }
 
     /**
