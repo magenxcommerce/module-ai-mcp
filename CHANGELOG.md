@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.9.0](https://github.com/magenxcommerce/module-ai-mcp/compare/v1.8.0...v1.9.0) (2026-10-16)
+
+
+### Features
+
+* OAuth 2.1 + PKCE sign-in for claude.ai connectors; MCP writes in admin activity log ([#32](https://github.com/magenxcommerce/module-ai-mcp/issues/32)) ([8cc991e](https://github.com/magenxcommerce/module-ai-mcp/commit/8cc991e95c31ae0cbf4cd06c09f57832c69e76c8))
+
 ## [1.8.0](https://github.com/magenxcommerce/module-ai-mcp/compare/v1.7.0...v1.8.0) (2026-10-13)
 
 
