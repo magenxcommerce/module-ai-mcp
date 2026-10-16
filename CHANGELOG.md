@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.9.1](https://github.com/magenxcommerce/module-ai-mcp/compare/v1.9.0...v1.9.1) (2026-10-16)
+
+
+### Bug Fixes
+
+* **auth:** resolve an admin's ACL from their group role ([#34](https://github.com/magenxcommerce/module-ai-mcp/issues/34)) ([83d64fc](https://github.com/magenxcommerce/module-ai-mcp/commit/83d64fcb2404e133b65c57a841cc391b493a01ba))
+
 ## [1.9.0](https://github.com/magenxcommerce/module-ai-mcp/compare/v1.8.0...v1.9.0) (2026-10-16)
 
 
