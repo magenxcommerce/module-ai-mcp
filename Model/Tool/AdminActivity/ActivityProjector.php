@@ -42,6 +42,11 @@ class ActivityProjector
             'entity_id' => $activity->getData('entity_id'),
             'entity_name' => $activity->getData('entity_name'),
             'ip_address' => $activity->getData('ip_address'),
+            // "admin" for the admin panel, "mcp" for a change made through this
+            // server; connector and role say which credential and which role.
+            'source' => $activity->getData('source') ?: 'admin',
+            'connector' => $activity->getData('connector'),
+            'role_name' => $activity->getData('role_name'),
         ];
     }
 

@@ -791,6 +791,9 @@ namespace Magento\User\Model {
         public function getData($key = null, $index = null) {}
         public function isObjectNew($flag = null) {}
         public function dataHasChangedFor($field) {}
+        public function load($modelId, $field = null) { return $this; }
+        public function getUserName() {}
+        public function getRole() {}
     }
 }
 
@@ -1744,5 +1747,36 @@ namespace Magento\Framework\Event {
     class Observer {
         public function __construct(private ?\Magento\Framework\Event $event = null) {}
         public function getEvent() { return $this->event; }
+    }
+}
+
+// The admin activity log's external-actor API, which write tools run inside.
+// ExternalActor is a plain value object, reproduced so tests can read it back.
+namespace Magenx\AdminActivity\Model\Activity {
+    class ExternalActor {
+        public function __construct(
+            private ?int $userId,
+            private string $username,
+            private string $source,
+            private ?string $connector,
+            private ?string $roleName,
+            private string $action
+        ) {}
+        public function getUserId(): ?int { return $this->userId; }
+        public function getUsername(): string { return $this->username; }
+        public function getSource(): string { return $this->source; }
+        public function getConnector(): ?string { return $this->connector; }
+        public function getRoleName(): ?string { return $this->roleName; }
+        public function getAction(): string { return $this->action; }
+    }
+    class ExternalActorScope {
+        public function run(ExternalActor $actor, callable $work): mixed { return $work(); }
+        public function isActive(): bool { return false; }
+    }
+}
+
+namespace Magento\Authorization\Model {
+    class Role {
+        public function getRoleName() {}
     }
 }

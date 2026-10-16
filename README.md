@@ -1558,6 +1558,16 @@ store's `magenx_ai_mcp/security/allowed_config_paths` glob allowlist, which is
 the paths they want managed. `get_config` redacts secret values rather than
 returning them.
 
+Every confirmed write also runs inside `Magenx_AdminActivity`'s external-actor
+scope, so the entities it changes appear in **System → Admin Activity Log** beside
+admin-panel edits, with field-level before and after values, `source = mcp`, the
+**connector** (OAuth client or integration name) and the **role** (the admin's
+role at the time, or `Integration "<name>"`). An OAuth connection or admin token
+is recorded as that admin; an integration as `integration:<name>`. Only entity
+types the activity log tracks are recorded, exactly as for the admin panel, and
+nothing is recorded while that module's logging is switched off.
+`search_admin_activity` filters on `source`, `connector` and `role_name`.
+
 Every attempted write is logged to `var/log/magenx_ai_mcp.log` with the calling
 integration, the arguments and the verdict, and successful reads too when
 `audit_reads` asks for them. `read_audit_log` reads the end of

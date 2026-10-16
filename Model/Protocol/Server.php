@@ -10,6 +10,7 @@ use Magenx\AiMcp\Api\PersonalDataToolInterface;
 use Magenx\AiMcp\Api\StructuredToolInterface;
 use Magenx\AiMcp\Api\ToolAnnotationsInterface;
 use Magenx\AiMcp\Api\ToolInterface;
+use Magenx\AiMcp\Model\Audit\AdminActivityRecorder;
 use Magenx\AiMcp\Model\Auth\Identity;
 use Magenx\AiMcp\Model\Config;
 use Magenx\AiMcp\Model\Tool\ToolCatalog;
@@ -90,6 +91,8 @@ class Server
      * @param LoggerInterface $auditLogger
      * @param string $serverVersion Set from di.xml so the advertised version tracks the release.
      * @param ToolsetResolver|null $toolsetResolver Built from the catalog when not injected.
+     * @param AdminActivityRecorder|null $activityRecorder Puts write tools' changes in the admin
+     *     activity log; writes run unrecorded there when not injected.
      */
     public function __construct(
         private readonly ToolRegistry $registry,
@@ -99,7 +102,8 @@ class Server
         private readonly Json $serializer,
         private readonly LoggerInterface $auditLogger,
         private readonly string $serverVersion = '0.0.0',
-        ?ToolsetResolver $toolsetResolver = null
+        ?ToolsetResolver $toolsetResolver = null,
+        private readonly ?AdminActivityRecorder $activityRecorder = null
     ) {
         $this->toolsetResolver = $toolsetResolver ?? new ToolsetResolver($catalog, new ToolsetProfiles());
     }
@@ -389,7 +393,9 @@ class Server
         }
 
         try {
-            $result = $tool->execute($arguments);
+            $result = $tool->isWrite() && $this->activityRecorder !== null
+                ? $this->activityRecorder->run($identity, $name, fn (): array => $tool->execute($arguments))
+                : $tool->execute($arguments);
             if ($tool->isWrite()) {
                 $this->audit($tool, $arguments, $identity, 'applied');
             } elseif ($this->isReadAudited($tool)) {

@@ -105,10 +105,14 @@ class Authenticator
                 throw $this->refuse(__('The access token is not bound to an integration.'));
             }
 
+            $name = (string) ($integration->getName() ?: 'integration#' . $integrationId);
+
             return $this->buildIdentity(
                 UserContextInterface::USER_TYPE_INTEGRATION,
                 $integrationId,
-                (string) ($integration->getName() ?: 'integration#' . $integrationId)
+                $name,
+                true,
+                $name
             );
         }
 
@@ -148,7 +152,8 @@ class Authenticator
             UserContextInterface::USER_TYPE_ADMIN,
             $grant->getAdminUserId(),
             sprintf('admin:%s via %s', $grant->getUsername(), $grant->getClientName()),
-            $grant->allowsWrites()
+            $grant->allowsWrites(),
+            $grant->getClientName()
         );
     }
 
@@ -184,11 +189,17 @@ class Authenticator
      * @param int $userId
      * @param string $label
      * @param bool $writeScope
+     * @param string|null $connector
      * @return Identity
      * @throws AuthenticationException
      */
-    private function buildIdentity(int $userType, int $userId, string $label, bool $writeScope = true): Identity
-    {
+    private function buildIdentity(
+        int $userType,
+        int $userId,
+        string $label,
+        bool $writeScope = true,
+        ?string $connector = null
+    ): Identity {
         if ($userId === 0) {
             throw $this->refuse(__('The access token is not bound to a user.'));
         }
@@ -200,7 +211,7 @@ class Authenticator
             $resources = [];
         }
 
-        return new Identity($userType, $userId, $label, $resources, $writeScope);
+        return new Identity($userType, $userId, $label, $resources, $writeScope, $connector);
     }
 
     /**

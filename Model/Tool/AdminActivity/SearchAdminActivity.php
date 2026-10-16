@@ -70,7 +70,9 @@ class SearchAdminActivity extends AbstractTool implements PersonalDataToolInterf
                 [
                     'username' => [
                         'type' => 'string',
-                        'description' => 'Exact admin username. search_admin_users reports them.',
+                        'description' => 'Exact admin username. search_admin_users reports them. A '
+                            . 'change made through this server by an integration is recorded as '
+                            . '"integration:<name>".',
                     ],
                     'user_id' => [
                         'type' => 'integer',
@@ -109,6 +111,16 @@ class SearchAdminActivity extends AbstractTool implements PersonalDataToolInterf
                             . 'tracked entity keys on an integer.',
                     ],
                     'ip_address' => ['type' => 'string', 'description' => 'Exact match.'],
+                    'source' => [
+                        'type' => 'string',
+                        'description' => '"admin" for changes made in the admin panel, "mcp" for changes '
+                            . 'made through this MCP server.',
+                    ],
+                    'connector' => [
+                        'type' => 'string',
+                        'description' => 'Exact integration or OAuth client name behind an MCP change.',
+                    ],
+                    'role_name' => ['type' => 'string', 'description' => 'Exact admin role name.'],
                     'created_from' => [
                         'type' => 'string',
                         'description' => 'Earliest date, inclusive. "2026-01-01" or '
@@ -182,7 +194,7 @@ class SearchAdminActivity extends AbstractTool implements PersonalDataToolInterf
      */
     private function applyFilters(object $collection, array $arguments): void
     {
-        foreach (['username', 'ip_address', 'entity_id'] as $field) {
+        foreach (['username', 'ip_address', 'entity_id', 'source', 'connector', 'role_name'] as $field) {
             $value = $this->optionalString($arguments, $field);
             if ($value !== null) {
                 $collection->addFieldToFilter($field, $value);
