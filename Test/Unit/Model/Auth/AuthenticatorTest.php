@@ -6,12 +6,12 @@ declare(strict_types=1);
 
 namespace Magenx\AiMcp\Test\Unit\Model\Auth;
 
+use Magenx\AiMcp\Model\Auth\AclResources;
 use Magenx\AiMcp\Model\Auth\Authenticator;
 use Magenx\AiMcp\Model\Config;
 use Magenx\AiMcp\Model\OAuth\OAuthConfig;
 use Magenx\AiMcp\Model\OAuth\TokenService;
 use Magenx\AiMcp\Test\Unit\GeneratedFactory;
-use Magento\Authorization\Model\Acl\AclRetriever;
 use Magento\Framework\HTTP\PhpEnvironment\RemoteAddress;
 use Magento\Framework\Stdlib\DateTime\DateTime as CoreDate;
 use Magento\Integration\Api\IntegrationServiceInterface;
@@ -46,14 +46,14 @@ class AuthenticatorTest extends TestCase
         $this->authenticator = new Authenticator(
             $this->createMock(TokenFactory::class),
             $this->createMock(IntegrationServiceInterface::class),
-            $this->createMock(AclRetriever::class),
             $this->createMock(OauthHelper::class),
             $this->createMock(CoreDate::class),
             $this->createMock(RemoteAddress::class),
             $this->createMock(Config::class),
             $this->createMock(LoggerInterface::class),
             $this->createMock(OAuthConfig::class),
-            $this->createMock(TokenService::class)
+            $this->createMock(TokenService::class),
+            $this->createMock(AclResources::class)
         );
     }
 

@@ -11,7 +11,6 @@ use Magenx\AiMcp\Model\Config;
 use Magenx\AiMcp\Model\OAuth\OAuthConfig;
 use Magenx\AiMcp\Model\OAuth\Secret;
 use Magenx\AiMcp\Model\OAuth\TokenService;
-use Magento\Authorization\Model\Acl\AclRetriever;
 use Magento\Authorization\Model\UserContextInterface;
 use Magento\Framework\App\Request\Http as HttpRequest;
 use Magento\Framework\Exception\AuthenticationException;
@@ -47,7 +46,6 @@ class Authenticator
     /**
      * @param TokenFactory $tokenFactory
      * @param IntegrationServiceInterface $integrationService
-     * @param AclRetriever $aclRetriever
      * @param OauthHelper $oauthHelper
      * @param CoreDate $date
      * @param RemoteAddress $remoteAddress
@@ -55,18 +53,19 @@ class Authenticator
      * @param LoggerInterface $auditLogger
      * @param OAuthConfig $oauthConfig
      * @param TokenService $tokenService
+     * @param AclResources $aclResources
      */
     public function __construct(
         private readonly TokenFactory $tokenFactory,
         private readonly IntegrationServiceInterface $integrationService,
-        private readonly AclRetriever $aclRetriever,
         private readonly OauthHelper $oauthHelper,
         private readonly CoreDate $date,
         private readonly RemoteAddress $remoteAddress,
         private readonly Config $config,
         private readonly LoggerInterface $auditLogger,
         private readonly OAuthConfig $oauthConfig,
-        private readonly TokenService $tokenService
+        private readonly TokenService $tokenService,
+        private readonly AclResources $aclResources
     ) {
     }
 
@@ -204,12 +203,7 @@ class Authenticator
             throw $this->refuse(__('The access token is not bound to a user.'));
         }
 
-        try {
-            $resources = $this->aclRetriever->getAllowedResourcesByUser($userType, $userId);
-        } catch (\Throwable) {
-            // No role, or a role that resolves to nothing: grant nothing.
-            $resources = [];
-        }
+        $resources = $this->aclResources->forUser($userType, $userId);
 
         return new Identity($userType, $userId, $label, $resources, $writeScope, $connector);
     }

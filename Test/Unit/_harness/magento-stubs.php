@@ -1780,3 +1780,11 @@ namespace Magento\Authorization\Model {
         public function getRoleName() {}
     }
 }
+
+// Role membership rows, read to find an admin's group role.
+namespace Magento\Authorization\Model\ResourceModel\Role {
+    class Collection {
+        public function setUserFilter($userId, $userType) { return $this; }
+        public function getFirstItem() { return null; }
+    }
+}
