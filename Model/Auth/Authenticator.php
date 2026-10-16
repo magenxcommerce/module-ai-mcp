@@ -8,6 +8,9 @@ namespace Magenx\AiMcp\Model\Auth;
 
 use Laminas\Http\Header\HeaderInterface;
 use Magenx\AiMcp\Model\Config;
+use Magenx\AiMcp\Model\OAuth\OAuthConfig;
+use Magenx\AiMcp\Model\OAuth\Secret;
+use Magenx\AiMcp\Model\OAuth\TokenService;
 use Magento\Authorization\Model\Acl\AclRetriever;
 use Magento\Authorization\Model\UserContextInterface;
 use Magento\Framework\App\Request\Http as HttpRequest;
@@ -31,6 +34,11 @@ use Psr\Log\LoggerInterface;
  *
  * Integration tokens do not expire; admin-user tokens do, and their lifetime is
  * enforced here the same way the webapi framework enforces it.
+ *
+ * OAuth access tokens (the `mxa_` prefix) are the third kind, accepted only
+ * while OAuth is switched on. They resolve to the admin who approved the
+ * connection and are checked against that admin's role, exactly like an
+ * admin-user token, narrowed further by the scope the admin granted.
  */
 class Authenticator
 {
@@ -45,6 +53,8 @@ class Authenticator
      * @param RemoteAddress $remoteAddress
      * @param Config $config
      * @param LoggerInterface $auditLogger
+     * @param OAuthConfig $oauthConfig
+     * @param TokenService $tokenService
      */
     public function __construct(
         private readonly TokenFactory $tokenFactory,
@@ -54,7 +64,9 @@ class Authenticator
         private readonly CoreDate $date,
         private readonly RemoteAddress $remoteAddress,
         private readonly Config $config,
-        private readonly LoggerInterface $auditLogger
+        private readonly LoggerInterface $auditLogger,
+        private readonly OAuthConfig $oauthConfig,
+        private readonly TokenService $tokenService
     ) {
     }
 
@@ -75,6 +87,10 @@ class Authenticator
             throw $this->refuse(__('A bearer token is required.'));
         }
 
+        if (str_starts_with($token, Secret::PREFIX_ACCESS)) {
+            return $this->authenticateOAuth($token);
+        }
+
         $tokenModel = $this->tokenFactory->create()->loadByToken($token);
         if (!$tokenModel->getId() || (int) $tokenModel->getRevoked() === 1) {
             throw $this->refuse(__('The access token is invalid or has been revoked.'));
@@ -89,10 +105,14 @@ class Authenticator
                 throw $this->refuse(__('The access token is not bound to an integration.'));
             }
 
+            $name = (string) ($integration->getName() ?: 'integration#' . $integrationId);
+
             return $this->buildIdentity(
                 UserContextInterface::USER_TYPE_INTEGRATION,
                 $integrationId,
-                (string) ($integration->getName() ?: 'integration#' . $integrationId)
+                $name,
+                true,
+                $name
             );
         }
 
@@ -108,6 +128,33 @@ class Authenticator
 
         // Customer tokens (and anything else) have no business here.
         throw $this->refuse(__('This token type cannot be used with the MCP endpoint.'));
+    }
+
+    /**
+     * Resolve an OAuth access token to the admin who granted it.
+     *
+     * @param string $token
+     * @return Identity
+     * @throws AuthenticationException
+     */
+    private function authenticateOAuth(string $token): Identity
+    {
+        if (!$this->oauthConfig->isEnabled()) {
+            throw $this->refuse(__('OAuth access tokens are not accepted on this server.'));
+        }
+
+        $grant = $this->tokenService->resolve($token);
+        if ($grant === null) {
+            throw $this->refuse(__('The access token is invalid, expired or revoked.'));
+        }
+
+        return $this->buildIdentity(
+            UserContextInterface::USER_TYPE_ADMIN,
+            $grant->getAdminUserId(),
+            sprintf('admin:%s via %s', $grant->getUsername(), $grant->getClientName()),
+            $grant->allowsWrites(),
+            $grant->getClientName()
+        );
     }
 
     /**
@@ -141,11 +188,18 @@ class Authenticator
      * @param int $userType
      * @param int $userId
      * @param string $label
+     * @param bool $writeScope
+     * @param string|null $connector
      * @return Identity
      * @throws AuthenticationException
      */
-    private function buildIdentity(int $userType, int $userId, string $label): Identity
-    {
+    private function buildIdentity(
+        int $userType,
+        int $userId,
+        string $label,
+        bool $writeScope = true,
+        ?string $connector = null
+    ): Identity {
         if ($userId === 0) {
             throw $this->refuse(__('The access token is not bound to a user.'));
         }
@@ -157,7 +211,7 @@ class Authenticator
             $resources = [];
         }
 
-        return new Identity($userType, $userId, $label, $resources);
+        return new Identity($userType, $userId, $label, $resources, $writeScope, $connector);
     }
 
     /**

@@ -7,6 +7,7 @@ declare(strict_types=1);
 namespace Magenx\AiMcp\Test\Unit\Model\Protocol;
 
 use Magenx\AiMcp\Api\ToolInterface;
+use Magenx\AiMcp\Model\Audit\AdminActivityRecorder;
 use Magenx\AiMcp\Model\Auth\Identity;
 use Magenx\AiMcp\Model\Config;
 use Magenx\AiMcp\Model\Protocol\JsonRpc;
@@ -45,6 +46,87 @@ class ServerTest extends TestCase
 
         $this->assertStringContainsString('"properties":{}', $json);
         $this->assertStringNotContainsString('"properties":[]', $json);
+    }
+
+    /**
+     * An OAuth connection approved for reading only is not offered write tools,
+     * even when the role and the store would allow them.
+     *
+     * @return void
+     */
+    public function testAReadOnlyConnectionIsNotOfferedWriteTools(): void
+    {
+        $server = $this->server($this->tool('do_thing', isWrite: true, properties: []));
+        $readOnly = new Identity(2, 7, 'admin:alice via Claude', [Server::ENDPOINT_RESOURCE], false);
+
+        $listed = $server->dispatch('tools/list', [], 1, $readOnly)->getBody();
+
+        $this->assertSame([], $listed['result']['tools']);
+    }
+
+    /**
+     * Calling one anyway is refused with a reason, before any preview or execution.
+     *
+     * @return void
+     */
+    public function testAReadOnlyConnectionCannotCallWriteTools(): void
+    {
+        $server = $this->server($this->tool('do_thing', isWrite: true, properties: []));
+        $readOnly = new Identity(2, 7, 'admin:alice via Claude', [Server::ENDPOINT_RESOURCE], false);
+
+        $body = $server->dispatch(
+            'tools/call',
+            ['name' => 'do_thing', 'arguments' => ['confirm' => true]],
+            1,
+            $readOnly
+        )->getBody();
+
+        $this->assertTrue($body['result']['isError']);
+        $this->assertStringContainsString('approved for reading only', $body['result']['content'][0]['text']);
+    }
+
+    /**
+     * A confirmed write runs inside the admin activity recorder, so its changes
+     * reach the admin activity log under this caller; a read does not.
+     *
+     * @return void
+     */
+    public function testOnlyConfirmedWritesRunThroughTheActivityRecorder(): void
+    {
+        $recorder = $this->createMock(AdminActivityRecorder::class);
+        $recorder->expects($this->once())->method('run')
+            ->with($this->isInstanceOf(Identity::class), 'do_thing', $this->isType('callable'))
+            ->willReturnCallback(static fn (Identity $identity, string $tool, callable $work): array => $work());
+        $config = $this->createMock(Config::class);
+        $config->method('isWriteAllowed')->willReturn(true);
+
+        $tools = [
+            $this->tool('do_thing', isWrite: true, properties: []),
+            $this->tool('list_things', isWrite: false, properties: []),
+        ];
+        foreach ($tools as $tool) {
+            $registry = new ToolRegistry([$tool]);
+            $server = new Server(
+                $registry,
+                new ToolCatalog($registry),
+                $config,
+                new JsonRpc(),
+                new Json(),
+                $this->createMock(LoggerInterface::class),
+                '1.0.0',
+                null,
+                $recorder
+            );
+
+            $body = $server->dispatch(
+                'tools/call',
+                ['name' => $tool->getName(), 'arguments' => ['confirm' => true]],
+                1,
+                $this->identity()
+            )->getBody();
+
+            $this->assertArrayNotHasKey('isError', $body['result']);
+        }
     }
 
     /**

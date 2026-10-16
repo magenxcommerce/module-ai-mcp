@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * Copyright © Magenx. All rights reserved.
+ *
+ * Beside System > Extensions > Integrations, the other way an agent gets a token.
+ */
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Backend:etc/menu.xsd">
+    <menu>
+        <add id="Magenx_AiMcp::oauth_connections" title="AI MCP Connections" translate="title" module="Magenx_AiMcp" sortOrder="20" parent="Magento_Integration::system_extensions" action="magenx_aimcp/oauth/connections" resource="Magenx_AiMcp::oauth_manage"/>
+    </menu>
+</config>

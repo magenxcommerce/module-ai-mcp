@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * Copyright © Magenx. All rights reserved.
+ */
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+    <!-- Lands an admin who signed in to approve an AI client on the consent
+         page instead of the dashboard. A no-op unless a consent request is
+         pending in this browser. -->
+    <type name="Magento\Backend\Model\UrlInterface">
+        <plugin name="magenx_aimcp_oauth_consent_startup" type="Magenx\AiMcp\Plugin\Backend\StartupPageUrl"/>
+    </type>
+    <type name="Magenx\AiMcp\Plugin\Backend\StartupPageUrl">
+        <arguments>
+            <argument name="pendingConsent" xsi:type="object">Magenx\AiMcp\Model\OAuth\PendingConsent\Proxy</argument>
+        </arguments>
+    </type>
+</config>

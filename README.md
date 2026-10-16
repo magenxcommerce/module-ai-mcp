@@ -11,8 +11,9 @@ rules, CMS pages and blocks, product attributes and attribute sets, store
 configuration, caches and indexers.
 
 This is a *management* surface, not a storefront feature. It is disabled by
-default, requires a Magento Integration access token, and authorizes every
-individual tool against that integration's own ACL role.
+default, requires a Magento Integration access token — or, with OAuth switched
+on, an admin's own sign-in — and authorizes every individual tool against that
+integration's or admin's ACL role.
 
 ## Why this lives in Magento
 
@@ -30,7 +31,7 @@ been written outside Magento against `/rest/V1/...`. Three things stopped that:
 
 ```
 POST /magenx-mcp/server
-Authorization: Bearer <integration access token>
+Authorization: Bearer <integration access token | OAuth access token>
 Content-Type: application/json
 ```
 
@@ -1532,7 +1533,8 @@ one in full.
 
 1. **The module switch.** `magenx_ai_mcp/general/enabled` is off by default; the
    route 404s.
-2. **ACL.** The integration must hold `Magenx_AiMcp::server` to reach the
+2. **ACL.** The integration — or, for an OAuth connection, the admin who
+   approved it — must hold `Magenx_AiMcp::server` to reach the
    endpoint, plus the tool's own resource to call it. The endpoint grant is
    checked in `Model/Protocol/Server.php` before any method is dispatched, so a
    token whose role lacks it cannot even complete `initialize`, and gets `403`.
@@ -1544,6 +1546,10 @@ one in full.
 4. **The confirm gate.** A write tool called without `"confirm": true` returns a
    preview of exactly what it would do and changes nothing.
 
+An OAuth connection adds a fifth, narrower than the write switch: the admin
+grants write access per connection, and one approved without it is read-only
+whatever the role and the switch allow.
+
 Configuration writes have two more gates: a hard-coded denylist of
 secret-bearing paths (`*password*`, `*secret*`, `*token*`, `admin/*`, `oauth/*`,
 `crypt/*`, and this module's own settings) that no allowlist can open, and the
@@ -1551,6 +1557,16 @@ store's `magenx_ai_mcp/security/allowed_config_paths` glob allowlist, which is
 **empty by default and therefore denies every write** until an operator names
 the paths they want managed. `get_config` redacts secret values rather than
 returning them.
+
+Every confirmed write also runs inside `Magenx_AdminActivity`'s external-actor
+scope, so the entities it changes appear in **System → Admin Activity Log** beside
+admin-panel edits, with field-level before and after values, `source = mcp`, the
+**connector** (OAuth client or integration name) and the **role** (the admin's
+role at the time, or `Integration "<name>"`). An OAuth connection or admin token
+is recorded as that admin; an integration as `integration:<name>`. Only entity
+types the activity log tracks are recorded, exactly as for the admin panel, and
+nothing is recorded while that module's logging is switched off.
+`search_admin_activity` filters on `source`, `connector` and `role_name`.
 
 Every attempted write is logged to `var/log/magenx_ai_mcp.log` with the calling
 integration, the arguments and the verdict, and successful reads too when
@@ -1575,6 +1591,12 @@ pointing the other way.
 | `magenx_ai_mcp/security/audit_reads` | `off` | Also record successful reads: `off`, `personal_data` or `all`. Records ids, never contents |
 | `magenx_ai_mcp/tools/enabled_domains` | *(empty)* | Tool domains to offer; **empty means all** |
 | `magenx_ai_mcp/tools/disabled_tools` | *(empty)* | Individual tool names to withhold |
+| `magenx_ai_mcp/oauth/enabled` | `0` | Accept OAuth sign-ins — see [Connect claude.ai with OAuth](#connect-claudeai-with-oauth) |
+| `magenx_ai_mcp/oauth/allowed_redirect_uris` | claude.ai's callback | Callbacks a client may register, matched exactly |
+| `magenx_ai_mcp/oauth/allow_loopback_redirects` | `0` | Also accept `http://localhost` / `127.0.0.1` / `[::1]` callbacks on any port |
+| `magenx_ai_mcp/oauth/access_token_lifetime` | `60` | Minutes, 5–1440 |
+| `magenx_ai_mcp/oauth/refresh_token_lifetime` | `30` | Days a connection lasts from approval, 1–90; never extended by use |
+| `magenx_ai_mcp/oauth/public_base_url` | *(empty)* | Origin clients use, when not the default store's secure base URL |
 
 ### Narrowing the toolset is about context, not permission
 
@@ -1777,30 +1799,15 @@ This writes to your local user config, which makes the server available across
 all your projects — but it does not travel to cloud sessions. Use `.mcp.json`
 for anything the team or a web session should share.
 
-### From claude.ai "Custom connectors" — not yet
+### From claude.ai "Custom connectors" — with OAuth
 
-The custom-connector dialog on claude.ai offers only a URL plus optional
-**OAuth Client ID / Client Secret**. Those are static credentials for a
-pre-registered **OAuth 2.0** client on your own authorization server. Magento
-implements OAuth **1.0a** and is not an OAuth 2.0 authorization server, so
-there is nothing to put in them, and this module authenticates with a fixed
-bearer token rather than an OAuth flow.
+Turn OAuth on and the connector dialog needs only the URL. See the next
+section. Leave its **OAuth Client ID / Client Secret** fields empty: the client
+registers itself.
 
-Claude does support fixed credentials — the `static_headers` auth type, where
-an organization administrator enters the token once as a request header — but
-it is in beta, which is why the header field is usually absent from that
-dialog. Until your organization has it, use one of the two paths above — both
-carry a bearer token today.
-
-**Do not** work around this by putting the token in the connector URL
-(`?token=…`). URLs are recorded in nginx access logs, proxies and browser
-history, and the MCP authorization spec prohibits access tokens in the query
-string.
-
-If you do connect via a hosted Claude surface, its requests come from
-Anthropic's published egress range **`160.79.104.0/21`**, which is what to put
-in the nginx `allow` list — see the location block under
-[Route it at nginx](#route-it-at-nginx--required-and-it-fails-silently).
+**Do not** put a token in the connector URL (`?token=…`). URLs are recorded in
+nginx access logs, proxies and browser history, and the MCP authorization spec
+prohibits access tokens in the query string.
 
 ### Verify
 
@@ -1812,6 +1819,95 @@ curl -sS https://your-magento-host/magenx-mcp/server \
   -H 'Content-Type: application/json' \
   -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}' | jq '.result.tools[].name'
 ```
+
+## Connect claude.ai with OAuth
+
+With **OAuth** on (Stores → Configuration → Magenx → AI MCP Server → OAuth),
+the server is also an OAuth 2.1 authorization server, and claude.ai, Claude
+Desktop and Claude mobile connect as a person rather than as an integration:
+
+1. Settings → Connectors → **Add custom connector**, URL
+   `https://your-host/magenx-mcp/server`, nothing else.
+2. Claude opens a browser tab on your store. You sign in to the Magento admin
+   as usual — password and two-factor — and land on **Connect AI Client**.
+3. It shows the client, the host the code goes to, and a box for write access.
+   Approve, and the tab returns to Claude, connected.
+
+The connection then acts **as you**: your admin role is the ACL every tool is
+checked against, the audit log names you (`admin:alice via Claude`), and it
+ends when you are deactivated, locked out or deleted. Integration tokens keep
+working beside it, unchanged.
+
+### Who talks to what
+
+```
+Claude's servers ── /.well-known/oauth-protected-resource/magenx-mcp/server ─┐
+(Anthropic egress)  /.well-known/oauth-authorization-server/magenx-mcp       │
+                    POST /magenx-mcp/oauth/register   (RFC 7591)             ├─ public, Magento frontend
+                    POST /magenx-mcp/oauth/token      (code + PKCE, refresh) │
+                    POST /magenx-mcp/oauth/revoke     (RFC 7009)             │
+                    POST /magenx-mcp/server           (Bearer mxa_…)         ┘
+
+Your browser ────── GET  /magenx-mcp/oauth/authorize  → parks the request, 302 ┐
+                    GET  /<admin>/magenx_aimcp/oauth/consent  (login + 2FA)    ├─ only you
+                    POST /<admin>/magenx_aimcp/oauth/decide   (form key)       ┘
+```
+
+Nothing proxies Claude to the admin. Claude's servers only ever reach the
+public endpoints. The admin is reached only by your own browser, so it can stay
+behind the IP restriction it already has.
+
+### What protects it
+
+- **Two-factor applies.** The grant is made on an ordinary admin page, after
+  Magento's login and `Magento_TwoFactorAuth`. Both finish by redirecting to
+  the admin start-up page, so while a request is pending in your browser (a
+  10-minute, HttpOnly `magenx_mcp_oauth` cookie) the start-up page is the
+  consent page. That is the plugin in `Plugin/Backend/StartupPageUrl.php`.
+- **Registration is open, callbacks are not.** Any client can register, as MCP
+  clients expect, but only with a redirect URI on
+  `allowed_redirect_uris`. The default is claude.ai's callback. A code can never
+  be delivered anywhere you did not list. Errors before the callback is verified
+  are shown, never redirected.
+- **PKCE S256 is mandatory**, `plain` is refused, codes live 120 seconds and are
+  single-use. A replayed code, presented with its verifier, revokes everything it
+  issued.
+- **Short tokens, a fixed end.** Access tokens last an hour. Refresh tokens
+  rotate on every use, and a spent one presented again revokes the whole
+  connection. A connection ends 30 days after approval however often it is used,
+  and the admin signs in, with 2FA, again.
+- **Tokens are bound** to this server's resource URL (RFC 8707), to their client,
+  and to an active, unlocked admin. Only SHA-256 hashes are stored.
+- **A password change ends them.** Saving an admin with a new password revokes
+  every connection that admin holds, from the admin panel or the CLI alike.
+  Resetting an admin's two-factor configuration does not: revoke their
+  connections on the Connections page when you do that.
+- **Throttled.** Registration and authorization are the two calls that need no
+  credential, and each stores a row. Each source address is limited to 20
+  registrations an hour and 30 authorization attempts in 10 minutes, and an
+  hourly cron removes abandoned requests and registrations that never connected.
+- **Two ACL resources of its own.** `Magenx_AiMcp::oauth_grant` lets an admin
+  approve connections at all. `Magenx_AiMcp::oauth_manage` opens
+  **System → Extensions → AI MCP Connections**, which lists every live connection
+  with a **Revoke** button.
+- **Write is opt-in per connection.** Ticking the box grants `mcp:write`. That
+  still needs your role, the store's write switch and `confirm: true`.
+
+Every registration, approval, denial, replay and revocation is written to
+`var/log/magenx_ai_mcp.log`.
+
+### What it does not protect against
+
+- **Consent phishing.** Someone can start a flow from their own Claude account
+  and send you the link. Approving would connect *their* Claude to *your* admin
+  role. The consent page says so, and shows where the code goes. Approve only
+  connections you started yourself, just now.
+- **Admin path disclosure.** The authorize endpoint redirects to the admin
+  consent URL, so anyone able to start a flow learns the admin path. Keep the
+  admin IP-restricted, as this stack's nginx already does.
+- **A stolen admin account** is not made worse, and not made better. Whoever
+  can sign in as an admin, with the second factor, can approve a connection,
+  just as they could already create an Integration.
 
 ## Route it at nginx — required, and it fails silently
 
@@ -1840,6 +1936,27 @@ location /magenx-mcp/ {
 Keep it byte-for-byte consistent with the `fastcgi_pass` / `include` lines your
 `/graphql` block already uses — the point is only that the path reaches Magento
 rather than falling through to the storefront.
+
+With OAuth on, the two discovery documents must reach Magento too. They live
+under `/.well-known/`, which a headless storefront usually claims. Put them
+**ahead of** any `location ^~ /.well-known/` block:
+
+```nginx
+location ^~ /.well-known/oauth-protected-resource   { try_files $uri /index.php$is_args$args; }
+location ^~ /.well-known/oauth-authorization-server { try_files $uri /index.php$is_args$args; }
+```
+
+The `/magenx-mcp/` block above already covers `/magenx-mcp/oauth/*`. Its allow
+list now has to admit two kinds of caller. Claude's servers (`160.79.104.0/21`)
+call metadata, register, token and the endpoint. The admins' own browsers call
+`/magenx-mcp/oauth/authorize`, so list them the way the admin location does.
+
+```bash
+curl -sS https://your-host/.well-known/oauth-protected-resource/magenx-mcp/server | jq .
+```
+
+should name `https://your-host/magenx-mcp` under `authorization_servers`. If
+the issuer shows the wrong host, set **Public Base URL**.
 
 Check it took effect:
 

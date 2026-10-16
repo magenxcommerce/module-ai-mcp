@@ -16,13 +16,40 @@ class Identity
      * @param int $userId Integration id or admin user id, depending on $userType
      * @param string $label Human-readable name used in the audit log
      * @param string[] $allowedResources ACL resource ids granted to this caller
+     * @param bool $writeScope False when the token itself is read-only (an OAuth grant
+     *     without mcp:write), whatever the role allows. Integration tokens carry no scope.
+     * @param string|null $connector The credential behind the call: the integration's name, the
+     *     OAuth client's name, or null for an admin-user token. Recorded in the admin activity log.
      */
     public function __construct(
         private readonly int $userType,
         private readonly int $userId,
         private readonly string $label,
-        private readonly array $allowedResources
+        private readonly array $allowedResources,
+        private readonly bool $writeScope = true,
+        private readonly ?string $connector = null
     ) {
+    }
+
+    /**
+     * @return string|null
+     */
+    public function getConnector(): ?string
+    {
+        return $this->connector;
+    }
+
+    /**
+     * Whether the credential this caller presented may be used for writes at all.
+     *
+     * Narrows, never widens: the role and the store's write switch still have
+     * to allow the write too.
+     *
+     * @return bool
+     */
+    public function hasWriteScope(): bool
+    {
+        return $this->writeScope;
     }
 
     /**

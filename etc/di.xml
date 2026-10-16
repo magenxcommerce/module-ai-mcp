@@ -309,6 +309,10 @@
                  that updater rewrites. Keep the two on the same line. -->
             <argument name="serverVersion" xsi:type="string">1.8.0</argument><!-- x-release-please-version -->
             <argument name="toolsetResolver" xsi:type="object">Magenx\AiMcp\Model\Tool\ToolsetResolver</argument>
+            <!-- Write tools run inside Magenx_AdminActivity's external-actor scope, so
+                 their changes appear in System > Admin Activity Log with the
+                 connector and role. Proxied: reads never build it. -->
+            <argument name="activityRecorder" xsi:type="object">Magenx\AiMcp\Model\Audit\AdminActivityRecorder\Proxy</argument>
         </arguments>
     </type>
 
@@ -318,6 +322,43 @@
     <type name="Magenx\AiMcp\Model\Auth\Authenticator">
         <arguments>
             <argument name="auditLogger" xsi:type="object">MagenxAiMcpAuditLogger</argument>
+            <!-- Proxied: an integration-token call never touches OAuth. -->
+            <argument name="tokenService" xsi:type="object">Magenx\AiMcp\Model\OAuth\TokenService\Proxy</argument>
+        </arguments>
+    </type>
+
+    <!-- OAuth: grants, refusals, replays and revocations land in the same audit
+         file as the writes, since each one changes who can act on the store. -->
+    <type name="Magenx\AiMcp\Model\OAuth\ClientRegistry">
+        <arguments>
+            <argument name="auditLogger" xsi:type="object">MagenxAiMcpAuditLogger</argument>
+        </arguments>
+    </type>
+    <type name="Magenx\AiMcp\Model\OAuth\AuthorizationService">
+        <arguments>
+            <argument name="auditLogger" xsi:type="object">MagenxAiMcpAuditLogger</argument>
+        </arguments>
+    </type>
+    <type name="Magenx\AiMcp\Model\OAuth\TokenService">
+        <arguments>
+            <argument name="auditLogger" xsi:type="object">MagenxAiMcpAuditLogger</argument>
+        </arguments>
+    </type>
+    <type name="Magenx\AiMcp\Observer\RevokeOnPasswordChange">
+        <arguments>
+            <argument name="auditLogger" xsi:type="object">MagenxAiMcpAuditLogger</argument>
+        </arguments>
+    </type>
+    <type name="Magenx\AiMcp\Controller\Adminhtml\Oauth\RevokeConnection">
+        <arguments>
+            <argument name="auditLogger" xsi:type="object">MagenxAiMcpAuditLogger</argument>
+        </arguments>
+    </type>
+    <!-- The backend URL model is only needed to build the consent link, on the
+         authorize endpoint; the MCP endpoint builds Endpoints on every call. -->
+    <type name="Magenx\AiMcp\Model\OAuth\Endpoints">
+        <arguments>
+            <argument name="backendUrl" xsi:type="object">Magento\Backend\Model\UrlInterface\Proxy</argument>
         </arguments>
     </type>
 </config>

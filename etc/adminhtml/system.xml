@@ -62,6 +62,62 @@
                     </depends>
                 </field>
             </group>
+            <group id="oauth" translate="label comment" sortOrder="25" showInDefault="1">
+                <label>OAuth</label>
+                <comment><![CDATA[Lets claude.ai, Claude Desktop and other MCP clients connect with an admin's own sign-in instead of an integration token. The admin approves each connection on a consent page behind the normal admin login and two-factor check, and the client acts with that admin's role. Connections are listed, and can be revoked, under System &gt; Extensions &gt; AI MCP Connections. See the README for the nginx locations this needs.]]></comment>
+                <field id="enabled" translate="label comment" type="select" sortOrder="10" showInDefault="1">
+                    <label>Enable OAuth</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    <comment><![CDATA[Publishes <code>/.well-known/oauth-protected-resource</code> and <code>/.well-known/oauth-authorization-server</code>, and accepts OAuth access tokens on the MCP endpoint. Integration tokens keep working either way.]]></comment>
+                    <depends>
+                        <field id="magenx_ai_mcp/general/enabled">1</field>
+                    </depends>
+                </field>
+                <field id="allowed_redirect_uris" translate="label comment" type="textarea" sortOrder="20" showInDefault="1">
+                    <label>Allowed Redirect URIs</label>
+                    <comment><![CDATA[One per line, matched exactly. A client can only register, and only ever receive an authorization code at, a URI listed here. The default is claude.ai's callback. Add other clients' callbacks only for services you trust with an admin's access.]]></comment>
+                    <depends>
+                        <field id="magenx_ai_mcp/general/enabled">1</field>
+                        <field id="magenx_ai_mcp/oauth/enabled">1</field>
+                    </depends>
+                </field>
+                <field id="allow_loopback_redirects" translate="label comment" type="select" sortOrder="30" showInDefault="1">
+                    <label>Allow Loopback Redirects</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    <comment><![CDATA[Accept <code>http://localhost</code>, <code>http://127.0.0.1</code> and <code>http://[::1]</code> callbacks on any port, for clients that run on the admin's own machine (Claude Code, MCP Inspector). Any program on that machine can then complete a flow the admin approves.]]></comment>
+                    <depends>
+                        <field id="magenx_ai_mcp/general/enabled">1</field>
+                        <field id="magenx_ai_mcp/oauth/enabled">1</field>
+                    </depends>
+                </field>
+                <field id="access_token_lifetime" translate="label comment" type="text" sortOrder="40" showInDefault="1">
+                    <label>Access Token Lifetime (minutes)</label>
+                    <validate>validate-digits validate-digits-range digits-range-5-1440</validate>
+                    <comment>5 to 1440. The client renews it with its refresh token without asking the admin.</comment>
+                    <depends>
+                        <field id="magenx_ai_mcp/general/enabled">1</field>
+                        <field id="magenx_ai_mcp/oauth/enabled">1</field>
+                    </depends>
+                </field>
+                <field id="refresh_token_lifetime" translate="label comment" type="text" sortOrder="50" showInDefault="1">
+                    <label>Connection Lifetime (days)</label>
+                    <validate>validate-digits validate-digits-range digits-range-1-90</validate>
+                    <comment>1 to 90, counted from approval and never extended by use. When it runs out the admin has to sign in, and pass two-factor authentication, again.</comment>
+                    <depends>
+                        <field id="magenx_ai_mcp/general/enabled">1</field>
+                        <field id="magenx_ai_mcp/oauth/enabled">1</field>
+                    </depends>
+                </field>
+                <field id="public_base_url" translate="label comment" type="text" sortOrder="60" showInDefault="1">
+                    <label>Public Base URL</label>
+                    <validate>validate-url</validate>
+                    <comment><![CDATA[The origin clients reach the MCP endpoint on, e.g. <code>https://www.example.com</code>, when that is not the default store's secure base URL. It becomes part of the issuer and of every token's audience, so changing it ends every existing connection.]]></comment>
+                    <depends>
+                        <field id="magenx_ai_mcp/general/enabled">1</field>
+                        <field id="magenx_ai_mcp/oauth/enabled">1</field>
+                    </depends>
+                </field>
+            </group>
             <group id="tools" translate="label comment" sortOrder="30" showInDefault="1">
                 <label>Tools</label>
                 <comment><![CDATA[These narrow what a client is <em>shown</em>, not what it is permitted to do. The integration's ACL role and the write switch still decide that, and a tool withheld here is withheld from every integration.]]></comment>

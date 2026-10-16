@@ -10,6 +10,7 @@ use Magenx\AiMcp\Api\PersonalDataToolInterface;
 use Magenx\AiMcp\Api\StructuredToolInterface;
 use Magenx\AiMcp\Api\ToolAnnotationsInterface;
 use Magenx\AiMcp\Api\ToolInterface;
+use Magenx\AiMcp\Model\Audit\AdminActivityRecorder;
 use Magenx\AiMcp\Model\Auth\Identity;
 use Magenx\AiMcp\Model\Config;
 use Magenx\AiMcp\Model\Tool\ToolCatalog;
@@ -90,6 +91,8 @@ class Server
      * @param LoggerInterface $auditLogger
      * @param string $serverVersion Set from di.xml so the advertised version tracks the release.
      * @param ToolsetResolver|null $toolsetResolver Built from the catalog when not injected.
+     * @param AdminActivityRecorder|null $activityRecorder Puts write tools' changes in the admin
+     *     activity log; writes run unrecorded there when not injected.
      */
     public function __construct(
         private readonly ToolRegistry $registry,
@@ -99,7 +102,8 @@ class Server
         private readonly Json $serializer,
         private readonly LoggerInterface $auditLogger,
         private readonly string $serverVersion = '0.0.0',
-        ?ToolsetResolver $toolsetResolver = null
+        ?ToolsetResolver $toolsetResolver = null,
+        private readonly ?AdminActivityRecorder $activityRecorder = null
     ) {
         $this->toolsetResolver = $toolsetResolver ?? new ToolsetResolver($catalog, new ToolsetProfiles());
     }
@@ -137,7 +141,7 @@ class Server
             return new Outcome(403, $this->jsonRpc->error(
                 $id,
                 JsonRpc::INVALID_REQUEST,
-                'This token is not authorized to use the MCP endpoint. Its integration role must '
+                'This token is not authorized to use the MCP endpoint. Its integration or admin role must '
                 . 'include the "AI MCP Server" resource.'
             ));
         }
@@ -372,6 +376,13 @@ class Server
             ));
         }
 
+        if ($tool->isWrite() && !$identity->hasWriteScope()) {
+            return $this->ok($id, $this->toolError(
+                'This connection was approved for reading only. To make changes, remove the connector '
+                . 'and connect again, ticking "Also allow changes" on the approval page.'
+            ));
+        }
+
         $arguments = $params['arguments'] ?? [];
         if (!is_array($arguments)) {
             return $this->fail($id, JsonRpc::INVALID_PARAMS, 'Tool arguments must be an object.');
@@ -382,7 +393,9 @@ class Server
         }
 
         try {
-            $result = $tool->execute($arguments);
+            $result = $tool->isWrite() && $this->activityRecorder !== null
+                ? $this->activityRecorder->run($identity, $name, fn (): array => $tool->execute($arguments))
+                : $tool->execute($arguments);
             if ($tool->isWrite()) {
                 $this->audit($tool, $arguments, $identity, 'applied');
             } elseif ($this->isReadAudited($tool)) {
@@ -423,7 +436,7 @@ class Server
      */
     private function isAvailable(ToolInterface $tool, Identity $identity): bool
     {
-        if ($tool->isWrite() && !$this->config->isWriteAllowed()) {
+        if ($tool->isWrite() && (!$this->config->isWriteAllowed() || !$identity->hasWriteScope())) {
             return false;
         }
 

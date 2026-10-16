@@ -10,6 +10,8 @@ use Laminas\Http\Header\HeaderInterface;
 use Magenx\AiMcp\Model\Auth\AccessDeniedException;
 use Magenx\AiMcp\Model\Auth\Authenticator;
 use Magenx\AiMcp\Model\Config;
+use Magenx\AiMcp\Model\OAuth\Endpoints;
+use Magenx\AiMcp\Model\OAuth\OAuthConfig;
 use Magenx\AiMcp\Model\Protocol\JsonRpc;
 use Magenx\AiMcp\Model\Protocol\Outcome;
 use Magenx\AiMcp\Model\Protocol\Server;
@@ -57,6 +59,8 @@ class Index implements HttpPostActionInterface, HttpGetActionInterface, CsrfAwar
      * @param Authenticator $authenticator
      * @param Server $server
      * @param JsonRpc $jsonRpc
+     * @param OAuthConfig $oauthConfig
+     * @param Endpoints $endpoints
      */
     public function __construct(
         private readonly HttpRequest $request,
@@ -65,7 +69,9 @@ class Index implements HttpPostActionInterface, HttpGetActionInterface, CsrfAwar
         private readonly Config $config,
         private readonly Authenticator $authenticator,
         private readonly Server $server,
-        private readonly JsonRpc $jsonRpc
+        private readonly JsonRpc $jsonRpc,
+        private readonly OAuthConfig $oauthConfig,
+        private readonly Endpoints $endpoints
     ) {
     }
 
@@ -125,7 +131,7 @@ class Index implements HttpPostActionInterface, HttpGetActionInterface, CsrfAwar
             // reached the RPC layer.
             return $this->emit(
                 new Outcome(401, $this->jsonRpc->error($id, JsonRpc::INVALID_REQUEST, $e->getMessage())),
-                ['WWW-Authenticate' => 'Bearer realm="magenx-mcp"']
+                ['WWW-Authenticate' => $this->bearerChallenge()]
             );
         }
 
@@ -145,6 +151,31 @@ class Index implements HttpPostActionInterface, HttpGetActionInterface, CsrfAwar
             $identity,
             $this->toolsetArguments()
         ));
+    }
+
+    /**
+     * The 401 challenge.
+     *
+     * With OAuth on it names the RFC 9728 metadata document, which is how an
+     * MCP client such as claude.ai discovers where to send the user to sign
+     * in. With it off the challenge says nothing about OAuth at all.
+     *
+     * @return string
+     */
+    private function bearerChallenge(): string
+    {
+        $challenge = 'Bearer realm="magenx-mcp"';
+        if (!$this->oauthConfig->isEnabled()) {
+            return $challenge;
+        }
+
+        $challenge .= sprintf(', resource_metadata="%s"', $this->endpoints->getProtectedResourceMetadataUrl());
+        $authorization = $this->request->getHeader('Authorization');
+        if ($authorization !== false && $authorization !== null && (string) $authorization !== '') {
+            $challenge .= ', error="invalid_token"';
+        }
+
+        return $challenge;
     }
 
     /**

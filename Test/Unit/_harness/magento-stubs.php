@@ -789,6 +789,11 @@ namespace Magento\User\Model {
     class User {
         public function getId() {}
         public function getData($key = null, $index = null) {}
+        public function isObjectNew($flag = null) {}
+        public function dataHasChangedFor($field) {}
+        public function load($modelId, $field = null) { return $this; }
+        public function getUserName() {}
+        public function getRole() {}
     }
 }
 
@@ -1563,10 +1568,12 @@ namespace Magento\Store\Model {
         public function getId() { return null; }
         public function getCode() { return null; }
         public function getRootCategoryId() { return null; }
+        public function getBaseUrl($type = 'link', $secure = null) { return ''; }
     }
     interface StoreManagerInterface {
         public function getStore($storeId = null);
         public function getStores($withDefault = false, $codeKey = false);
+        public function getDefaultStoreView();
     }
 }
 
@@ -1699,5 +1706,77 @@ namespace Magento\Review\Model\ResourceModel\Rating\Option\Vote {
     }
     class CollectionFactory {
         public function create(array $data = []) { return null; }
+    }
+}
+
+// OAuth: the URL sources Endpoints builds the issuer, resource and consent
+// links from (StoreManagerInterface::getDefaultStoreView is declared above).
+namespace Magento\Framework {
+    interface UrlInterface {
+        public const URL_TYPE_WEB = 'web';
+    }
+}
+
+namespace Magento\Backend\Model {
+    interface UrlInterface {
+        public function getUrl($routePath = null, $routeParams = null);
+        public function getStartupPageUrl();
+    }
+}
+
+// OAuth: the request throttle's counter store, and the event plumbing the
+// password-change observer receives.
+namespace Magento\Framework\App {
+    interface CacheInterface {
+        public function load($identifier);
+        public function save($data, $identifier, $tags = [], $lifeTime = null);
+    }
+}
+
+namespace Magento\Framework {
+    class Event {
+        public function __construct(private array $data = []) {}
+        public function getData($key = '', $index = null) { return $this->data[$key] ?? null; }
+    }
+}
+
+namespace Magento\Framework\Event {
+    interface ObserverInterface {
+        public function execute(Observer $observer);
+    }
+    class Observer {
+        public function __construct(private ?\Magento\Framework\Event $event = null) {}
+        public function getEvent() { return $this->event; }
+    }
+}
+
+// The admin activity log's external-actor API, which write tools run inside.
+// ExternalActor is a plain value object, reproduced so tests can read it back.
+namespace Magenx\AdminActivity\Model\Activity {
+    class ExternalActor {
+        public function __construct(
+            private ?int $userId,
+            private string $username,
+            private string $source,
+            private ?string $connector,
+            private ?string $roleName,
+            private string $action
+        ) {}
+        public function getUserId(): ?int { return $this->userId; }
+        public function getUsername(): string { return $this->username; }
+        public function getSource(): string { return $this->source; }
+        public function getConnector(): ?string { return $this->connector; }
+        public function getRoleName(): ?string { return $this->roleName; }
+        public function getAction(): string { return $this->action; }
+    }
+    class ExternalActorScope {
+        public function run(ExternalActor $actor, callable $work): mixed { return $work(); }
+        public function isActive(): bool { return false; }
+    }
+}
+
+namespace Magento\Authorization\Model {
+    class Role {
+        public function getRoleName() {}
     }
 }

@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * Copyright © Magenx. All rights reserved.
+ */
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Cron:etc/crontab.xsd">
+    <group id="default">
+        <job name="magenx_aimcp_oauth_purge" instance="Magenx\AiMcp\Cron\PurgeOAuth" method="execute">
+            <schedule>17 * * * *</schedule>
+        </job>
+    </group>
+</config>

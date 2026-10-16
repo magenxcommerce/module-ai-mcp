@@ -72,6 +72,18 @@ class IdentityTest extends TestCase
     }
 
     /**
+     * Integration and admin-user tokens carry no scope, so they keep write
+     * scope; only an OAuth grant without mcp:write turns it off.
+     *
+     * @return void
+     */
+    public function testWriteScopeDefaultsOnAndCanBeNarrowed(): void
+    {
+        $this->assertTrue($this->identity([])->hasWriteScope());
+        $this->assertFalse((new Identity(2, 7, 'admin:alice via Claude', [], false))->hasWriteScope());
+    }
+
+    /**
      * Resource ids are compared exactly; a near-miss must not pass.
      *
      * @return void
