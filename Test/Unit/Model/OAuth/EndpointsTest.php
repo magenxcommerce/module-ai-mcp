@@ -69,10 +69,12 @@ class EndpointsTest extends OAuthTestCase
     /**
      * @return void
      */
-    public function testOwnResourceTolerantOfTrailingSlashOnly(): void
+    public function testOwnResourceToleratesTrailingSlashAndQuery(): void
     {
         $this->assertTrue($this->endpoints->isOwnResource('https://shop.example/magenx-mcp/server'));
         $this->assertTrue($this->endpoints->isOwnResource('https://shop.example/magenx-mcp/server/'));
+        $this->assertTrue($this->endpoints->isOwnResource('https://shop.example/magenx-mcp/server?profile=catalog'));
+        $this->assertFalse($this->endpoints->isOwnResource('https://shop.example/magenx-mcp/server/x?a=1'));
         $this->assertFalse($this->endpoints->isOwnResource('https://shop.example/magenx-mcp'));
         $this->assertFalse($this->endpoints->isOwnResource('https://evil.example/magenx-mcp/server'));
     }

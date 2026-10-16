@@ -340,6 +340,11 @@
             <argument name="auditLogger" xsi:type="object">MagenxAiMcpAuditLogger</argument>
         </arguments>
     </type>
+    <type name="Magenx\AiMcp\Observer\RevokeOnPasswordChange">
+        <arguments>
+            <argument name="auditLogger" xsi:type="object">MagenxAiMcpAuditLogger</argument>
+        </arguments>
+    </type>
     <type name="Magenx\AiMcp\Controller\Adminhtml\Oauth\RevokeConnection">
         <arguments>
             <argument name="auditLogger" xsi:type="object">MagenxAiMcpAuditLogger</argument>

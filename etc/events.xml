@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * Copyright © Magenx. All rights reserved.
+ *
+ * Global, not adminhtml: a password can also be changed from the CLI
+ * (admin:user:unlock, a reset script) and the connections must end either way.
+ */
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:Event/etc/events.xsd">
+    <event name="admin_user_save_after">
+        <observer name="magenx_aimcp_oauth_revoke_on_password_change" instance="Magenx\AiMcp\Observer\RevokeOnPasswordChange"/>
+    </event>
+</config>

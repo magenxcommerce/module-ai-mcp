@@ -10,7 +10,7 @@ use Magenx\AiMcp\Model\OAuth\Storage;
 use Magento\Framework\Stdlib\DateTime\DateTime as CoreDate;
 
 /**
- * Daily removal of expired OAuth requests, tokens and abandoned client registrations.
+ * Hourly removal of expired OAuth requests, tokens and abandoned client registrations.
  *
  * Nothing here is needed for correctness — every read checks expiry — it only
  * keeps the tables from growing without bound.

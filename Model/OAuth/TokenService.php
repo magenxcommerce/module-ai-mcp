@@ -64,6 +64,18 @@ class TokenService
             throw new OAuthException('invalid_grant', 'The authorization code is invalid.');
         }
 
+        // Proof of possession first. Revoking on a replayed code is a
+        // powerful act, and it must take the verifier — not just the code,
+        // which travels in a URL — to trigger it.
+        $redirectUri = $this->stringParam($params, 'redirect_uri');
+        if ($redirectUri !== '' && $redirectUri !== $authorization['redirect_uri']) {
+            throw new OAuthException('invalid_grant', 'redirect_uri does not match the authorization request.');
+        }
+        $verifier = $this->stringParam($params, 'code_verifier');
+        if (!$this->pkce->verify($verifier, (string) $authorization['code_challenge'])) {
+            throw new OAuthException('invalid_grant', 'PKCE verification failed.');
+        }
+
         $requestId = (string) $authorization['request_id'];
         if ($authorization['status'] === Storage::STATUS_USED) {
             $revoked = $this->storage->revokeByAuthorization($requestId);
@@ -81,15 +93,6 @@ class TokenService
             throw new OAuthException('invalid_grant', 'The authorization code has expired.');
         }
 
-        $redirectUri = $this->stringParam($params, 'redirect_uri');
-        if ($redirectUri !== '' && $redirectUri !== $authorization['redirect_uri']) {
-            throw new OAuthException('invalid_grant', 'redirect_uri does not match the authorization request.');
-        }
-
-        if (!$this->pkce->verify($this->stringParam($params, 'code_verifier'), (string) $authorization['code_challenge'])) {
-            throw new OAuthException('invalid_grant', 'PKCE verification failed.');
-        }
-
         $this->assertResource($params);
 
         // The conditional update is what makes the code single-use: of two
@@ -103,6 +106,7 @@ class TokenService
         }
 
         $scopes = $this->scope->normalize(explode(' ', (string) $authorization['granted_scope']));
+        $this->storage->markClientGranted((string) $client['client_id']);
 
         return $this->issue(
             $client,
@@ -143,7 +147,10 @@ class TokenService
             throw new OAuthException('invalid_grant', 'This connection has expired. Connect again to sign in.');
         }
         if (!$this->isAdminUsable($row, $now)) {
-            throw new OAuthException('invalid_grant', 'The administrator account behind this connection is inactive or locked.');
+            throw new OAuthException(
+                'invalid_grant',
+                'The administrator account behind this connection is inactive or locked.'
+            );
         }
 
         $this->assertResource($params);

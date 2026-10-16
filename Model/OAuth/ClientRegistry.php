@@ -82,7 +82,10 @@ class ClientRegistry
 
         $grantTypes = $metadata['grant_types'] ?? ['authorization_code', 'refresh_token'];
         if (!is_array($grantTypes) || array_diff($grantTypes, ['authorization_code', 'refresh_token']) !== []) {
-            throw new OAuthException('invalid_client_metadata', 'Only authorization_code and refresh_token grants are supported.');
+            throw new OAuthException(
+                'invalid_client_metadata',
+                'Only authorization_code and refresh_token grants are supported.'
+            );
         }
         $responseTypes = $metadata['response_types'] ?? ['code'];
         if (!is_array($responseTypes) || array_diff($responseTypes, ['code']) !== []) {
@@ -112,6 +115,7 @@ class ClientRegistry
             'redirect_uris' => json_encode($redirectUris, JSON_UNESCAPED_SLASHES),
             'auth_method' => $authMethod,
             'secret_hash' => $clientSecret === null ? null : $this->secret->hash($clientSecret),
+            'granted' => 0,
             'created_at' => $now,
         ]);
 

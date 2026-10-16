@@ -84,8 +84,9 @@ class AuthorizationService
         }
 
         $state = $this->stringParam($params, 'state');
-        $fail = fn (string $error, string $description): RedirectableOAuthException
-            => new RedirectableOAuthException($error, $description, $redirectUri, $state, $this->endpoints->getIssuer());
+        $issuer = $this->endpoints->getIssuer();
+        $fail = static fn (string $error, string $description): RedirectableOAuthException
+            => new RedirectableOAuthException($error, $description, $redirectUri, $state, $issuer);
 
         if (strlen($state) > self::MAX_STATE_LENGTH) {
             throw $fail('invalid_request', 'The state parameter is too long.');

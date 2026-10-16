@@ -1860,13 +1860,22 @@ behind the IP restriction it already has.
   be delivered anywhere you did not list. Errors before the callback is verified
   are shown, never redirected.
 - **PKCE S256 is mandatory**, `plain` is refused, codes live 120 seconds and are
-  single-use. A replayed code revokes everything it issued.
+  single-use. A replayed code, presented with its verifier, revokes everything it
+  issued.
 - **Short tokens, a fixed end.** Access tokens last an hour. Refresh tokens
   rotate on every use, and a spent one presented again revokes the whole
   connection. A connection ends 30 days after approval however often it is used,
   and the admin signs in, with 2FA, again.
 - **Tokens are bound** to this server's resource URL (RFC 8707), to their client,
   and to an active, unlocked admin. Only SHA-256 hashes are stored.
+- **A password change ends them.** Saving an admin with a new password revokes
+  every connection that admin holds, from the admin panel or the CLI alike.
+  Resetting an admin's two-factor configuration does not: revoke their
+  connections on the Connections page when you do that.
+- **Throttled.** Registration and authorization are the two calls that need no
+  credential, and each stores a row. Each source address is limited to 20
+  registrations an hour and 30 authorization attempts in 10 minutes, and an
+  hourly cron removes abandoned requests and registrations that never connected.
 - **Two ACL resources of its own.** `Magenx_AiMcp::oauth_grant` lets an admin
   approve connections at all. `Magenx_AiMcp::oauth_manage` opens
   **System → Extensions → AI MCP Connections**, which lists every live connection

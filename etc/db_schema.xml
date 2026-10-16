@@ -16,6 +16,7 @@
         <column xsi:type="text" name="redirect_uris" nullable="false" comment="Registered Redirect URIs (JSON)"/>
         <column xsi:type="varchar" name="auth_method" nullable="false" length="32" default="none" comment="Token Endpoint Auth Method"/>
         <column xsi:type="varchar" name="secret_hash" nullable="true" length="64" comment="SHA-256 of Client Secret"/>
+        <column xsi:type="smallint" name="granted" unsigned="true" nullable="false" default="0" comment="Has Ever Received A Grant"/>
         <column xsi:type="int" name="created_at" unsigned="true" nullable="false" comment="Created At (Unix)"/>
         <constraint xsi:type="primary" referenceId="PRIMARY">
             <column name="client_id"/>

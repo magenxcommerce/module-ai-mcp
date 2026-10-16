@@ -789,6 +789,8 @@ namespace Magento\User\Model {
     class User {
         public function getId() {}
         public function getData($key = null, $index = null) {}
+        public function isObjectNew($flag = null) {}
+        public function dataHasChangedFor($field) {}
     }
 }
 
@@ -1716,5 +1718,31 @@ namespace Magento\Backend\Model {
     interface UrlInterface {
         public function getUrl($routePath = null, $routeParams = null);
         public function getStartupPageUrl();
+    }
+}
+
+// OAuth: the request throttle's counter store, and the event plumbing the
+// password-change observer receives.
+namespace Magento\Framework\App {
+    interface CacheInterface {
+        public function load($identifier);
+        public function save($data, $identifier, $tags = [], $lifeTime = null);
+    }
+}
+
+namespace Magento\Framework {
+    class Event {
+        public function __construct(private array $data = []) {}
+        public function getData($key = '', $index = null) { return $this->data[$key] ?? null; }
+    }
+}
+
+namespace Magento\Framework\Event {
+    interface ObserverInterface {
+        public function execute(Observer $observer);
+    }
+    class Observer {
+        public function __construct(private ?\Magento\Framework\Event $event = null) {}
+        public function getEvent() { return $this->event; }
     }
 }

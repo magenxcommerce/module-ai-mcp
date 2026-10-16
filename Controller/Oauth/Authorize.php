@@ -14,6 +14,7 @@ use Magenx\AiMcp\Model\OAuth\OAuthConfig;
 use Magenx\AiMcp\Model\OAuth\OAuthException;
 use Magenx\AiMcp\Model\OAuth\PendingConsent;
 use Magenx\AiMcp\Model\OAuth\RedirectableOAuthException;
+use Magenx\AiMcp\Model\OAuth\Throttle;
 use Magento\Framework\App\Action\HttpGetActionInterface;
 use Magento\Framework\App\Request\Http as HttpRequest;
 use Magento\Framework\Controller\Result\Raw;
@@ -21,7 +22,9 @@ use Magento\Framework\Controller\Result\RawFactory;
 use Magento\Framework\Controller\Result\Redirect;
 use Magento\Framework\Controller\Result\RedirectFactory;
 use Magento\Framework\Escaper;
+use Magento\Framework\HTTP\PhpEnvironment\RemoteAddress;
 use Magento\Framework\Serialize\Serializer\Json;
+use Magento\Framework\Stdlib\DateTime\DateTime as CoreDate;
 
 /**
  * GET /magenx-mcp/oauth/authorize — where the AI service sends the user's browser.
@@ -34,6 +37,9 @@ use Magento\Framework\Serialize\Serializer\Json;
  */
 class Authorize extends AbstractEndpoint implements HttpGetActionInterface
 {
+    /** Each attempt parks a row; a person connecting does this a handful of times at most. */
+    private const LIMIT_PER_TEN_MINUTES = 30;
+
     /**
      * @param HttpRequest $request
      * @param JsonResponder $responder
@@ -46,6 +52,9 @@ class Authorize extends AbstractEndpoint implements HttpGetActionInterface
      * @param RedirectFactory $redirectFactory
      * @param RawFactory $rawFactory
      * @param Escaper $escaper
+     * @param Throttle $throttle
+     * @param RemoteAddress $remoteAddress
+     * @param CoreDate $date
      */
     public function __construct(
         HttpRequest $request,
@@ -58,7 +67,10 @@ class Authorize extends AbstractEndpoint implements HttpGetActionInterface
         private readonly PendingConsent $pendingConsent,
         private readonly RedirectFactory $redirectFactory,
         private readonly RawFactory $rawFactory,
-        private readonly Escaper $escaper
+        private readonly Escaper $escaper,
+        private readonly Throttle $throttle,
+        private readonly RemoteAddress $remoteAddress,
+        private readonly CoreDate $date
     ) {
         parent::__construct($request, $responder, $serializer, $config, $oauthConfig);
     }
@@ -70,6 +82,19 @@ class Authorize extends AbstractEndpoint implements HttpGetActionInterface
     {
         if (!$this->isActive()) {
             return $this->responder->empty(404);
+        }
+
+        if (!$this->throttle->allow(
+            'authorize',
+            (string) $this->remoteAddress->getRemoteAddress(),
+            self::LIMIT_PER_TEN_MINUTES,
+            600,
+            (int) $this->date->gmtTimestamp()
+        )) {
+            return $this->errorPage(
+                'Too many connection attempts from this address. Wait a few minutes and try again.',
+                429
+            );
         }
 
         try {
@@ -89,12 +114,13 @@ class Authorize extends AbstractEndpoint implements HttpGetActionInterface
      * A plain page for errors that must not be redirected anywhere.
      *
      * @param string $message
+     * @param int $status
      * @return Raw
      */
-    private function errorPage(string $message): Raw
+    private function errorPage(string $message, int $status = 400): Raw
     {
         $result = $this->rawFactory->create();
-        $result->setHttpResponseCode(400);
+        $result->setHttpResponseCode($status);
         $result->setHeader('Content-Type', 'text/html; charset=utf-8', true);
         $result->setHeader('Cache-Control', 'no-store', true);
 

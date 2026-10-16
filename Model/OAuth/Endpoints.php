@@ -159,14 +159,19 @@ class Endpoints
     /**
      * Whether a client-supplied resource indicator names this server.
      *
-     * A trailing slash is the one difference tolerated: clients disagree on
-     * it, and it cannot point anywhere else.
+     * A trailing slash and a query string are the differences tolerated.
+     * Clients disagree on the slash, and a connector URL narrowed with
+     * `?profile=` or `?domains=` is still this server; neither can point
+     * anywhere else. Tokens are always bound to the bare resource.
      *
      * @param string $resource
      * @return bool
      */
     public function isOwnResource(string $resource): bool
     {
+        $resource = explode('#', $resource, 2)[0];
+        $resource = explode('?', $resource, 2)[0];
+
         return rtrim($resource, '/') === $this->getResource();
     }
 

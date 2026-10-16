@@ -127,6 +127,40 @@ class TokenServiceTest extends OAuthTestCase
     }
 
     /**
+     * Holding a used code is not enough to trigger the revocation: that takes
+     * the verifier too, or a leaked callback URL would be a kill switch.
+     *
+     * @return void
+     */
+    public function testReplayedCodeWithoutTheVerifierRevokesNothing(): void
+    {
+        ['client' => $client, 'code' => $code] = $this->approvedCode();
+        $first = $this->tokens->exchangeCode($client, ['code' => $code, 'code_verifier' => self::VERIFIER]);
+
+        $this->assertOAuthError(
+            'invalid_grant',
+            fn () => $this->tokens->exchangeCode($client, ['code' => $code, 'code_verifier' => strrev(self::VERIFIER)])
+        );
+
+        $this->assertNotNull($this->tokens->resolve($first['access_token']));
+    }
+
+    /**
+     * A client that completed a flow is kept by the purge, so it can reconnect later.
+     *
+     * @return void
+     */
+    public function testExchangeMarksTheClientGranted(): void
+    {
+        ['client' => $client, 'code' => $code] = $this->approvedCode();
+        $this->assertSame(0, $this->storage->clients[$client['client_id']]['granted']);
+
+        $this->tokens->exchangeCode($client, ['code' => $code, 'code_verifier' => self::VERIFIER]);
+
+        $this->assertSame(1, $this->storage->clients[$client['client_id']]['granted']);
+    }
+
+    /**
      * @return void
      */
     public function testRefreshRotatesAndKeepsTheGrantsAbsoluteExpiry(): void

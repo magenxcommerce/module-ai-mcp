@@ -65,6 +65,25 @@ class Storage
     }
 
     /**
+     * Mark a client as having completed a flow, which exempts it from the purge of abandoned registrations.
+     *
+     * A client caches its registration and reuses it to reconnect long after
+     * its tokens expired; deleting it would turn that reconnect into an
+     * "unknown client" error the user can only fix by re-adding the connector.
+     *
+     * @param string $clientId
+     * @return void
+     */
+    public function markClientGranted(string $clientId): void
+    {
+        $this->connection()->update(
+            $this->table(self::TABLE_CLIENT),
+            ['granted' => 1],
+            ['client_id = ?' => $clientId, 'granted = ?' => 0]
+        );
+    }
+
+    /**
      * @param array<string, mixed> $row
      * @return void
      */
@@ -276,7 +295,7 @@ class Storage
         $connection = $this->connection();
         $connection->delete(
             $this->table(self::TABLE_AUTHORIZATION),
-            ['expires_at < ?' => $now - 86400]
+            ['expires_at < ?' => $now - 3600]
         );
         $connection->delete(
             $this->table(self::TABLE_TOKEN),
@@ -292,7 +311,8 @@ class Storage
         $connection->delete(
             $this->table(self::TABLE_CLIENT),
             [
-                'created_at < ?' => $now - 86400,
+                'granted = ?' => 0,
+                'created_at < ?' => $now - 3600,
                 sprintf(
                     'client_id NOT IN (SELECT client_id FROM %s)',
                     $connection->quoteIdentifier($this->table(self::TABLE_TOKEN))

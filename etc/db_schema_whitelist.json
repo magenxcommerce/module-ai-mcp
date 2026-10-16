@@ -6,6 +6,7 @@
             "redirect_uris": true,
             "auth_method": true,
             "secret_hash": true,
+            "granted": true,
             "created_at": true
         },
         "constraint": {

@@ -59,6 +59,14 @@ class FakeStorage extends Storage
     /**
      * @inheritDoc
      */
+    public function markClientGranted(string $clientId): void
+    {
+        $this->clients[$clientId]['granted'] = 1;
+    }
+
+    /**
+     * @inheritDoc
+     */
     public function insertAuthorization(array $row): void
     {
         $this->authorizations[$row['request_id']] = $row + [

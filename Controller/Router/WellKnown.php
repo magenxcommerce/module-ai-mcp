@@ -18,13 +18,17 @@ use Magento\Framework\App\RouterInterface;
  * Maps the two OAuth discovery documents onto this module's controllers.
  *
  * RFC 8414 and RFC 9728 fix these paths under /.well-known, which no Magento
- * front name can express. Accepted forms:
+ * front name can express. Only the path-suffixed forms are served:
  *
  *  - /.well-known/oauth-protected-resource/magenx-mcp/server (RFC 9728, the
- *    one the MCP endpoint's 401 names) and the bare root form;
+ *    one the MCP endpoint's 401 names);
  *  - /.well-known/oauth-authorization-server/magenx-mcp (RFC 8414 for this
- *    issuer) and the bare root form, which clients written against the
- *    2025-03-26 MCP revision fetch.
+ *    issuer).
+ *
+ * The bare root forms are deliberately not answered: a client fetching them
+ * derives the origin as the issuer or resource, which this document's values
+ * would then fail to match, so serving them could only produce a confusing
+ * validation error instead of a clean 404.
  *
  * Whether OAuth is switched on is the controllers' decision, so the router
  * stays a pure path match and needs no configuration.
@@ -32,9 +36,7 @@ use Magento\Framework\App\RouterInterface;
 class WellKnown implements RouterInterface
 {
     private const ROUTES = [
-        Endpoints::PROTECTED_RESOURCE_WELL_KNOWN => 'protectedResource',
         Endpoints::PROTECTED_RESOURCE_WELL_KNOWN . Endpoints::RESOURCE_PATH => 'protectedResource',
-        Endpoints::AUTHORIZATION_SERVER_WELL_KNOWN => 'metadata',
         Endpoints::AUTHORIZATION_SERVER_WELL_KNOWN . Endpoints::ISSUER_PATH => 'metadata',
     ];
 
