@@ -47,6 +47,14 @@
                         integration has to be given on purpose.
                     -->
                     <resource id="Magenx_AiMcp::logs" title="AI MCP Server Logs" translate="title" sortOrder="30"/>
+                    <!--
+                        OAuth. Approving a connection lets an AI client act as you, with your
+                        role, so it is a grant of its own: an admin can hold the MCP endpoint
+                        without being able to hand it to a client. Managing connections means
+                        seeing and revoking every admin's, so that is separate again.
+                    -->
+                    <resource id="Magenx_AiMcp::oauth_grant" title="Approve AI Client Connections" translate="title" sortOrder="40"/>
+                    <resource id="Magenx_AiMcp::oauth_manage" title="Manage AI Client Connections" translate="title" sortOrder="50"/>
                 </resource>
                 <resource id="Magento_Backend::stores">
                     <resource id="Magento_Backend::stores_settings">

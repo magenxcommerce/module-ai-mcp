@@ -48,6 +48,43 @@ class ServerTest extends TestCase
     }
 
     /**
+     * An OAuth connection approved for reading only is not offered write tools,
+     * even when the role and the store would allow them.
+     *
+     * @return void
+     */
+    public function testAReadOnlyConnectionIsNotOfferedWriteTools(): void
+    {
+        $server = $this->server($this->tool('do_thing', isWrite: true, properties: []));
+        $readOnly = new Identity(2, 7, 'admin:alice via Claude', [Server::ENDPOINT_RESOURCE], false);
+
+        $listed = $server->dispatch('tools/list', [], 1, $readOnly)->getBody();
+
+        $this->assertSame([], $listed['result']['tools']);
+    }
+
+    /**
+     * Calling one anyway is refused with a reason, before any preview or execution.
+     *
+     * @return void
+     */
+    public function testAReadOnlyConnectionCannotCallWriteTools(): void
+    {
+        $server = $this->server($this->tool('do_thing', isWrite: true, properties: []));
+        $readOnly = new Identity(2, 7, 'admin:alice via Claude', [Server::ENDPOINT_RESOURCE], false);
+
+        $body = $server->dispatch(
+            'tools/call',
+            ['name' => 'do_thing', 'arguments' => ['confirm' => true]],
+            1,
+            $readOnly
+        )->getBody();
+
+        $this->assertTrue($body['result']['isError']);
+        $this->assertStringContainsString('approved for reading only', $body['result']['content'][0]['text']);
+    }
+
+    /**
      * A tool that already returns an object stays one.
      *
      * @return void

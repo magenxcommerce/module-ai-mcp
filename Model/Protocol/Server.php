@@ -137,7 +137,7 @@ class Server
             return new Outcome(403, $this->jsonRpc->error(
                 $id,
                 JsonRpc::INVALID_REQUEST,
-                'This token is not authorized to use the MCP endpoint. Its integration role must '
+                'This token is not authorized to use the MCP endpoint. Its integration or admin role must '
                 . 'include the "AI MCP Server" resource.'
             ));
         }
@@ -372,6 +372,13 @@ class Server
             ));
         }
 
+        if ($tool->isWrite() && !$identity->hasWriteScope()) {
+            return $this->ok($id, $this->toolError(
+                'This connection was approved for reading only. To make changes, remove the connector '
+                . 'and connect again, ticking "Also allow changes" on the approval page.'
+            ));
+        }
+
         $arguments = $params['arguments'] ?? [];
         if (!is_array($arguments)) {
             return $this->fail($id, JsonRpc::INVALID_PARAMS, 'Tool arguments must be an object.');
@@ -423,7 +430,7 @@ class Server
      */
     private function isAvailable(ToolInterface $tool, Identity $identity): bool
     {
-        if ($tool->isWrite() && !$this->config->isWriteAllowed()) {
+        if ($tool->isWrite() && (!$this->config->isWriteAllowed() || !$identity->hasWriteScope())) {
             return false;
         }
 

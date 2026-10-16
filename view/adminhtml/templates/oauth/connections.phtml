@@ -1,0 +1,50 @@
+<?php
+/**
+ * Copyright © Magenx. All rights reserved.
+ */
+
+/** @var \Magenx\AiMcp\Block\Adminhtml\Oauth\Connections $block */
+/** @var \Magento\Framework\Escaper $escaper */
+$grants = $block->getGrants();
+?>
+<p>
+    <?= $escaper->escapeHtml(__('AI clients connected with OAuth. Each acts as the admin who approved it, with that admin\'s role. Revoking ends the connection at once; the client has to be connected again, which means signing in again.')) ?>
+</p>
+<?php if ($grants === []): ?>
+    <div class="message message-notice">
+        <div><?= $escaper->escapeHtml(__('No active connections.')) ?></div>
+    </div>
+<?php else: ?>
+    <table class="data-grid">
+        <thead>
+        <tr>
+            <th class="data-grid-th"><?= $escaper->escapeHtml(__('Admin')) ?></th>
+            <th class="data-grid-th"><?= $escaper->escapeHtml(__('Client')) ?></th>
+            <th class="data-grid-th"><?= $escaper->escapeHtml(__('Access')) ?></th>
+            <th class="data-grid-th"><?= $escaper->escapeHtml(__('Last used')) ?></th>
+            <th class="data-grid-th"><?= $escaper->escapeHtml(__('Expires')) ?></th>
+            <th class="data-grid-th"></th>
+        </tr>
+        </thead>
+        <tbody>
+        <?php foreach ($grants as $grant): ?>
+            <tr>
+                <td><?= $escaper->escapeHtml($grant['username']) ?></td>
+                <td><?= $escaper->escapeHtml($grant['client_name']) ?></td>
+                <td><?= $escaper->escapeHtml(str_contains((string) $grant['scope'], 'mcp:write') ? __('Read and write') : __('Read only')) ?></td>
+                <td><?= $escaper->escapeHtml($block->formatTimestamp($grant['last_used_at'] ?? $grant['created_at'])) ?></td>
+                <td><?= $escaper->escapeHtml($block->formatTimestamp($grant['refresh_expires_at'])) ?></td>
+                <td>
+                    <form method="post" action="<?= $escaper->escapeUrl($block->getRevokeUrl()) ?>">
+                        <input type="hidden" name="form_key" value="<?= $escaper->escapeHtmlAttr($block->getFormKey()) ?>"/>
+                        <input type="hidden" name="family" value="<?= $escaper->escapeHtmlAttr($grant['family_id']) ?>"/>
+                        <button type="submit" class="action-secondary">
+                            <span><?= $escaper->escapeHtml(__('Revoke')) ?></span>
+                        </button>
+                    </form>
+                </td>
+            </tr>
+        <?php endforeach; ?>
+        </tbody>
+    </table>
+<?php endif; ?>

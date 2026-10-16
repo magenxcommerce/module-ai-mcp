@@ -318,6 +318,38 @@
     <type name="Magenx\AiMcp\Model\Auth\Authenticator">
         <arguments>
             <argument name="auditLogger" xsi:type="object">MagenxAiMcpAuditLogger</argument>
+            <!-- Proxied: an integration-token call never touches OAuth. -->
+            <argument name="tokenService" xsi:type="object">Magenx\AiMcp\Model\OAuth\TokenService\Proxy</argument>
+        </arguments>
+    </type>
+
+    <!-- OAuth: grants, refusals, replays and revocations land in the same audit
+         file as the writes, since each one changes who can act on the store. -->
+    <type name="Magenx\AiMcp\Model\OAuth\ClientRegistry">
+        <arguments>
+            <argument name="auditLogger" xsi:type="object">MagenxAiMcpAuditLogger</argument>
+        </arguments>
+    </type>
+    <type name="Magenx\AiMcp\Model\OAuth\AuthorizationService">
+        <arguments>
+            <argument name="auditLogger" xsi:type="object">MagenxAiMcpAuditLogger</argument>
+        </arguments>
+    </type>
+    <type name="Magenx\AiMcp\Model\OAuth\TokenService">
+        <arguments>
+            <argument name="auditLogger" xsi:type="object">MagenxAiMcpAuditLogger</argument>
+        </arguments>
+    </type>
+    <type name="Magenx\AiMcp\Controller\Adminhtml\Oauth\RevokeConnection">
+        <arguments>
+            <argument name="auditLogger" xsi:type="object">MagenxAiMcpAuditLogger</argument>
+        </arguments>
+    </type>
+    <!-- The backend URL model is only needed to build the consent link, on the
+         authorize endpoint; the MCP endpoint builds Endpoints on every call. -->
+    <type name="Magenx\AiMcp\Model\OAuth\Endpoints">
+        <arguments>
+            <argument name="backendUrl" xsi:type="object">Magento\Backend\Model\UrlInterface\Proxy</argument>
         </arguments>
     </type>
 </config>

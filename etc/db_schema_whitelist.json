@@ -1,0 +1,73 @@
+{
+    "magenx_ai_mcp_oauth_client": {
+        "column": {
+            "client_id": true,
+            "client_name": true,
+            "redirect_uris": true,
+            "auth_method": true,
+            "secret_hash": true,
+            "created_at": true
+        },
+        "constraint": {
+            "PRIMARY": true
+        }
+    },
+    "magenx_ai_mcp_oauth_authorization": {
+        "column": {
+            "request_id": true,
+            "client_id": true,
+            "redirect_uri": true,
+            "requested_scope": true,
+            "state": true,
+            "code_challenge": true,
+            "resource": true,
+            "status": true,
+            "admin_user_id": true,
+            "granted_scope": true,
+            "code_hash": true,
+            "code_expires_at": true,
+            "created_at": true,
+            "expires_at": true
+        },
+        "index": {
+            "MAGENX_AI_MCP_OAUTH_AUTHORIZATION_EXPIRES_AT": true
+        },
+        "constraint": {
+            "PRIMARY": true,
+            "MAGENX_AI_MCP_OAUTH_AUTHORIZATION_CODE_HASH": true,
+            "MAGENX_AI_MCP_OAUTH_AUTHORIZATION_CLIENT_ID": true,
+            "MAGENX_AI_MCP_OAUTH_AUTHORIZATION_ADMIN_USER_ID": true
+        }
+    },
+    "magenx_ai_mcp_oauth_token": {
+        "column": {
+            "entity_id": true,
+            "family_id": true,
+            "client_id": true,
+            "admin_user_id": true,
+            "authorization_id": true,
+            "scope": true,
+            "resource": true,
+            "access_hash": true,
+            "access_expires_at": true,
+            "refresh_hash": true,
+            "refresh_expires_at": true,
+            "rotated": true,
+            "revoked": true,
+            "created_at": true,
+            "last_used_at": true
+        },
+        "index": {
+            "MAGENX_AI_MCP_OAUTH_TOKEN_FAMILY_ID": true,
+            "MAGENX_AI_MCP_OAUTH_TOKEN_AUTHORIZATION_ID": true,
+            "MAGENX_AI_MCP_OAUTH_TOKEN_REFRESH_EXPIRES_AT": true
+        },
+        "constraint": {
+            "PRIMARY": true,
+            "MAGENX_AI_MCP_OAUTH_TOKEN_ACCESS_HASH": true,
+            "MAGENX_AI_MCP_OAUTH_TOKEN_REFRESH_HASH": true,
+            "MAGENX_AI_MCP_OAUTH_TOKEN_CLIENT_ID": true,
+            "MAGENX_AI_MCP_OAUTH_TOKEN_ADMIN_USER_ID": true
+        }
+    }
+}

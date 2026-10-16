@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * Copyright © Magenx. All rights reserved.
+ *
+ * The OAuth consent screen and the connections list. Admin pages like any
+ * other: behind the admin login, its two-factor check and the ACL.
+ */
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:App/etc/routes.xsd">
+    <router id="admin">
+        <route id="magenx_aimcp" frontName="magenx_aimcp">
+            <module name="Magenx_AiMcp"/>
+        </route>
+    </router>
+</config>

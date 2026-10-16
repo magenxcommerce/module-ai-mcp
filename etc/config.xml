@@ -29,6 +29,20 @@
                 safe because neither field is a boundary — ACL and the write
                 switch still decide what a caller may reach.
             -->
+            <!--
+                OAuth is off. When on, only claude.ai's callback may be registered,
+                loopback callbacks are refused, and an empty public base URL means
+                the default store's secure base URL.
+            -->
+            <oauth>
+                <enabled>0</enabled>
+                <allowed_redirect_uris>https://claude.ai/api/mcp/auth_callback
+https://claude.com/api/mcp/auth_callback</allowed_redirect_uris>
+                <allow_loopback_redirects>0</allow_loopback_redirects>
+                <access_token_lifetime>60</access_token_lifetime>
+                <refresh_token_lifetime>30</refresh_token_lifetime>
+                <public_base_url/>
+            </oauth>
             <tools>
                 <enabled_domains/>
                 <disabled_tools/>

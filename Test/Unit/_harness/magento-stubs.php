@@ -1563,10 +1563,12 @@ namespace Magento\Store\Model {
         public function getId() { return null; }
         public function getCode() { return null; }
         public function getRootCategoryId() { return null; }
+        public function getBaseUrl($type = 'link', $secure = null) { return ''; }
     }
     interface StoreManagerInterface {
         public function getStore($storeId = null);
         public function getStores($withDefault = false, $codeKey = false);
+        public function getDefaultStoreView();
     }
 }
 
@@ -1699,5 +1701,20 @@ namespace Magento\Review\Model\ResourceModel\Rating\Option\Vote {
     }
     class CollectionFactory {
         public function create(array $data = []) { return null; }
+    }
+}
+
+// OAuth: the URL sources Endpoints builds the issuer, resource and consent
+// links from (StoreManagerInterface::getDefaultStoreView is declared above).
+namespace Magento\Framework {
+    interface UrlInterface {
+        public const URL_TYPE_WEB = 'web';
+    }
+}
+
+namespace Magento\Backend\Model {
+    interface UrlInterface {
+        public function getUrl($routePath = null, $routeParams = null);
+        public function getStartupPageUrl();
     }
 }

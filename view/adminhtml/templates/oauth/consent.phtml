@@ -1,0 +1,74 @@
+<?php
+/**
+ * Copyright © Magenx. All rights reserved.
+ */
+
+/** @var \Magenx\AiMcp\Block\Adminhtml\Oauth\Consent $block */
+/** @var \Magento\Framework\Escaper $escaper */
+?>
+<?php if (!$block->hasRequest()): ?>
+    <div class="message message-notice">
+        <div><?= $escaper->escapeHtml(__('There is no connection request waiting. It may have expired (requests last 10 minutes) or already been answered. Start the connection again from the AI client.')) ?></div>
+    </div>
+<?php else: ?>
+    <div class="admin__fieldset-wrapper-content">
+        <p>
+            <?= $escaper->escapeHtml(__('An AI client is asking to use this store through the MCP server, as you:')) ?>
+            <strong><?= $escaper->escapeHtml($block->getAdminUsername()) ?></strong>
+        </p>
+        <table class="admin__table-secondary">
+            <tbody>
+            <tr>
+                <th><?= $escaper->escapeHtml(__('Client')) ?></th>
+                <td><?= $escaper->escapeHtml($block->getClientName()) ?></td>
+            </tr>
+            <tr>
+                <th><?= $escaper->escapeHtml(__('Code will be sent to')) ?></th>
+                <td><strong><?= $escaper->escapeHtml($block->getRedirectHost()) ?></strong></td>
+            </tr>
+            <tr>
+                <th><?= $escaper->escapeHtml(__('Access')) ?></th>
+                <td><?= $escaper->escapeHtml(__('Whatever your own admin role allows, read-only unless you tick the box below.')) ?></td>
+            </tr>
+            </tbody>
+        </table>
+
+        <div class="message message-warning">
+            <div><?= $escaper->escapeHtml(__('Approve only if you started this connection yourself, just now, from the client named above. If someone sent you this link, deny it.')) ?></div>
+        </div>
+        <?php if (!$block->hasEndpointAccess()): ?>
+            <div class="message message-error">
+                <div><?= $escaper->escapeHtml(__('Your admin role does not include "AI MCP Server", so this connection would be refused. Ask an administrator to add it to your role.')) ?></div>
+            </div>
+        <?php endif; ?>
+        <?php if (!$block->isEndpointEnabled()): ?>
+            <div class="message message-notice">
+                <div><?= $escaper->escapeHtml(__('The MCP endpoint is currently disabled; the connection will not work until it is enabled.')) ?></div>
+            </div>
+        <?php endif; ?>
+
+        <form method="post" action="<?= $escaper->escapeUrl($block->getDecideUrl()) ?>">
+            <input type="hidden" name="form_key" value="<?= $escaper->escapeHtmlAttr($block->getFormKey()) ?>"/>
+            <input type="hidden" name="request" value="<?= $escaper->escapeHtmlAttr($block->getRequestId()) ?>"/>
+            <?php if ($block->isWriteRequested()): ?>
+                <div class="admin__field admin__field-option">
+                    <input type="checkbox" class="admin__control-checkbox" id="magenx-mcp-grant-write" name="grant_write" value="1"/>
+                    <label class="admin__field-label" for="magenx-mcp-grant-write">
+                        <?= $escaper->escapeHtml(__('Also allow changes (write tools). Each change still needs the client to confirm it.')) ?>
+                    </label>
+                </div>
+                <?php if (!$block->isStoreWritable()): ?>
+                    <p class="note"><?= $escaper->escapeHtml(__('Write tools are switched off for the whole store, so this has no effect until they are enabled.')) ?></p>
+                <?php endif; ?>
+            <?php endif; ?>
+            <div class="page-actions-buttons">
+                <button type="submit" name="decision" value="deny" class="action-secondary">
+                    <span><?= $escaper->escapeHtml(__('Deny')) ?></span>
+                </button>
+                <button type="submit" name="decision" value="approve" class="action-primary">
+                    <span><?= $escaper->escapeHtml(__('Approve')) ?></span>
+                </button>
+            </div>
+        </form>
+    </div>
+<?php endif; ?>

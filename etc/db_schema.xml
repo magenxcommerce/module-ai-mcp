@@ -1,0 +1,98 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * Copyright © Magenx. All rights reserved.
+ *
+ * OAuth 2.1 state for the MCP endpoint. Only hashes of codes, tokens and
+ * client secrets are stored. Times are Unix timestamps. Rows hang off
+ * admin_user with ON DELETE CASCADE, so deleting an admin removes every
+ * grant they made.
+ */
+-->
+<schema xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:Setup/Declaration/Schema/etc/schema.xsd">
+    <table name="magenx_ai_mcp_oauth_client" resource="default" engine="innodb" comment="Magenx AI MCP OAuth Client">
+        <column xsi:type="varchar" name="client_id" nullable="false" length="64" comment="Client ID"/>
+        <column xsi:type="varchar" name="client_name" nullable="false" length="255" comment="Client Name"/>
+        <column xsi:type="text" name="redirect_uris" nullable="false" comment="Registered Redirect URIs (JSON)"/>
+        <column xsi:type="varchar" name="auth_method" nullable="false" length="32" default="none" comment="Token Endpoint Auth Method"/>
+        <column xsi:type="varchar" name="secret_hash" nullable="true" length="64" comment="SHA-256 of Client Secret"/>
+        <column xsi:type="int" name="created_at" unsigned="true" nullable="false" comment="Created At (Unix)"/>
+        <constraint xsi:type="primary" referenceId="PRIMARY">
+            <column name="client_id"/>
+        </constraint>
+    </table>
+
+    <table name="magenx_ai_mcp_oauth_authorization" resource="default" engine="innodb" comment="Magenx AI MCP OAuth Authorization Request">
+        <column xsi:type="varchar" name="request_id" nullable="false" length="64" comment="Request ID"/>
+        <column xsi:type="varchar" name="client_id" nullable="false" length="64" comment="Client ID"/>
+        <column xsi:type="text" name="redirect_uri" nullable="false" comment="Redirect URI"/>
+        <column xsi:type="varchar" name="requested_scope" nullable="false" length="255" comment="Requested Scope"/>
+        <column xsi:type="text" name="state" nullable="true" comment="Client State"/>
+        <column xsi:type="varchar" name="code_challenge" nullable="false" length="128" comment="PKCE S256 Challenge"/>
+        <column xsi:type="text" name="resource" nullable="true" comment="Resource Indicator"/>
+        <column xsi:type="varchar" name="status" nullable="false" length="16" default="pending" comment="Status"/>
+        <column xsi:type="int" name="admin_user_id" unsigned="true" nullable="true" comment="Approving Admin User ID"/>
+        <column xsi:type="varchar" name="granted_scope" nullable="true" length="255" comment="Granted Scope"/>
+        <column xsi:type="varchar" name="code_hash" nullable="true" length="64" comment="SHA-256 of Authorization Code"/>
+        <column xsi:type="int" name="code_expires_at" unsigned="true" nullable="true" comment="Code Expires At (Unix)"/>
+        <column xsi:type="int" name="created_at" unsigned="true" nullable="false" comment="Created At (Unix)"/>
+        <column xsi:type="int" name="expires_at" unsigned="true" nullable="false" comment="Request Expires At (Unix)"/>
+        <constraint xsi:type="primary" referenceId="PRIMARY">
+            <column name="request_id"/>
+        </constraint>
+        <constraint xsi:type="unique" referenceId="MAGENX_AI_MCP_OAUTH_AUTHORIZATION_CODE_HASH">
+            <column name="code_hash"/>
+        </constraint>
+        <constraint xsi:type="foreign" referenceId="MAGENX_AI_MCP_OAUTH_AUTHORIZATION_CLIENT_ID"
+                    table="magenx_ai_mcp_oauth_authorization" column="client_id"
+                    referenceTable="magenx_ai_mcp_oauth_client" referenceColumn="client_id" onDelete="CASCADE"/>
+        <constraint xsi:type="foreign" referenceId="MAGENX_AI_MCP_OAUTH_AUTHORIZATION_ADMIN_USER_ID"
+                    table="magenx_ai_mcp_oauth_authorization" column="admin_user_id"
+                    referenceTable="admin_user" referenceColumn="user_id" onDelete="CASCADE"/>
+        <index referenceId="MAGENX_AI_MCP_OAUTH_AUTHORIZATION_EXPIRES_AT" indexType="btree">
+            <column name="expires_at"/>
+        </index>
+    </table>
+
+    <table name="magenx_ai_mcp_oauth_token" resource="default" engine="innodb" comment="Magenx AI MCP OAuth Token">
+        <column xsi:type="int" name="entity_id" unsigned="true" nullable="false" identity="true" comment="Entity ID"/>
+        <column xsi:type="varchar" name="family_id" nullable="false" length="64" comment="Grant (Token Family) ID"/>
+        <column xsi:type="varchar" name="client_id" nullable="false" length="64" comment="Client ID"/>
+        <column xsi:type="int" name="admin_user_id" unsigned="true" nullable="false" comment="Admin User ID"/>
+        <column xsi:type="varchar" name="authorization_id" nullable="true" length="64" comment="Originating Request ID"/>
+        <column xsi:type="varchar" name="scope" nullable="false" length="255" comment="Scope"/>
+        <column xsi:type="text" name="resource" nullable="true" comment="Resource (Audience)"/>
+        <column xsi:type="varchar" name="access_hash" nullable="false" length="64" comment="SHA-256 of Access Token"/>
+        <column xsi:type="int" name="access_expires_at" unsigned="true" nullable="false" comment="Access Token Expires At (Unix)"/>
+        <column xsi:type="varchar" name="refresh_hash" nullable="true" length="64" comment="SHA-256 of Refresh Token"/>
+        <column xsi:type="int" name="refresh_expires_at" unsigned="true" nullable="false" comment="Grant Expires At (Unix)"/>
+        <column xsi:type="smallint" name="rotated" unsigned="true" nullable="false" default="0" comment="Refresh Token Spent"/>
+        <column xsi:type="smallint" name="revoked" unsigned="true" nullable="false" default="0" comment="Revoked"/>
+        <column xsi:type="int" name="created_at" unsigned="true" nullable="false" comment="Created At (Unix)"/>
+        <column xsi:type="int" name="last_used_at" unsigned="true" nullable="true" comment="Last Used At (Unix)"/>
+        <constraint xsi:type="primary" referenceId="PRIMARY">
+            <column name="entity_id"/>
+        </constraint>
+        <constraint xsi:type="unique" referenceId="MAGENX_AI_MCP_OAUTH_TOKEN_ACCESS_HASH">
+            <column name="access_hash"/>
+        </constraint>
+        <constraint xsi:type="unique" referenceId="MAGENX_AI_MCP_OAUTH_TOKEN_REFRESH_HASH">
+            <column name="refresh_hash"/>
+        </constraint>
+        <constraint xsi:type="foreign" referenceId="MAGENX_AI_MCP_OAUTH_TOKEN_CLIENT_ID"
+                    table="magenx_ai_mcp_oauth_token" column="client_id"
+                    referenceTable="magenx_ai_mcp_oauth_client" referenceColumn="client_id" onDelete="CASCADE"/>
+        <constraint xsi:type="foreign" referenceId="MAGENX_AI_MCP_OAUTH_TOKEN_ADMIN_USER_ID"
+                    table="magenx_ai_mcp_oauth_token" column="admin_user_id"
+                    referenceTable="admin_user" referenceColumn="user_id" onDelete="CASCADE"/>
+        <index referenceId="MAGENX_AI_MCP_OAUTH_TOKEN_FAMILY_ID" indexType="btree">
+            <column name="family_id"/>
+        </index>
+        <index referenceId="MAGENX_AI_MCP_OAUTH_TOKEN_AUTHORIZATION_ID" indexType="btree">
+            <column name="authorization_id"/>
+        </index>
+        <index referenceId="MAGENX_AI_MCP_OAUTH_TOKEN_REFRESH_EXPIRES_AT" indexType="btree">
+            <column name="refresh_expires_at"/>
+        </index>
+    </table>
+</schema>
