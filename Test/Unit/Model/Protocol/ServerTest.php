@@ -11,6 +11,7 @@ use Magenx\AiMcp\Model\Audit\AdminActivityRecorder;
 use Magenx\AiMcp\Model\Auth\Identity;
 use Magenx\AiMcp\Model\Config;
 use Magenx\AiMcp\Model\Protocol\JsonRpc;
+use Magenx\AiMcp\Model\Protocol\RateLimiter;
 use Magenx\AiMcp\Model\Protocol\Server;
 use Magenx\AiMcp\Model\Tool\AbstractTool;
 use Magenx\AiMcp\Model\Tool\ToolCatalog;
@@ -127,6 +128,37 @@ class ServerTest extends TestCase
 
             $this->assertArrayNotHasKey('isError', $body['result']);
         }
+    }
+
+    /**
+     * A caller over its limit gets a readable error and the tool does not run.
+     *
+     * @return void
+     */
+    public function testARateLimitedCallIsRefusedBeforeTheToolRuns(): void
+    {
+        $limiter = $this->createMock(RateLimiter::class);
+        $limiter->method('checkCall')->willReturn('Rate limit reached: wait.');
+        $config = $this->createMock(Config::class);
+        $config->method('isWriteAllowed')->willReturn(true);
+        $registry = new ToolRegistry([$this->tool('list_things', isWrite: false, properties: [])]);
+        $server = new Server(
+            $registry,
+            new ToolCatalog($registry),
+            $config,
+            new JsonRpc(),
+            new Json(),
+            $this->createMock(LoggerInterface::class),
+            '1.0.0',
+            null,
+            null,
+            $limiter
+        );
+
+        $result = $server->dispatch('tools/call', ['name' => 'list_things'], 1, $this->identity())->getBody()['result'];
+
+        $this->assertTrue($result['isError']);
+        $this->assertSame('Rate limit reached: wait.', $result['content'][0]['text']);
     }
 
     /**

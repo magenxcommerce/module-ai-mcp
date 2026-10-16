@@ -9,12 +9,12 @@ namespace Magenx\AiMcp\Model\OAuth;
 use Magento\Framework\App\CacheInterface;
 
 /**
- * A fixed-window request counter per source address, kept in Magento's cache.
+ * A fixed-window request counter, kept in Magento's cache.
  *
- * Registration and authorization are the two OAuth endpoints anyone can call
- * without a credential, and each writes a row. This caps how fast one address
- * can make them do so. It is a brake, not a boundary: the counter is not
- * atomic, and the edge allowlist in nginx remains the real gate.
+ * Used per source address for OAuth registration and authorization - the two
+ * endpoints anyone can call without a credential, each writing a row - and per
+ * caller for MCP tool calls. It is a brake, not a boundary: the counter is not
+ * atomic, so a burst of truly concurrent requests can overshoot by a few.
  */
 class Throttle
 {
@@ -40,11 +40,25 @@ class Throttle
      */
     public function allow(string $bucket, string $remoteAddress, int $limit, int $windowSeconds, int $now): bool
     {
-        $window = intdiv($now, $windowSeconds);
-        $key = self::CACHE_PREFIX . strtoupper($bucket) . '_' . hash('sha256', $remoteAddress) . '_' . $window;
-        $count = (int) $this->cache->load($key) + 1;
-        $this->cache->save((string) $count, $key, [], $windowSeconds);
+        return $this->hit($bucket, $remoteAddress, $windowSeconds, $now) <= $limit;
+    }
 
-        return $count <= $limit;
+    /**
+     * Count one hit and return how many this key has made in the current window, this one included.
+     *
+     * @param string $bucket
+     * @param string $key A source address, or any caller identifier.
+     * @param int $windowSeconds
+     * @param int $now
+     * @return int
+     */
+    public function hit(string $bucket, string $key, int $windowSeconds, int $now): int
+    {
+        $window = intdiv($now, $windowSeconds);
+        $cacheKey = self::CACHE_PREFIX . strtoupper($bucket) . '_' . hash('sha256', $key) . '_' . $window;
+        $count = (int) $this->cache->load($cacheKey) + 1;
+        $this->cache->save((string) $count, $cacheKey, [], $windowSeconds);
+
+        return $count;
     }
 }

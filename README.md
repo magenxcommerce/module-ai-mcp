@@ -1589,6 +1589,8 @@ pointing the other way.
 | `magenx_ai_mcp/security/allowed_origins` | *(empty)* | Browser origins permitted to call the endpoint. Requests with no `Origin` header are unaffected; empty therefore means "no browser" |
 | `magenx_ai_mcp/security/allowed_config_paths` | *(empty)* | Glob patterns `set_config` may write; empty denies all |
 | `magenx_ai_mcp/security/audit_reads` | `off` | Also record successful reads: `off`, `personal_data` or `all`. Records ids, never contents |
+| `magenx_ai_mcp/security/rate_limit` | `120` | Tool calls per caller per minute; `0` disables. A caller is one integration, or one admin across all their OAuth connections |
+| `magenx_ai_mcp/security/write_rate_limit` | `30` | Confirmed writes per caller per minute, on top of the above; `0` disables |
 | `magenx_ai_mcp/tools/enabled_domains` | *(empty)* | Tool domains to offer; **empty means all** |
 | `magenx_ai_mcp/tools/disabled_tools` | *(empty)* | Individual tool names to withhold |
 | `magenx_ai_mcp/oauth/enabled` | `0` | Accept OAuth sign-ins — see [Connect claude.ai with OAuth](#connect-claudeai-with-oauth) |
@@ -1878,10 +1880,9 @@ behind the IP restriction it already has.
   and the admin signs in, with 2FA, again.
 - **Tokens are bound** to this server's resource URL (RFC 8707), to their client,
   and to an active, unlocked admin. Only SHA-256 hashes are stored.
-- **A password change ends them.** Saving an admin with a new password revokes
-  every connection that admin holds, from the admin panel or the CLI alike.
-  Resetting an admin's two-factor configuration does not: revoke their
-  connections on the Connections page when you do that.
+- **A password change or a 2FA reset ends them.** Saving an admin with a new
+  password, or resetting one of their two-factor providers, revokes every
+  connection that admin holds.
 - **Throttled.** Registration and authorization are the two calls that need no
   credential, and each stores a row. Each source address is limited to 20
   registrations an hour and 30 authorization attempts in 10 minutes, and an
@@ -1908,6 +1909,35 @@ Every registration, approval, denial, replay and revocation is written to
 - **A stolen admin account** is not made worse, and not made better. Whoever
   can sign in as an admin, with the second factor, can approve a connection,
   just as they could already create an Integration.
+
+## Check a caller from the command line
+
+```bash
+bin/magento magenx:mcp:check --admin=alice
+bin/magento magenx:mcp:check --integration="Reporting"
+```
+
+Runs the endpoint's own code for one caller, in-process: the ACL lookup
+against the store's real roles, the endpoint grant, `initialize` and
+`tools/list`. It prints how many tools that caller is offered and how many of
+them write, the write switch, the rate limits and the OAuth URLs, and exits
+non-zero with the reason when the caller could not use the endpoint: no
+`AI MCP Server` grant, an inactive admin or integration, or a role that
+reaches no tool at all. Run it after changing a role, or as a deploy check.
+
+## Limits and expiry
+
+- **Rate limits.** Tool calls are counted per caller in one-minute windows,
+  120 by default, with confirmed writes counted again against 30. A call over
+  the limit gets an error the agent can read and wait out; the first refusal
+  in each minute goes to the audit log.
+- **Integration tokens never expire.** The Platform module's **Integrations**
+  tab shows each integration's token age, amber from 90 days and red from
+  180, and `platform_status` with `collector=integrations` returns the same.
+  Reauthorize the integration to issue a new token.
+- **A deactivated integration is cut off.** Its token stays in `oauth_token`,
+  but the endpoint refuses it from the moment the integration is inactive,
+  as Magento's REST API does.
 
 ## Route it at nginx — required, and it fails silently
 

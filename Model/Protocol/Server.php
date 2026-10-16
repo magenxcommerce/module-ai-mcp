@@ -93,6 +93,7 @@ class Server
      * @param ToolsetResolver|null $toolsetResolver Built from the catalog when not injected.
      * @param AdminActivityRecorder|null $activityRecorder Puts write tools' changes in the admin
      *     activity log; writes run unrecorded there when not injected.
+     * @param RateLimiter|null $rateLimiter Per-caller call limits; none when not injected.
      */
     public function __construct(
         private readonly ToolRegistry $registry,
@@ -103,7 +104,8 @@ class Server
         private readonly LoggerInterface $auditLogger,
         private readonly string $serverVersion = '0.0.0',
         ?ToolsetResolver $toolsetResolver = null,
-        private readonly ?AdminActivityRecorder $activityRecorder = null
+        private readonly ?AdminActivityRecorder $activityRecorder = null,
+        private readonly ?RateLimiter $rateLimiter = null
     ) {
         $this->toolsetResolver = $toolsetResolver ?? new ToolsetResolver($catalog, new ToolsetProfiles());
     }
@@ -336,6 +338,13 @@ class Server
             return $this->fail($id, JsonRpc::INVALID_PARAMS, 'Missing tool name.');
         }
 
+        // Every call counts, unknown names included: a loop retrying a tool
+        // that does not exist is still a loop.
+        $refusal = $this->rateLimiter?->checkCall($identity);
+        if ($refusal !== null) {
+            return $this->ok($id, $this->toolError($refusal));
+        }
+
         $tool = $this->registry->get($name);
         if ($tool === null || !$identity->isAllowed($tool->getAclResource())) {
             // Deliberately the same answer for "no such tool" and "your
@@ -390,6 +399,15 @@ class Server
 
         if ($tool->isWrite() && ($arguments['confirm'] ?? false) !== true) {
             return $this->ok($id, $this->preview($tool, $arguments));
+        }
+
+        if ($tool->isWrite()) {
+            $refusal = $this->rateLimiter?->checkWrite($identity);
+            if ($refusal !== null) {
+                $this->audit($tool, $arguments, $identity, 'refused: rate limit');
+
+                return $this->ok($id, $this->toolError($refusal));
+            }
         }
 
         try {

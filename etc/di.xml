@@ -313,6 +313,7 @@
                  their changes appear in System > Admin Activity Log with the
                  connector and role. Proxied: reads never build it. -->
             <argument name="activityRecorder" xsi:type="object">Magenx\AiMcp\Model\Audit\AdminActivityRecorder\Proxy</argument>
+            <argument name="rateLimiter" xsi:type="object">Magenx\AiMcp\Model\Protocol\RateLimiter</argument>
         </arguments>
     </type>
 
@@ -329,6 +330,18 @@
 
     <!-- OAuth: grants, refusals, replays and revocations land in the same audit
          file as the writes, since each one changes who can act on the store. -->
+    <type name="Magento\Framework\Console\CommandListInterface">
+        <arguments>
+            <argument name="commands" xsi:type="array">
+                <item name="magenx_aimcp_check" xsi:type="object">Magenx\AiMcp\Console\Command\Check\Proxy</item>
+            </argument>
+        </arguments>
+    </type>
+    <type name="Magenx\AiMcp\Model\Protocol\RateLimiter">
+        <arguments>
+            <argument name="auditLogger" xsi:type="object">MagenxAiMcpAuditLogger</argument>
+        </arguments>
+    </type>
     <type name="Magenx\AiMcp\Model\OAuth\ClientRegistry">
         <arguments>
             <argument name="auditLogger" xsi:type="object">MagenxAiMcpAuditLogger</argument>
@@ -340,6 +353,16 @@
         </arguments>
     </type>
     <type name="Magenx\AiMcp\Model\OAuth\TokenService">
+        <arguments>
+            <argument name="auditLogger" xsi:type="object">MagenxAiMcpAuditLogger</argument>
+        </arguments>
+    </type>
+    <!-- A 2FA reset ends the admin's connections, as a password change does.
+         Inert where Magento_TwoFactorAuth is not installed. -->
+    <type name="Magento\TwoFactorAuth\Api\UserConfigManagerInterface">
+        <plugin name="magenx_aimcp_revoke_on_2fa_reset" type="Magenx\AiMcp\Plugin\TwoFactorAuth\RevokeOnReset"/>
+    </type>
+    <type name="Magenx\AiMcp\Plugin\TwoFactorAuth\RevokeOnReset">
         <arguments>
             <argument name="auditLogger" xsi:type="object">MagenxAiMcpAuditLogger</argument>
         </arguments>

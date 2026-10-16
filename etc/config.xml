@@ -20,6 +20,10 @@
                 <allowed_config_paths/>
                 <allowed_origins/>
                 <audit_reads>off</audit_reads>
+                <!-- Per caller, per minute. Far above what an agent working a task
+                     needs; low enough to stop one stuck in a loop. 0 disables. -->
+                <rate_limit>120</rate_limit>
+                <write_rate_limit>30</write_rate_limit>
             </security>
             <!--
                 Both empty, which here means "offer every tool". This is the one
