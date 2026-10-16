@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.10.0](https://github.com/magenxcommerce/module-ai-mcp/compare/v1.9.1...v1.10.0) (2026-10-16)
+
+
+### Features
+
+* tool-call rate limits, 2FA-reset revocation, connection self-check ([#36](https://github.com/magenxcommerce/module-ai-mcp/issues/36)) ([0fec667](https://github.com/magenxcommerce/module-ai-mcp/commit/0fec66766687412fc8c830795d9dd462a4e32b28))
+
 ## [1.9.1](https://github.com/magenxcommerce/module-ai-mcp/compare/v1.9.0...v1.9.1) (2026-10-16)
 
 
