@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.11.0](https://github.com/magenxcommerce/module-ai-mcp/compare/v1.10.0...v1.11.0) (2026-10-17)
+
+
+### Features
+
+* **oauth:** close dynamic client registration by default; optional connector key ([#38](https://github.com/magenxcommerce/module-ai-mcp/issues/38)) ([5d01bc1](https://github.com/magenxcommerce/module-ai-mcp/commit/5d01bc1f742e3c34f8474b46ab6f7e2aea28d8c8))
+* **oauth:** per-client approvers, tool-area cap, disable/rotate and re-approval policy ([#39](https://github.com/magenxcommerce/module-ai-mcp/issues/39)) ([fc8cbf7](https://github.com/magenxcommerce/module-ai-mcp/commit/fc8cbf7537127338682fe1bb01061bdfc6d6ae90))
+
 ## [1.10.0](https://github.com/magenxcommerce/module-ai-mcp/compare/v1.9.1...v1.10.0) (2026-10-16)
 
 
