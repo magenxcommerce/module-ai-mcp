@@ -8,6 +8,7 @@ namespace Magenx\AiMcp\Model\Auth;
 
 use Laminas\Http\Header\HeaderInterface;
 use Magenx\AiMcp\Model\Config;
+use Magenx\AiMcp\Model\OAuth\ConnectorKey;
 use Magenx\AiMcp\Model\OAuth\OAuthConfig;
 use Magenx\AiMcp\Model\OAuth\Secret;
 use Magenx\AiMcp\Model\OAuth\TokenService;
@@ -37,7 +38,8 @@ use Psr\Log\LoggerInterface;
  * OAuth access tokens (the `mxa_` prefix) are the third kind, accepted only
  * while OAuth is switched on. They resolve to the admin who approved the
  * connection and are checked against that admin's role, exactly like an
- * admin-user token, narrowed further by the scope the admin granted.
+ * admin-user token, narrowed further by the scope the admin granted. Where the
+ * operator generated a {@see ConnectorKey}, they must also arrive with it.
  */
 class Authenticator
 {
@@ -57,6 +59,7 @@ class Authenticator
      * @param OAuthConfig $oauthConfig
      * @param TokenService $tokenService
      * @param AclResources $aclResources
+     * @param Secret $secret
      */
     public function __construct(
         private readonly TokenFactory $tokenFactory,
@@ -68,7 +71,8 @@ class Authenticator
         private readonly LoggerInterface $auditLogger,
         private readonly OAuthConfig $oauthConfig,
         private readonly TokenService $tokenService,
-        private readonly AclResources $aclResources
+        private readonly AclResources $aclResources,
+        private readonly Secret $secret
     ) {
     }
 
@@ -90,7 +94,7 @@ class Authenticator
         }
 
         if (str_starts_with($token, Secret::PREFIX_ACCESS)) {
-            return $this->authenticateOAuth($token);
+            return $this->authenticateOAuth($token, $request);
         }
 
         $tokenModel = $this->tokenFactory->create()->loadByToken($token);
@@ -141,11 +145,17 @@ class Authenticator
     /**
      * Resolve an OAuth access token to the admin who granted it.
      *
+     * The token is checked before the connector key, so an expired token still
+     * draws the 401 that makes the client refresh it: the token endpoint is
+     * never sent the key, and a 403 there would strand the connection.
+     *
      * @param string $token
+     * @param HttpRequest $request
      * @return Identity
      * @throws AuthenticationException
+     * @throws AccessDeniedException
      */
-    private function authenticateOAuth(string $token): Identity
+    private function authenticateOAuth(string $token, HttpRequest $request): Identity
     {
         if (!$this->oauthConfig->isEnabled()) {
             throw $this->refuse(__('OAuth access tokens are not accepted on this server.'));
@@ -154,6 +164,25 @@ class Authenticator
         $grant = $this->tokenService->resolve($token);
         if ($grant === null) {
             throw $this->refuse(__('The access token is invalid, expired or revoked.'));
+        }
+
+        $keyHash = $this->oauthConfig->getConnectorKeyHash();
+        $raw = $request->getHeader(ConnectorKey::HEADER);
+        $presented = trim($raw instanceof HeaderInterface ? $raw->getFieldValue() : (string) $raw);
+        if ($keyHash !== '' && ($presented === '' || !hash_equals($keyHash, $this->secret->hash($presented)))) {
+            $this->auditLogger->warning('[magenx-mcp] oauth connector key refused', [
+                'remote_address' => (string) $this->remoteAddress->getRemoteAddress(),
+                'admin' => $grant->getUsername(),
+                'client_name' => $grant->getClientName(),
+                'reason' => $presented === '' ? 'missing' : 'wrong',
+            ]);
+
+            // 403, not 401: a new token would not help, and a challenge would
+            // send the client round the OAuth flow again for nothing.
+            throw new AccessDeniedException(__(
+                'This connection needs the store\'s connector key in the x-api-key request header. '
+                . 'Add it in the connector\'s settings, or ask an administrator for the current one.'
+            ));
         }
 
         return $this->buildIdentity(

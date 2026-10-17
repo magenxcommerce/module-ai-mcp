@@ -377,6 +377,16 @@
             <argument name="auditLogger" xsi:type="object">MagenxAiMcpAuditLogger</argument>
         </arguments>
     </type>
+    <type name="Magenx\AiMcp\Model\OAuth\ConnectorKey">
+        <arguments>
+            <argument name="auditLogger" xsi:type="object">MagenxAiMcpAuditLogger</argument>
+        </arguments>
+    </type>
+    <type name="Magenx\AiMcp\Controller\Adminhtml\Oauth\DeleteClient">
+        <arguments>
+            <argument name="auditLogger" xsi:type="object">MagenxAiMcpAuditLogger</argument>
+        </arguments>
+    </type>
     <!-- The backend URL model is only needed to build the consent link, on the
          authorize endpoint; the MCP endpoint builds Endpoints on every call. -->
     <type name="Magenx\AiMcp\Model\OAuth\Endpoints">

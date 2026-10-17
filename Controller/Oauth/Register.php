@@ -21,6 +21,9 @@ use Magento\Framework\Stdlib\DateTime\DateTime as CoreDate;
 
 /**
  * POST /magenx-mcp/oauth/register — RFC 7591 dynamic client registration.
+ *
+ * Answers 404 unless the operator opened registration: by default only a
+ * client an administrator created can connect.
  */
 class Register extends AbstractEndpoint implements HttpPostActionInterface
 {
@@ -60,7 +63,7 @@ class Register extends AbstractEndpoint implements HttpPostActionInterface
      */
     public function execute(): Raw
     {
-        if (!$this->isActive()) {
+        if (!$this->isActive() || !$this->oauthConfig->isDynamicRegistrationAllowed()) {
             return $this->responder->empty(404);
         }
 

@@ -233,4 +233,38 @@ class AuthorizationServiceTest extends OAuthTestCase
     {
         $this->assertNull($this->authorizations->getPending("' OR 1=1 --"));
     }
+
+    /**
+     * With registration closed, a client anyone registered learns nothing: no row, no redirect to the admin.
+     *
+     * @return void
+     */
+    public function testClosedRegistrationRefusesADynamicClientWithoutRedirecting(): void
+    {
+        $clientId = $this->registerClient()['client_id'];
+        $this->dynamicRegistration = false;
+
+        try {
+            $this->authorizations->createRequest($this->authorizeParams($clientId));
+            $this->fail('A dynamically registered client started a flow with registration closed.');
+        } catch (OAuthException $e) {
+            $this->assertNotInstanceOf(RedirectableOAuthException::class, $e);
+            $this->assertSame('invalid_client', $e->getError());
+            $this->assertStringContainsString('administrator created', $e->getMessage());
+        }
+        $this->assertSame([], $this->storage->authorizations);
+    }
+
+    /**
+     * @return void
+     */
+    public function testClosedRegistrationAcceptsAnAdminClient(): void
+    {
+        $this->dynamicRegistration = false;
+        $clientId = $this->clients->createForAdmin('Claude', 'admin:alice')['client_id'];
+
+        $requestId = $this->authorizations->createRequest($this->authorizeParams($clientId));
+
+        $this->assertSame(Storage::STATUS_PENDING, $this->storage->authorizations[$requestId]['status']);
+    }
 }

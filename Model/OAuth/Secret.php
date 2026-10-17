@@ -23,6 +23,7 @@ class Secret
     public const PREFIX_CODE = 'mxc_';
     public const PREFIX_CLIENT = 'mxclient_';
     public const PREFIX_CLIENT_SECRET = 'mxs_';
+    public const PREFIX_CONNECTOR_KEY = 'mxk_';
 
     /**
      * A new random value with the given prefix.

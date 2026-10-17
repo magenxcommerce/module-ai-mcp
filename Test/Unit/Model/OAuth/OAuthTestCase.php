@@ -46,6 +46,8 @@ abstract class OAuthTestCase extends TestCase
     /** @var string[] */
     protected array $allowedRedirects = [self::CALLBACK];
     protected bool $loopback = false;
+    protected bool $dynamicRegistration = true;
+    protected string $connectorKeyHash = '';
 
     /**
      * @return void
@@ -63,6 +65,9 @@ abstract class OAuthTestCase extends TestCase
         $this->oauthConfig->method('getAllowedRedirectUris')
             ->willReturnCallback(fn (): array => $this->allowedRedirects);
         $this->oauthConfig->method('isLoopbackAllowed')->willReturnCallback(fn (): bool => $this->loopback);
+        $this->oauthConfig->method('isDynamicRegistrationAllowed')
+            ->willReturnCallback(fn (): bool => $this->dynamicRegistration);
+        $this->oauthConfig->method('getConnectorKeyHash')->willReturnCallback(fn (): string => $this->connectorKeyHash);
         $this->oauthConfig->method('getAccessTokenLifetime')->willReturn(3600);
         $this->oauthConfig->method('getRefreshTokenLifetime')->willReturn(30 * 86400);
         $this->oauthConfig->method('getPublicBaseUrl')->willReturn(self::BASE);
@@ -83,9 +88,10 @@ abstract class OAuthTestCase extends TestCase
         $scope = new Scope();
         $pkce = new Pkce();
 
-        $this->clients = new ClientRegistry($this->storage, $policy, $secret, $date, $this->logger);
+        $this->clients = new ClientRegistry($this->storage, $this->oauthConfig, $policy, $secret, $date, $this->logger);
         $this->authorizations = new AuthorizationService(
             $this->storage,
+            $this->oauthConfig,
             $this->clients,
             $policy,
             $this->endpoints,

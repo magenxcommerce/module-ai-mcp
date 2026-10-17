@@ -8,10 +8,12 @@ namespace Magenx\AiMcp\Test\Unit\Flow;
 
 use Magenx\AiMcp\Api\ToolInterface;
 use Magenx\AiMcp\Model\Audit\AdminActivityRecorder;
+use Magenx\AiMcp\Model\Auth\AccessDeniedException;
 use Magenx\AiMcp\Model\Auth\AclResources;
 use Magenx\AiMcp\Model\Auth\Authenticator;
 use Magenx\AiMcp\Model\Auth\Identity;
 use Magenx\AiMcp\Model\Config;
+use Magenx\AiMcp\Model\OAuth\Secret;
 use Magenx\AiMcp\Model\Protocol\JsonRpc;
 use Magenx\AiMcp\Model\Protocol\Server;
 use Magenx\AiMcp\Model\Tool\ToolCatalog;
@@ -30,6 +32,7 @@ use Magento\Framework\Stdlib\DateTime\DateTime as CoreDate;
 use Magento\Integration\Api\IntegrationServiceInterface;
 use Magento\Integration\Helper\Oauth\Data as OauthHelper;
 use Magento\Integration\Model\Oauth\TokenFactory;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -120,6 +123,61 @@ class OAuthToToolCallTest extends OAuthTestCase
     }
 
     /**
+     * @return void
+     */
+    public function testWithAConnectorKeySetTheRightKeyIsAccepted(): void
+    {
+        $token = $this->accessToken(grantWrite: false);
+        $this->connectorKeyHash = hash('sha256', 'mxk_right');
+
+        $identity = $this->authenticate($token, ['X-Api-Key' => 'mxk_right']);
+
+        $this->assertSame('admin:alice via Claude', $identity->getLabel());
+    }
+
+    /**
+     * A token alone, leaked or phished, is not enough once a key is set; and the refusal is not a 401.
+     *
+     * @param array<string, string> $headers
+     * @return void
+     */
+    #[DataProvider('missingOrWrongKeyProvider')]
+    public function testWithAConnectorKeySetATokenWithoutItIsRefusedWith403(array $headers): void
+    {
+        $token = $this->accessToken(grantWrite: true);
+        $this->connectorKeyHash = hash('sha256', 'mxk_right');
+
+        $this->expectException(AccessDeniedException::class);
+        $this->expectExceptionMessage('x-api-key');
+        $this->authenticate($token, $headers);
+    }
+
+    /**
+     * @return array<string, array{0: array<string, string>}>
+     */
+    public static function missingOrWrongKeyProvider(): array
+    {
+        return [
+            'missing' => [[]],
+            'empty' => [['X-Api-Key' => '']],
+            'wrong' => [['X-Api-Key' => 'mxk_wrong']],
+        ];
+    }
+
+    /**
+     * An expired token still draws the 401 that makes the client refresh it, key or no key.
+     *
+     * @return void
+     */
+    public function testWithAConnectorKeySetAnInvalidTokenIsStillA401(): void
+    {
+        $this->connectorKeyHash = hash('sha256', 'mxk_right');
+
+        $this->expectException(AuthenticationException::class);
+        $this->authenticate('mxa_not-a-token');
+    }
+
+    /**
      * Deactivating an integration cuts its token off here as it does on Magento's REST API.
      *
      * @return void
@@ -171,11 +229,14 @@ class OAuthToToolCallTest extends OAuthTestCase
 
     /**
      * @param string $token
+     * @param array<string, string> $headers
      * @return Identity
      */
-    private function authenticate(string $token): Identity
+    private function authenticate(string $token, array $headers = []): Identity
     {
-        return $this->authenticator()->authenticate(new HttpRequest(['Authorization' => 'Bearer ' . $token]));
+        return $this->authenticator()->authenticate(
+            new HttpRequest(['Authorization' => 'Bearer ' . $token] + $headers)
+        );
     }
 
     /**
@@ -214,7 +275,8 @@ class OAuthToToolCallTest extends OAuthTestCase
             $this->createMock(LoggerInterface::class),
             $this->oauthConfig,
             $this->tokens,
-            new AclResources($retriever, $roles)
+            new AclResources($retriever, $roles),
+            new Secret()
         );
     }
 

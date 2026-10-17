@@ -29,6 +29,7 @@ class AuthorizationService
 
     /**
      * @param Storage $storage
+     * @param OAuthConfig $oauthConfig
      * @param ClientRegistry $clientRegistry
      * @param RedirectUriPolicy $redirectUriPolicy
      * @param Endpoints $endpoints
@@ -40,6 +41,7 @@ class AuthorizationService
      */
     public function __construct(
         private readonly Storage $storage,
+        private readonly OAuthConfig $oauthConfig,
         private readonly ClientRegistry $clientRegistry,
         private readonly RedirectUriPolicy $redirectUriPolicy,
         private readonly Endpoints $endpoints,
@@ -54,10 +56,11 @@ class AuthorizationService
     /**
      * Validate an authorization request and park it for the admin.
      *
-     * Errors that leave the redirect URI untrusted (unknown client, a
-     * callback it did not register) are thrown with no redirect target: they
-     * must be shown to the user, never sent to the URI in question. Every
-     * later error carries the redirect for the client to receive.
+     * Errors that leave the redirect URI untrusted (unknown client, one that
+     * may not start a flow, a callback it did not register) are thrown with no
+     * redirect target: they must be shown to the user, never sent to the URI
+     * in question. Every later error carries the redirect for the client to
+     * receive.
      *
      * @param array<string, mixed> $params The query string.
      * @return string The request id.
@@ -67,8 +70,13 @@ class AuthorizationService
     public function createRequest(array $params): string
     {
         $client = $this->clientRegistry->find($this->stringParam($params, 'client_id'));
+        if ($client !== null && !$this->clientRegistry->mayStartFlow($client)) {
+            // Refused before anything is parked or redirected: a client that
+            // may not start a flow must not learn where the consent page is.
+            $client = null;
+        }
         if ($client === null) {
-            throw new OAuthException('invalid_client', 'Unknown client. Remove the connector and add it again.');
+            throw new OAuthException('invalid_client', $this->unknownClientMessage());
         }
 
         $registered = $this->clientRegistry->getRedirectUris($client);
@@ -262,6 +270,19 @@ class AuthorizationService
         $params = array_filter($params, static fn ($value): bool => $value !== null && $value !== '');
 
         return $uri . (str_contains($uri, '?') ? '&' : '?') . http_build_query($params, '', '&', PHP_QUERY_RFC3986);
+    }
+
+    /**
+     * What to tell the person whose browser brought an unknown client.
+     *
+     * @return string
+     */
+    private function unknownClientMessage(): string
+    {
+        return $this->oauthConfig->isDynamicRegistrationAllowed()
+            ? 'Unknown client. Remove the connector and add it again.'
+            : 'Unknown client. This store only accepts a client its administrator created: enter that client\'s '
+                . 'ID and secret in the connector\'s advanced settings.';
     }
 
     /**

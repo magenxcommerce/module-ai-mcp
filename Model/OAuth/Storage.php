@@ -33,6 +33,12 @@ class Storage
     public const STATUS_USED = 'used';
     public const STATUS_DENIED = 'denied';
 
+    /** Registered by anyone through RFC 7591. */
+    public const ORIGIN_DYNAMIC = 'dynamic';
+
+    /** Created by an administrator, who handed its id and secret to the client. */
+    public const ORIGIN_ADMIN = 'admin';
+
     /**
      * @param ResourceConnection $resource
      */
@@ -62,6 +68,37 @@ class Storage
         );
 
         return $row ?: null;
+    }
+
+    /**
+     * Clients an administrator created, newest first.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function getAdminClients(): array
+    {
+        $connection = $this->connection();
+
+        return $connection->fetchAll(
+            $connection->select()
+                ->from($this->table(self::TABLE_CLIENT), ['client_id', 'client_name', 'created_at'])
+                ->where('origin = ?', self::ORIGIN_ADMIN)
+                ->order('created_at DESC')
+        );
+    }
+
+    /**
+     * Delete a client an administrator created. Its requests and tokens go with it.
+     *
+     * @param string $clientId
+     * @return bool Whether a client was deleted.
+     */
+    public function deleteAdminClient(string $clientId): bool
+    {
+        return $this->connection()->delete(
+            $this->table(self::TABLE_CLIENT),
+            ['client_id = ?' => $clientId, 'origin = ?' => self::ORIGIN_ADMIN]
+        ) === 1;
     }
 
     /**
@@ -306,11 +343,13 @@ class Storage
             ['revoked = ?' => 1, 'access_expires_at < ?' => $now]
         );
 
-        // Registered clients that never completed a flow. Registration is
+        // Registered clients that never completed a flow. Registration can be
         // open, so this is what keeps abandoned attempts from accumulating.
+        // A client an administrator created waits, unused, until it is deleted.
         $connection->delete(
             $this->table(self::TABLE_CLIENT),
             [
+                'origin = ?' => self::ORIGIN_DYNAMIC,
                 'granted = ?' => 0,
                 'created_at < ?' => $now - 3600,
                 sprintf(

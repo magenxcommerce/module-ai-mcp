@@ -1594,7 +1594,8 @@ pointing the other way.
 | `magenx_ai_mcp/tools/enabled_domains` | *(empty)* | Tool domains to offer; **empty means all** |
 | `magenx_ai_mcp/tools/disabled_tools` | *(empty)* | Individual tool names to withhold |
 | `magenx_ai_mcp/oauth/enabled` | `0` | Accept OAuth sign-ins — see [Connect claude.ai with OAuth](#connect-claudeai-with-oauth) |
-| `magenx_ai_mcp/oauth/allowed_redirect_uris` | claude.ai's callback | Callbacks a client may register, matched exactly |
+| `magenx_ai_mcp/oauth/allow_dynamic_registration` | `0` | Let anyone register a client (RFC 7591). Off: only clients created under AI MCP Connections can connect |
+| `magenx_ai_mcp/oauth/allowed_redirect_uris` | claude.ai's callback | Callbacks a client may be created or registered with, matched exactly |
 | `magenx_ai_mcp/oauth/allow_loopback_redirects` | `0` | Also accept `http://localhost` / `127.0.0.1` / `[::1]` callbacks on any port |
 | `magenx_ai_mcp/oauth/access_token_lifetime` | `60` | Minutes, 5–1440 |
 | `magenx_ai_mcp/oauth/refresh_token_lifetime` | `30` | Days a connection lasts from approval, 1–90; never extended by use |
@@ -1803,9 +1804,9 @@ for anything the team or a web session should share.
 
 ### From claude.ai "Custom connectors" — with OAuth
 
-Turn OAuth on and the connector dialog needs only the URL. See the next
-section. Leave its **OAuth Client ID / Client Secret** fields empty: the client
-registers itself.
+Turn OAuth on, create a client under **System → Extensions → AI MCP
+Connections**, and enter its ID and secret in the connector's advanced
+settings. See the next section.
 
 **Do not** put a token in the connector URL (`?token=…`). URLs are recorded in
 nginx access logs, proxies and browser history, and the MCP authorization spec
@@ -1828,11 +1829,14 @@ With **OAuth** on (Stores → Configuration → Magenx → AI MCP Server → OAu
 the server is also an OAuth 2.1 authorization server, and claude.ai, Claude
 Desktop and Claude mobile connect as a person rather than as an integration:
 
-1. Settings → Connectors → **Add custom connector**, URL
-   `https://your-host/magenx-mcp/server`, nothing else.
-2. Claude opens a browser tab on your store. You sign in to the Magento admin
+1. **System → Extensions → AI MCP Connections → Create Client.** The page
+   shows the client ID and secret once; the secret is stored only as a hash.
+2. Settings → Connectors → **Add custom connector**, URL
+   `https://your-host/magenx-mcp/server`. Under **Advanced settings → Use your
+   own OAuth client**, enter that client ID and secret.
+3. Claude opens a browser tab on your store. You sign in to the Magento admin
    as usual — password and two-factor — and land on **Connect AI Client**.
-3. It shows the client, the host the code goes to, and a box for write access.
+4. It shows the client, the host the code goes to, and a box for write access.
    Approve, and the tab returns to Claude, connected.
 
 The connection then acts **as you**: your admin role is the ACL every tool is
@@ -1840,12 +1844,58 @@ checked against, the audit log names you (`admin:alice via Claude`), and it
 ends when you are deactivated, locked out or deleted. Integration tokens keep
 working beside it, unchanged.
 
+One client can serve every admin who connects through the same AI service;
+each approval is still its own connection, with its own admin. Deleting the
+client ends all of them.
+
+### Dynamic client registration is off by default
+
+MCP clients can register themselves (RFC 7591), and the connector dialog then
+needs only the URL. **Allow Dynamic Client Registration** turns that on. Leave
+it off. Every callback a client may use is claude.ai's, where anyone has an
+account, so open registration lets anyone:
+
+- **learn your admin URL**: register a client, start a flow, read the redirect;
+- **phish a connection**: send an admin the consent link from *their* Claude
+  account, which, approved, connects their Claude to the admin's role.
+
+With registration off, `/magenx-mcp/oauth/register` answers 404 and is left out
+of the metadata, and the authorize endpoint refuses every client an
+administrator did not create, before it parks anything or redirects anywhere.
+Such a client is always confidential, so even an approval someone talked an
+admin into cannot be redeemed without the secret, which only the service the
+admin configured holds. Keep the client ID private as well: it is not a
+credential, but whoever has it can start a flow and so learn the admin path.
+
+**Upgrading from 1.10 or earlier**, where registration was always open: a
+claude.ai connector that registered itself keeps working until its connection
+expires (30 days from approval by default) or is revoked. To reconnect, create
+a client and enter it in the connector, or turn registration back on.
+
+### Connector key (optional)
+
+**AI MCP Connections → Generate Key** creates a second secret. Add it to the
+connector as the request header `x-api-key` (claude.ai: Advanced settings →
+Request headers). From then on every MCP call made with an OAuth token must
+carry it, or is refused with **403**: a leaked access token is useless on its
+own, and so is an approval someone talked an admin into from their own Claude
+account, even with dynamic registration on.
+
+What it does not cover: claude.ai sends the header only alongside the bearer
+token, not on discovery, registration or the token endpoint, so those stay as
+reachable as before. The refusal is a 403 rather than a 401 on purpose, so the
+client does not loop through the OAuth flow, which cannot supply the key.
+An expired token is still a 401 and still refreshes. Integration tokens are not
+affected. Replacing the key refuses every connection until its connector has
+the new one; removing it stops requiring one. Only the hash is stored, under
+`magenx_ai_mcp/oauth/connector_key_hash`.
+
 ### Who talks to what
 
 ```
 Claude's servers ── /.well-known/oauth-protected-resource/magenx-mcp/server ─┐
 (Anthropic egress)  /.well-known/oauth-authorization-server/magenx-mcp       │
-                    POST /magenx-mcp/oauth/register   (RFC 7591)             ├─ public, Magento frontend
+                    POST /magenx-mcp/oauth/register   (RFC 7591, if open)    ├─ public, Magento frontend
                     POST /magenx-mcp/oauth/token      (code + PKCE, refresh) │
                     POST /magenx-mcp/oauth/revoke     (RFC 7009)             │
                     POST /magenx-mcp/server           (Bearer mxa_…)         ┘
@@ -1866,11 +1916,17 @@ behind the IP restriction it already has.
   the admin start-up page, so while a request is pending in your browser (a
   10-minute, HttpOnly `magenx_mcp_oauth` cookie) the start-up page is the
   consent page. That is the plugin in `Plugin/Backend/StartupPageUrl.php`.
-- **Registration is open, callbacks are not.** Any client can register, as MCP
-  clients expect, but only with a redirect URI on
-  `allowed_redirect_uris`. The default is claude.ai's callback. A code can never
-  be delivered anywhere you did not list. Errors before the callback is verified
-  are shown, never redirected.
+- **Only clients you created connect.** Registration is closed by default, so
+  a flow can only start with a client an administrator created, and that client
+  must present its secret to redeem a code. See
+  [Dynamic client registration is off by default](#dynamic-client-registration-is-off-by-default).
+- **Optionally, a connector key.** With one generated, an OAuth token is
+  refused without the `x-api-key` header. See
+  [Connector key](#connector-key-optional).
+- **Callbacks are allowlisted.** A client, created or registered, only ever
+  gets a redirect URI on `allowed_redirect_uris`. The default is claude.ai's
+  callback. A code can never be delivered anywhere you did not list. Errors
+  before the callback is verified are shown, never redirected.
 - **PKCE S256 is mandatory**, `plain` is refused, codes live 120 seconds and are
   single-use. A replayed code, presented with its verifier, revokes everything it
   issued.
@@ -1899,13 +1955,13 @@ Every registration, approval, denial, replay and revocation is written to
 
 ### What it does not protect against
 
-- **Consent phishing.** Someone can start a flow from their own Claude account
-  and send you the link. Approving would connect *their* Claude to *your* admin
-  role. The consent page says so, and shows where the code goes. Approve only
-  connections you started yourself, just now.
-- **Admin path disclosure.** The authorize endpoint redirects to the admin
-  consent URL, so anyone able to start a flow learns the admin path. Keep the
-  admin IP-restricted, as this stack's nginx already does.
+- **Consent phishing and admin path disclosure, once registration is open.**
+  Anyone can then start a flow from their own Claude account: the redirect
+  shows them the admin path, and the consent link they send you would, approved,
+  connect *their* Claude to *your* admin role. The consent page warns about it.
+  With registration closed, as by default, neither is possible for anyone who
+  does not hold a client's secret. Keep the admin IP-restricted as well, as
+  this stack's nginx already does: that is defense in depth, not the fix.
 - **A stolen admin account** is not made worse, and not made better. Whoever
   can sign in as an admin, with the second factor, can approve a connection,
   just as they could already create an Integration.

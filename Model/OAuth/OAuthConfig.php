@@ -14,17 +14,19 @@ use Magento\Framework\App\Config\ScopeConfigInterface;
  * Kept apart from {@see \Magenx\AiMcp\Model\Config} because none of it applies
  * to the integration-token path: an installation that never turns OAuth on
  * never reads any of this. Default-deny like the rest of the module — OAuth is
- * off, loopback redirects are off, and an empty redirect allowlist registers
- * no client at all.
+ * off, dynamic registration is off, loopback redirects are off, and an empty
+ * redirect allowlist registers no client at all.
  */
 class OAuthConfig
 {
     private const XML_PATH_ENABLED = 'magenx_ai_mcp/oauth/enabled';
+    private const XML_PATH_DYNAMIC_REGISTRATION = 'magenx_ai_mcp/oauth/allow_dynamic_registration';
     private const XML_PATH_REDIRECT_URIS = 'magenx_ai_mcp/oauth/allowed_redirect_uris';
     private const XML_PATH_ALLOW_LOOPBACK = 'magenx_ai_mcp/oauth/allow_loopback_redirects';
     private const XML_PATH_ACCESS_LIFETIME = 'magenx_ai_mcp/oauth/access_token_lifetime';
     private const XML_PATH_REFRESH_LIFETIME = 'magenx_ai_mcp/oauth/refresh_token_lifetime';
     private const XML_PATH_PUBLIC_BASE_URL = 'magenx_ai_mcp/oauth/public_base_url';
+    public const XML_PATH_CONNECTOR_KEY_HASH = 'magenx_ai_mcp/oauth/connector_key_hash';
 
     /** Bounds on the configurable lifetimes, so a typo cannot mint a token for a year. */
     private const ACCESS_MINUTES_MIN = 5;
@@ -50,6 +52,21 @@ class OAuthConfig
     public function isEnabled(): bool
     {
         return $this->scopeConfig->isSetFlag(self::XML_PATH_ENABLED);
+    }
+
+    /**
+     * Whether anyone may register a client (RFC 7591) and start a flow with it.
+     *
+     * Off, only clients an administrator created can be sent to the consent
+     * page. A registered client carries no privilege, but letting anyone start
+     * a flow lets anyone learn the admin URL from the redirect, and hand an
+     * admin a consent link that would connect the sender's own Claude account.
+     *
+     * @return bool
+     */
+    public function isDynamicRegistrationAllowed(): bool
+    {
+        return $this->scopeConfig->isSetFlag(self::XML_PATH_DYNAMIC_REGISTRATION);
     }
 
     /**
@@ -115,6 +132,18 @@ class OAuthConfig
     public function getPublicBaseUrl(): string
     {
         return rtrim(trim((string) $this->scopeConfig->getValue(self::XML_PATH_PUBLIC_BASE_URL)), '/');
+    }
+
+    /**
+     * SHA-256 of the connector key every OAuth-authenticated MCP call must carry.
+     *
+     * Set and cleared only by {@see ConnectorKey}; never a value an admin types.
+     *
+     * @return string Empty when no key is required.
+     */
+    public function getConnectorKeyHash(): string
+    {
+        return trim((string) $this->scopeConfig->getValue(self::XML_PATH_CONNECTOR_KEY_HASH));
     }
 
     /**
