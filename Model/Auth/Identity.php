@@ -20,6 +20,8 @@ class Identity
      *     without mcp:write), whatever the role allows. Integration tokens carry no scope.
      * @param string|null $connector The credential behind the call: the integration's name, the
      *     OAuth client's name, or null for an admin-user token. Recorded in the admin activity log.
+     * @param string[]|null $domains Tool domains the credential is limited to: what the admin ticked
+     *     when approving an OAuth connection, within the client's cap. Null for no such limit.
      */
     public function __construct(
         private readonly int $userType,
@@ -27,8 +29,21 @@ class Identity
         private readonly string $label,
         private readonly array $allowedResources,
         private readonly bool $writeScope = true,
-        private readonly ?string $connector = null
+        private readonly ?string $connector = null,
+        private readonly ?array $domains = null
     ) {
+    }
+
+    /**
+     * The tool domains the credential is limited to, or null when it is not.
+     *
+     * Narrows, never widens, like the write scope.
+     *
+     * @return string[]|null
+     */
+    public function getDomains(): ?array
+    {
+        return $this->domains;
     }
 
     /**

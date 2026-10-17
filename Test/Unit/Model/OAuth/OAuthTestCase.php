@@ -8,6 +8,7 @@ namespace Magenx\AiMcp\Test\Unit\Model\OAuth;
 
 use Magenx\AiMcp\Model\OAuth\AuthorizationService;
 use Magenx\AiMcp\Model\OAuth\ClientRegistry;
+use Magenx\AiMcp\Model\OAuth\DomainList;
 use Magenx\AiMcp\Model\OAuth\Endpoints;
 use Magenx\AiMcp\Model\OAuth\OAuthConfig;
 use Magenx\AiMcp\Model\OAuth\Pkce;
@@ -88,7 +89,16 @@ abstract class OAuthTestCase extends TestCase
         $scope = new Scope();
         $pkce = new Pkce();
 
-        $this->clients = new ClientRegistry($this->storage, $this->oauthConfig, $policy, $secret, $date, $this->logger);
+        $domainList = new DomainList();
+        $this->clients = new ClientRegistry(
+            $this->storage,
+            $this->oauthConfig,
+            $policy,
+            $secret,
+            $date,
+            $this->logger,
+            $domainList
+        );
         $this->authorizations = new AuthorizationService(
             $this->storage,
             $this->oauthConfig,
@@ -99,7 +109,8 @@ abstract class OAuthTestCase extends TestCase
             $scope,
             $secret,
             $date,
-            $this->logger
+            $this->logger,
+            $domainList
         );
         $this->tokens = new TokenService(
             $this->storage,
@@ -109,7 +120,8 @@ abstract class OAuthTestCase extends TestCase
             $scope,
             $secret,
             $date,
-            $this->logger
+            $this->logger,
+            $domainList
         );
     }
 

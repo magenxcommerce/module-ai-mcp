@@ -19,6 +19,9 @@
         <column xsi:type="smallint" name="granted" unsigned="true" nullable="false" default="0" comment="Has Ever Received A Grant"/>
         <column xsi:type="int" name="created_at" unsigned="true" nullable="false" comment="Created At (Unix)"/>
         <column xsi:type="varchar" name="origin" nullable="false" length="16" default="dynamic" comment="dynamic (RFC 7591) or admin (created in the admin)"/>
+        <column xsi:type="smallint" name="disabled" unsigned="true" nullable="false" default="0" comment="Disabled: no new flow, no token use, grants kept"/>
+        <column xsi:type="text" name="allowed_domains" nullable="true" comment="Tool Domains The Client May Ever Use (JSON, NULL For All)"/>
+        <column xsi:type="varchar" name="reapproval" nullable="false" length="16" default="add" comment="Second Approval By The Same Admin: add, replace or reject"/>
         <constraint xsi:type="primary" referenceId="PRIMARY">
             <column name="client_id"/>
         </constraint>
@@ -35,6 +38,7 @@
         <column xsi:type="varchar" name="status" nullable="false" length="16" default="pending" comment="Status"/>
         <column xsi:type="int" name="admin_user_id" unsigned="true" nullable="true" comment="Approving Admin User ID"/>
         <column xsi:type="varchar" name="granted_scope" nullable="true" length="255" comment="Granted Scope"/>
+        <column xsi:type="text" name="granted_domains" nullable="true" comment="Tool Domains Ticked At Consent (JSON, NULL For All)"/>
         <column xsi:type="varchar" name="code_hash" nullable="true" length="64" comment="SHA-256 of Authorization Code"/>
         <column xsi:type="int" name="code_expires_at" unsigned="true" nullable="true" comment="Code Expires At (Unix)"/>
         <column xsi:type="int" name="created_at" unsigned="true" nullable="false" comment="Created At (Unix)"/>
@@ -63,6 +67,7 @@
         <column xsi:type="int" name="admin_user_id" unsigned="true" nullable="false" comment="Admin User ID"/>
         <column xsi:type="varchar" name="authorization_id" nullable="true" length="64" comment="Originating Request ID"/>
         <column xsi:type="varchar" name="scope" nullable="false" length="255" comment="Scope"/>
+        <column xsi:type="text" name="domains" nullable="true" comment="Granted Tool Domains (JSON, NULL For All)"/>
         <column xsi:type="text" name="resource" nullable="true" comment="Resource (Audience)"/>
         <column xsi:type="varchar" name="access_hash" nullable="false" length="64" comment="SHA-256 of Access Token"/>
         <column xsi:type="int" name="access_expires_at" unsigned="true" nullable="false" comment="Access Token Expires At (Unix)"/>
@@ -96,5 +101,24 @@
         <index referenceId="MAGENX_AI_MCP_OAUTH_TOKEN_REFRESH_EXPIRES_AT" indexType="btree">
             <column name="refresh_expires_at"/>
         </index>
+    </table>
+
+    <!--
+        Who may approve a client. No rows means any admin whose role includes
+        Approve AI Client Connections, which is how every client worked before.
+    -->
+    <table name="magenx_ai_mcp_oauth_client_approver" resource="default" engine="innodb" comment="Magenx AI MCP OAuth Client Approver">
+        <column xsi:type="varchar" name="client_id" nullable="false" length="64" comment="Client ID"/>
+        <column xsi:type="int" name="admin_user_id" unsigned="true" nullable="false" comment="Admin User ID"/>
+        <constraint xsi:type="primary" referenceId="PRIMARY">
+            <column name="client_id"/>
+            <column name="admin_user_id"/>
+        </constraint>
+        <constraint xsi:type="foreign" referenceId="MAGENX_AI_MCP_OAUTH_CLIENT_APPROVER_CLIENT_ID"
+                    table="magenx_ai_mcp_oauth_client_approver" column="client_id"
+                    referenceTable="magenx_ai_mcp_oauth_client" referenceColumn="client_id" onDelete="CASCADE"/>
+        <constraint xsi:type="foreign" referenceId="MAGENX_AI_MCP_OAUTH_CLIENT_APPROVER_ADMIN_USER_ID"
+                    table="magenx_ai_mcp_oauth_client_approver" column="admin_user_id"
+                    referenceTable="admin_user" referenceColumn="user_id" onDelete="CASCADE"/>
     </table>
 </schema>

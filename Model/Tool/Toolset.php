@@ -16,9 +16,10 @@ namespace Magenx\AiMcp\Model\Tool;
  * write switch, never instead of them, so nothing a client puts in its URL can
  * reach a tool those would withhold.
  *
- * Null for either list means that dimension is not restricted; an empty list
- * never reaches here, because {@see ToolsetResolver} refuses a request that
- * would select nothing.
+ * Null for either list means that dimension is not restricted. The URL alone
+ * never yields an empty list, because {@see ToolsetResolver} refuses a request
+ * that would select nothing; narrowed to an OAuth grant's domains it can,
+ * and then permits nothing.
  */
 class Toolset
 {
@@ -40,6 +41,24 @@ class Toolset
     public function isRestricted(): bool
     {
         return $this->domains !== null || $this->tools !== null;
+    }
+
+    /**
+     * This slice narrowed further to the domains a credential is limited to.
+     *
+     * @param string[]|null $domains Null for no limit.
+     * @return self
+     */
+    public function narrowedTo(?array $domains): self
+    {
+        if ($domains === null) {
+            return $this;
+        }
+
+        return new self(
+            $this->domains === null ? $domains : array_values(array_intersect($this->domains, $domains)),
+            $this->tools
+        );
     }
 
     /**

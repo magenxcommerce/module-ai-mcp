@@ -190,7 +190,8 @@ class Authenticator
             $grant->getAdminUserId(),
             sprintf('admin:%s via %s', $grant->getUsername(), $grant->getClientName()),
             $grant->allowsWrites(),
-            $grant->getClientName()
+            $grant->getClientName(),
+            $grant->getDomains()
         );
     }
 
@@ -227,6 +228,7 @@ class Authenticator
      * @param string $label
      * @param bool $writeScope
      * @param string|null $connector
+     * @param string[]|null $domains
      * @return Identity
      * @throws AuthenticationException
      */
@@ -235,7 +237,8 @@ class Authenticator
         int $userId,
         string $label,
         bool $writeScope = true,
-        ?string $connector = null
+        ?string $connector = null,
+        ?array $domains = null
     ): Identity {
         if ($userId === 0) {
             throw $this->refuse(__('The access token is not bound to a user.'));
@@ -243,7 +246,7 @@ class Authenticator
 
         $resources = $this->aclResources->forUser($userType, $userId);
 
-        return new Identity($userType, $userId, $label, $resources, $writeScope, $connector);
+        return new Identity($userType, $userId, $label, $resources, $writeScope, $connector, $domains);
     }
 
     /**

@@ -63,6 +63,39 @@ class ServerToolsetTest extends TestCase
     }
 
     /**
+     * The tool areas an admin ticked when approving an OAuth connection.
+     *
+     * @return void
+     */
+    public function testTheGrantsDomainsNarrowTheList(): void
+    {
+        $names = $this->listedNames($this->server(), [], $this->identity(['catalog']));
+
+        $this->assertSame(['nested_tool'], $names);
+    }
+
+    /**
+     * A URL asking for an area the grant does not carry gets nothing, not that area.
+     *
+     * @return void
+     */
+    public function testTheUrlCannotWidenTheGrantsDomains(): void
+    {
+        $server = $this->server();
+
+        $this->assertSame([], $this->listedNames($server, ['domains' => 'sales'], $this->identity(['catalog'])));
+
+        $body = $server->dispatch(
+            'tools/call',
+            ['name' => 'flat_tool', 'arguments' => []],
+            1,
+            $this->identity(['catalog']),
+            ['domains' => 'sales']
+        )->getBody();
+        $this->assertSame('Unknown tool: flat_tool', $body['error']['message']);
+    }
+
+    /**
      * @return void
      */
     public function testCallingAToolOutsideTheSliceIsAnsweredAsUnknown(): void
@@ -153,11 +186,13 @@ class ServerToolsetTest extends TestCase
     /**
      * @param Server $server
      * @param array<string, string> $toolset
+     * @param Identity|null $identity
      * @return string[]
      */
-    private function listedNames(Server $server, array $toolset): array
+    private function listedNames(Server $server, array $toolset, ?Identity $identity = null): array
     {
-        $tools = $server->dispatch('tools/list', [], 1, $this->identity(), $toolset)->getBody()['result']['tools'];
+        $tools = $server->dispatch('tools/list', [], 1, $identity ?? $this->identity(), $toolset)
+            ->getBody()['result']['tools'];
 
         return array_column($tools, 'name');
     }
@@ -189,10 +224,11 @@ class ServerToolsetTest extends TestCase
     }
 
     /**
+     * @param string[]|null $domains
      * @return Identity
      */
-    private function identity(): Identity
+    private function identity(?array $domains = null): Identity
     {
-        return new Identity(1, 1, 'test', [Server::ENDPOINT_RESOURCE]);
+        return new Identity(1, 1, 'test', [Server::ENDPOINT_RESOURCE], true, null, $domains);
     }
 }

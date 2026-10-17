@@ -165,6 +165,9 @@ class Server
         } catch (LocalizedException $e) {
             return $this->fail($id, JsonRpc::INVALID_PARAMS, $e->getMessage());
         }
+        // The tool areas the admin ticked when approving an OAuth connection.
+        // Applied on top of the URL's own narrowing, never instead of it.
+        $toolset = $toolset->narrowedTo($identity->getDomains());
 
         return match ($method) {
             'initialize' => $this->ok($id, $this->initialize($toolset)),
@@ -269,6 +272,7 @@ class Server
                 'caller' => $identity->getLabel(),
                 'reason' => 'no registered tool passed the ACL, write-switch and toolset settings',
                 'url_toolset' => $toolset->isRestricted(),
+                'grant_domains' => $identity->getDomains(),
             ]);
         }
 

@@ -26,34 +26,110 @@ $clients = $block->getClients();
     </button>
 </form>
 <?php if ($clients !== []): ?>
+    <?php $adminUsers = $block->getAdminUsers(); ?>
+    <?php $domainOptions = $block->getDomainOptions(); ?>
     <table class="data-grid">
         <thead>
         <tr>
             <th class="data-grid-th"><?= $escaper->escapeHtml(__('Name')) ?></th>
             <th class="data-grid-th"><?= $escaper->escapeHtml(__('Client ID')) ?></th>
+            <th class="data-grid-th"><?= $escaper->escapeHtml(__('Status')) ?></th>
+            <th class="data-grid-th"><?= $escaper->escapeHtml(__('Approvers')) ?></th>
+            <th class="data-grid-th"><?= $escaper->escapeHtml(__('Tool areas')) ?></th>
             <th class="data-grid-th"><?= $escaper->escapeHtml(__('Created')) ?></th>
             <th class="data-grid-th"></th>
         </tr>
         </thead>
         <tbody>
         <?php foreach ($clients as $client): ?>
+            <?php
+            $clientId = (string) $client['client_id'];
+            $approvers = $block->getApprovers($clientId);
+            $clientDomains = $block->decodeDomains($client['allowed_domains']);
+            $disabled = (int) $client['disabled'] === 1;
+            ?>
             <tr>
                 <td><?= $escaper->escapeHtml($client['client_name']) ?></td>
-                <td><code><?= $escaper->escapeHtml($client['client_id']) ?></code></td>
+                <td><code><?= $escaper->escapeHtml($clientId) ?></code></td>
+                <td><?= $escaper->escapeHtml($disabled ? __('Disabled') : __('Enabled')) ?></td>
+                <td>
+                    <?= $escaper->escapeHtml($approvers === []
+                        ? __('Any admin allowed to approve')
+                        : implode(', ', array_intersect_key($adminUsers, array_flip($approvers)))) ?>
+                </td>
+                <td><?= $escaper->escapeHtml($block->describeDomains($client['allowed_domains'])) ?></td>
                 <td><?= $escaper->escapeHtml($block->formatTimestamp($client['created_at'])) ?></td>
                 <td>
+                    <form method="post" action="<?= $escaper->escapeUrl($block->getClientStatusUrl()) ?>">
+                        <input type="hidden" name="form_key" value="<?= $escaper->escapeHtmlAttr($block->getFormKey()) ?>"/>
+                        <input type="hidden" name="client" value="<?= $escaper->escapeHtmlAttr($clientId) ?>"/>
+                        <input type="hidden" name="status" value="<?= $escaper->escapeHtmlAttr($disabled ? 'enabled' : 'disabled') ?>"/>
+                        <button type="submit" class="action-secondary">
+                            <span><?= $escaper->escapeHtml($disabled ? __('Enable') : __('Disable')) ?></span>
+                        </button>
+                    </form>
+                    <form method="post" action="<?= $escaper->escapeUrl($block->getRotateSecretUrl()) ?>">
+                        <input type="hidden" name="form_key" value="<?= $escaper->escapeHtmlAttr($block->getFormKey()) ?>"/>
+                        <input type="hidden" name="client" value="<?= $escaper->escapeHtmlAttr($clientId) ?>"/>
+                        <button type="submit" class="action-secondary">
+                            <span><?= $escaper->escapeHtml(__('Rotate Secret')) ?></span>
+                        </button>
+                    </form>
                     <form method="post" action="<?= $escaper->escapeUrl($block->getDeleteClientUrl()) ?>">
                         <input type="hidden" name="form_key" value="<?= $escaper->escapeHtmlAttr($block->getFormKey()) ?>"/>
-                        <input type="hidden" name="client" value="<?= $escaper->escapeHtmlAttr($client['client_id']) ?>"/>
+                        <input type="hidden" name="client" value="<?= $escaper->escapeHtmlAttr($clientId) ?>"/>
                         <button type="submit" class="action-secondary">
                             <span><?= $escaper->escapeHtml(__('Delete')) ?></span>
                         </button>
                     </form>
                 </td>
             </tr>
+            <tr>
+                <td colspan="7">
+                    <details>
+                        <summary><?= $escaper->escapeHtml(__('Policy')) ?></summary>
+                        <form method="post" action="<?= $escaper->escapeUrl($block->getSaveClientUrl()) ?>">
+                            <input type="hidden" name="form_key" value="<?= $escaper->escapeHtmlAttr($block->getFormKey()) ?>"/>
+                            <input type="hidden" name="client" value="<?= $escaper->escapeHtmlAttr($clientId) ?>"/>
+                            <fieldset class="admin__fieldset">
+                                <legend><?= $escaper->escapeHtml(__('Who may approve it')) ?></legend>
+                                <p class="note"><?= $escaper->escapeHtml(__('Tick none to leave it to each admin\'s role. Ticking some limits approval to them, and ends the connections of anyone else.')) ?></p>
+                                <?php foreach ($adminUsers as $userId => $username): ?>
+                                    <label class="admin__field-option">
+                                        <input type="checkbox" class="admin__control-checkbox" name="approvers[]" value="<?= (int) $userId ?>"<?php if (in_array($userId, $approvers, true)): ?> checked<?php endif; ?>/>
+                                        <?= $escaper->escapeHtml($username) ?>
+                                    </label>
+                                <?php endforeach; ?>
+                            </fieldset>
+                            <fieldset class="admin__fieldset">
+                                <legend><?= $escaper->escapeHtml(__('Tool areas it may use')) ?></legend>
+                                <p class="note"><?= $escaper->escapeHtml(__('The most any connection through it can get. The approving admin ticks areas within these. Narrowing them applies to live connections at once.')) ?></p>
+                                <?php foreach ($domainOptions as $code => $label): ?>
+                                    <label class="admin__field-option">
+                                        <input type="checkbox" class="admin__control-checkbox" name="domains[]" value="<?= $escaper->escapeHtmlAttr($code) ?>"<?php if ($clientDomains === null || in_array($code, $clientDomains, true)): ?> checked<?php endif; ?>/>
+                                        <?= $escaper->escapeHtml($label) ?>
+                                    </label>
+                                <?php endforeach; ?>
+                            </fieldset>
+                            <fieldset class="admin__fieldset">
+                                <legend><?= $escaper->escapeHtml(__('When an admin approves it again')) ?></legend>
+                                <select name="reapproval" class="admin__control-select">
+                                    <?php foreach ($block->getReapprovalOptions() as $value => $label): ?>
+                                        <option value="<?= $escaper->escapeHtmlAttr($value) ?>"<?php if ($value === $client['reapproval']): ?> selected<?php endif; ?>><?= $escaper->escapeHtml($label) ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </fieldset>
+                            <button type="submit" class="action-primary">
+                                <span><?= $escaper->escapeHtml(__('Save')) ?></span>
+                            </button>
+                        </form>
+                    </details>
+                </td>
+            </tr>
         <?php endforeach; ?>
         </tbody>
     </table>
+    <p class="note"><?= $escaper->escapeHtml(__('Disabling a client refuses it everywhere, as if it did not exist, and keeps its connections for when it is enabled again. Rotating its secret keeps its connections too; the service needs the new secret before it can renew them.')) ?></p>
 <?php endif; ?>
 <h2><?= $escaper->escapeHtml(__('Connector Key')) ?></h2>
 <p>
@@ -91,6 +167,7 @@ $clients = $block->getClients();
             <th class="data-grid-th"><?= $escaper->escapeHtml(__('Admin')) ?></th>
             <th class="data-grid-th"><?= $escaper->escapeHtml(__('Client')) ?></th>
             <th class="data-grid-th"><?= $escaper->escapeHtml(__('Access')) ?></th>
+            <th class="data-grid-th"><?= $escaper->escapeHtml(__('Tool areas')) ?></th>
             <th class="data-grid-th"><?= $escaper->escapeHtml(__('Last used')) ?></th>
             <th class="data-grid-th"><?= $escaper->escapeHtml(__('Expires')) ?></th>
             <th class="data-grid-th"></th>
@@ -100,8 +177,14 @@ $clients = $block->getClients();
         <?php foreach ($grants as $grant): ?>
             <tr>
                 <td><?= $escaper->escapeHtml($grant['username']) ?></td>
-                <td><?= $escaper->escapeHtml($grant['client_name']) ?></td>
+                <td>
+                    <?= $escaper->escapeHtml($grant['client_name']) ?>
+                    <?php if ((int) $grant['client_disabled'] === 1): ?>
+                        (<?= $escaper->escapeHtml(__('client disabled')) ?>)
+                    <?php endif; ?>
+                </td>
                 <td><?= $escaper->escapeHtml(str_contains((string) $grant['scope'], 'mcp:write') ? __('Read and write') : __('Read only')) ?></td>
+                <td><?= $escaper->escapeHtml($block->describeDomains($grant['domains'])) ?></td>
                 <td><?= $escaper->escapeHtml($block->formatTimestamp($grant['last_used_at'] ?? $grant['created_at'])) ?></td>
                 <td><?= $escaper->escapeHtml($block->formatTimestamp($grant['refresh_expires_at'])) ?></td>
                 <td>

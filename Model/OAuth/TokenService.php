@@ -19,6 +19,11 @@ use Psr\Log\LoggerInterface;
  * token presented a second time means two parties hold it, so the whole
  * family is revoked (OAuth 2.1 §4.3.1). A code redeemed twice does the same
  * to everything issued from it.
+ *
+ * A grant keeps the tool domains its admin ticked at consent for its whole
+ * life, refreshes included. What a token resolves to is those narrowed again
+ * by the client's current cap, and nothing at all while the client is
+ * disabled.
  */
 class TokenService
 {
@@ -31,6 +36,7 @@ class TokenService
      * @param Secret $secret
      * @param CoreDate $date
      * @param LoggerInterface $auditLogger
+     * @param DomainList $domainList
      */
     public function __construct(
         private readonly Storage $storage,
@@ -40,7 +46,8 @@ class TokenService
         private readonly Scope $scope,
         private readonly Secret $secret,
         private readonly CoreDate $date,
-        private readonly LoggerInterface $auditLogger
+        private readonly LoggerInterface $auditLogger,
+        private readonly DomainList $domainList
     ) {
     }
 
@@ -105,17 +112,49 @@ class TokenService
             throw new OAuthException('invalid_grant', 'The authorization code was already used.');
         }
 
-        $scopes = $this->scope->normalize(explode(' ', (string) $authorization['granted_scope']));
-        $this->storage->markClientGranted((string) $client['client_id']);
+        $clientId = (string) $client['client_id'];
+        $adminUserId = (int) $authorization['admin_user_id'];
+        $reapproval = (string) ($client['reapproval'] ?? Storage::REAPPROVAL_ADD);
 
-        return $this->issue(
+        // Checked at consent too. Again here because two requests approved
+        // side by side both passed that check before either was redeemed.
+        if ($reapproval === Storage::REAPPROVAL_REJECT
+            && $this->storage->hasLiveGrant($clientId, $adminUserId, $now)
+        ) {
+            throw new OAuthException(
+                'invalid_grant',
+                'The administrator already has a connection through this client, and it allows only one.'
+            );
+        }
+
+        $scopes = $this->scope->normalize(explode(' ', (string) $authorization['granted_scope']));
+        $this->storage->markClientGranted($clientId);
+
+        $familyId = $this->secret->handle();
+        $response = $this->issue(
             $client,
-            (int) $authorization['admin_user_id'],
+            $adminUserId,
             $scopes,
-            $this->secret->handle(),
+            $familyId,
             $now + $this->config->getRefreshTokenLifetime(),
-            $requestId
+            $requestId,
+            isset($authorization['granted_domains']) ? (string) $authorization['granted_domains'] : null
         );
+
+        // Replaced only now, once the new grant exists: an approval whose
+        // code is never redeemed must not cost the admin the connection they had.
+        if ($reapproval === Storage::REAPPROVAL_REPLACE) {
+            $revoked = $this->storage->revokeOtherGrants($clientId, $adminUserId, $familyId);
+            if ($revoked > 0) {
+                $this->auditLogger->info('[magenx-mcp] oauth grant replaced by re-approval', [
+                    'client_id' => $clientId,
+                    'admin_user_id' => $adminUserId,
+                    'revoked' => $revoked,
+                ]);
+            }
+        }
+
+        return $response;
     }
 
     /**
@@ -177,7 +216,8 @@ class TokenService
             $scopes,
             (string) $row['family_id'],
             (int) $row['refresh_expires_at'],
-            $row['authorization_id'] === null ? null : (string) $row['authorization_id']
+            $row['authorization_id'] === null ? null : (string) $row['authorization_id'],
+            isset($row['domains']) ? (string) $row['domains'] : null
         );
     }
 
@@ -226,6 +266,7 @@ class TokenService
         $now = (int) $this->date->gmtTimestamp();
         if ($row === null
             || (int) $row['revoked'] === 1
+            || (int) ($row['client_disabled'] ?? 0) === 1
             || (int) $row['access_expires_at'] < $now
             || !$this->isAdminUsable($row, $now)
             || ($row['resource'] !== null && $row['resource'] !== $this->endpoints->getResource())
@@ -239,7 +280,11 @@ class TokenService
             (int) $row['admin_user_id'],
             (string) $row['username'],
             (string) $row['client_name'],
-            $this->scope->normalize(explode(' ', (string) $row['scope']))
+            $this->scope->normalize(explode(' ', (string) $row['scope'])),
+            $this->domainList->intersect(
+                $this->domainList->decode(isset($row['domains']) ? (string) $row['domains'] : null),
+                $this->domainList->decode(isset($row['client_domains']) ? (string) $row['client_domains'] : null)
+            )
         );
     }
 
@@ -252,6 +297,7 @@ class TokenService
      * @param string $familyId
      * @param int $familyExpiresAt
      * @param string|null $authorizationId
+     * @param string|null $domains Stored domain list, see {@see DomainList}.
      * @return array<string, mixed>
      */
     private function issue(
@@ -260,7 +306,8 @@ class TokenService
         array $scopes,
         string $familyId,
         int $familyExpiresAt,
-        ?string $authorizationId
+        ?string $authorizationId,
+        ?string $domains
     ): array {
         $now = (int) $this->date->gmtTimestamp();
         $lifetime = min($this->config->getAccessTokenLifetime(), max(0, $familyExpiresAt - $now));
@@ -273,6 +320,7 @@ class TokenService
             'admin_user_id' => $adminUserId,
             'authorization_id' => $authorizationId,
             'scope' => $this->scope->format($scopes),
+            'domains' => $domains,
             'resource' => $this->endpoints->getResource(),
             'access_hash' => $this->secret->hash($accessToken),
             'access_expires_at' => $now + $lifetime,

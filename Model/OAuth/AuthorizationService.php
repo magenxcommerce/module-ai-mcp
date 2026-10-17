@@ -16,6 +16,11 @@ use Psr\Log\LoggerInterface;
  * is granted there. The grant is made by a signed-in admin on the consent
  * page, behind the admin login and its two-factor check, and is never wider
  * than what the client asked for or what that admin's own role allows.
+ *
+ * The client's policy is applied at the decision: only an admin on its
+ * approver list (when it has one) may approve it, the tool domains ticked are
+ * kept within its cap, and a second approval by the same admin adds, replaces
+ * or is refused as the client says.
  */
 class AuthorizationService
 {
@@ -38,6 +43,7 @@ class AuthorizationService
      * @param Secret $secret
      * @param CoreDate $date
      * @param LoggerInterface $auditLogger
+     * @param DomainList $domainList
      */
     public function __construct(
         private readonly Storage $storage,
@@ -49,7 +55,8 @@ class AuthorizationService
         private readonly Scope $scope,
         private readonly Secret $secret,
         private readonly CoreDate $date,
-        private readonly LoggerInterface $auditLogger
+        private readonly LoggerInterface $auditLogger,
+        private readonly DomainList $domainList
     ) {
     }
 
@@ -153,6 +160,7 @@ class AuthorizationService
 
         $request = $this->storage->getAuthorization($requestId);
         if ($request === null
+            || (int) ($request['client_disabled'] ?? 0) === 1
             || $request['status'] !== Storage::STATUS_PENDING
             || (int) $request['expires_at'] < (int) $this->date->gmtTimestamp()
         ) {
@@ -174,20 +182,79 @@ class AuthorizationService
     }
 
     /**
+     * The tool domains the consent page may offer for this request, or null for every domain.
+     *
+     * @param array<string, mixed> $request
+     * @return string[]|null
+     */
+    public function getOfferedDomains(array $request): ?array
+    {
+        return $this->clientRegistry->getAllowedDomains($request);
+    }
+
+    /**
+     * Why this admin may not approve this request, or null when they may.
+     *
+     * @param array<string, mixed> $request
+     * @param int $adminUserId
+     * @return string|null
+     */
+    public function getRefusal(array $request, int $adminUserId): ?string
+    {
+        $clientId = (string) $request['client_id'];
+        if (!$this->clientRegistry->isApprover($clientId, $adminUserId)) {
+            return 'You are not one of the administrators allowed to approve this client. Ask one of them to '
+                . 'connect it, or ask an administrator who manages AI MCP connections to add you.';
+        }
+
+        if (($request['client_reapproval'] ?? Storage::REAPPROVAL_ADD) === Storage::REAPPROVAL_REJECT
+            && $this->storage->hasLiveGrant($clientId, $adminUserId, (int) $this->date->gmtTimestamp())
+        ) {
+            return 'You already have a connection through this client, and it allows only one. Revoke that '
+                . 'connection under System > Extensions > AI MCP Connections first.';
+        }
+
+        return null;
+    }
+
+    /**
      * Approve a pending request on behalf of an admin and return the URL to send the browser to.
      *
      * @param string $requestId
      * @param int $adminUserId
      * @param string $adminLabel For the audit log.
      * @param bool $grantWrite Whether the admin ticked write access.
+     * @param string[]|null $domains The tool domains the admin ticked; null for every one offered.
      * @return string
-     * @throws OAuthException When the request is no longer pending.
+     * @throws OAuthException When the request is no longer pending, or this admin may not approve it.
      */
-    public function approve(string $requestId, int $adminUserId, string $adminLabel, bool $grantWrite): string
-    {
+    public function approve(
+        string $requestId,
+        int $adminUserId,
+        string $adminLabel,
+        bool $grantWrite,
+        ?array $domains = null
+    ): string {
         $request = $this->getPending($requestId);
         if ($request === null) {
             throw new OAuthException('invalid_request', 'This request has expired or was already answered.');
+        }
+
+        $refusal = $this->getRefusal($request, $adminUserId);
+        if ($refusal !== null) {
+            $this->auditLogger->warning('[magenx-mcp] oauth grant refused by client policy', [
+                'admin' => $adminLabel,
+                'admin_user_id' => $adminUserId,
+                'client_id' => $request['client_id'],
+                'client_name' => $request['client_name'],
+            ]);
+
+            throw new OAuthException('access_denied', $refusal);
+        }
+
+        $grantedDomains = $this->domainList->intersect($domains, $this->getOfferedDomains($request));
+        if ($grantedDomains === []) {
+            throw new OAuthException('invalid_request', 'Tick at least one tool area for this connection.');
         }
 
         $requested = $this->getRequestedScopes($request);
@@ -201,6 +268,7 @@ class AuthorizationService
             'status' => Storage::STATUS_APPROVED,
             'admin_user_id' => $adminUserId,
             'granted_scope' => $this->scope->format($granted),
+            'granted_domains' => $this->domainList->encode($grantedDomains),
             'code_hash' => $this->secret->hash($code),
             'code_expires_at' => $now + self::CODE_LIFETIME,
         ]);
@@ -215,6 +283,7 @@ class AuthorizationService
             'client_name' => $request['client_name'],
             'redirect_uri' => $request['redirect_uri'],
             'scope' => $this->scope->format($granted),
+            'domains' => $grantedDomains ?? 'all',
         ]);
 
         return $this->redirectWith((string) $request['redirect_uri'], [

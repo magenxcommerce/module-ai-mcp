@@ -25,6 +25,11 @@ use Psr\Log\LoggerInterface;
  * a client an administrator created may start a flow, and such a client is
  * always confidential: without its secret a code cannot be redeemed, whoever
  * talked an admin into approving it.
+ *
+ * A client an administrator created also carries a policy: which admins may
+ * approve it, which tool domains it may ever use, what a second approval by
+ * the same admin does, and whether it is disabled. Disabling keeps its
+ * connections, so enabling it again restores them without anyone signing in.
  */
 class ClientRegistry
 {
@@ -45,6 +50,7 @@ class ClientRegistry
      * @param Secret $secret
      * @param CoreDate $date
      * @param LoggerInterface $auditLogger
+     * @param DomainList $domainList
      */
     public function __construct(
         private readonly Storage $storage,
@@ -52,7 +58,8 @@ class ClientRegistry
         private readonly RedirectUriPolicy $redirectUriPolicy,
         private readonly Secret $secret,
         private readonly CoreDate $date,
-        private readonly LoggerInterface $auditLogger
+        private readonly LoggerInterface $auditLogger,
+        private readonly DomainList $domainList
     ) {
     }
 
@@ -222,7 +229,11 @@ class ClientRegistry
     }
 
     /**
-     * A registered client, or null.
+     * A registered client that is not disabled, or null.
+     *
+     * A disabled client reads exactly as an unknown one, at every endpoint
+     * that looks a client up: the error a caller gets must not tell it that
+     * the id it holds still exists and could work again.
      *
      * @param string $clientId
      * @return array<string, mixed>|null
@@ -233,7 +244,149 @@ class ClientRegistry
             return null;
         }
 
-        return $this->storage->getClient($clientId);
+        $client = $this->storage->getClient($clientId);
+
+        return $client === null || (int) ($client['disabled'] ?? 0) === 1 ? null : $client;
+    }
+
+    /**
+     * Whether an admin may approve this client.
+     *
+     * An empty approver list leaves it to the admin's role, as before
+     * approver lists existed.
+     *
+     * @param string $clientId
+     * @param int $adminUserId
+     * @return bool
+     */
+    public function isApprover(string $clientId, int $adminUserId): bool
+    {
+        $approvers = $this->storage->getClientApprovers($clientId);
+
+        return $approvers === [] || in_array($adminUserId, $approvers, true);
+    }
+
+    /**
+     * The tool domains a client may ever use, or null for every domain.
+     *
+     * @param array<string, mixed> $client A client row, or a row joined with one as `client_domains`.
+     * @return string[]|null
+     */
+    public function getAllowedDomains(array $client): ?array
+    {
+        $stored = array_key_exists('client_domains', $client)
+            ? $client['client_domains']
+            : ($client['allowed_domains'] ?? null);
+
+        return $this->domainList->decode($stored === null ? null : (string) $stored);
+    }
+
+    /**
+     * Set the policy of a client an administrator created.
+     *
+     * Narrowing the approver list ends the connections of every admin taken
+     * off it: the list says who may act through the client, not only who may
+     * start a connection. Narrowing the domains needs nothing revoked — it is
+     * applied to live connections at every call.
+     *
+     * @param string $clientId
+     * @param int[] $approverIds Empty for any admin whose role allows approving.
+     * @param string[]|null $domains Null for every domain.
+     * @param string $reapproval One of Storage::REAPPROVAL_MODES.
+     * @param string $adminLabel For the audit log.
+     * @return void
+     * @throws OAuthException When the client is unknown or a value is invalid.
+     */
+    public function updatePolicy(
+        string $clientId,
+        array $approverIds,
+        ?array $domains,
+        string $reapproval,
+        string $adminLabel
+    ): void {
+        if (!in_array($reapproval, Storage::REAPPROVAL_MODES, true)) {
+            throw new OAuthException('invalid_request', 'Unknown re-approval mode.');
+        }
+        if ($domains === []) {
+            throw new OAuthException(
+                'invalid_request',
+                'Select at least one tool area, or none of them to allow every area.'
+            );
+        }
+
+        $known = $this->storage->getActiveAdminUsers();
+        $approverIds = array_values(array_unique(array_map('intval', $approverIds)));
+        if (array_diff($approverIds, array_keys($known)) !== []) {
+            throw new OAuthException('invalid_request', 'An approver is not an active administrator.');
+        }
+
+        if (!$this->storage->updateAdminClient($clientId, [
+            'allowed_domains' => $this->domainList->encode($domains),
+            'reapproval' => $reapproval,
+        ])) {
+            throw new OAuthException('invalid_client', 'That client was not found.');
+        }
+
+        $this->storage->setClientApprovers($clientId, $approverIds);
+        $revoked = $approverIds === [] ? 0 : $this->storage->revokeClientGrantsExcept($clientId, $approverIds);
+
+        $this->auditLogger->info('[magenx-mcp] oauth client policy changed', [
+            'admin' => $adminLabel,
+            'client_id' => $clientId,
+            'approvers' => array_values(array_intersect_key($known, array_flip($approverIds))),
+            'domains' => $domains,
+            'reapproval' => $reapproval,
+            'revoked' => $revoked,
+        ]);
+    }
+
+    /**
+     * Disable or enable a client an administrator created.
+     *
+     * Its connections are kept, and refused while it is disabled.
+     *
+     * @param string $clientId
+     * @param bool $disabled
+     * @param string $adminLabel
+     * @return bool Whether the client exists.
+     */
+    public function setDisabled(string $clientId, bool $disabled, string $adminLabel): bool
+    {
+        if (!$this->storage->updateAdminClient($clientId, ['disabled' => $disabled ? 1 : 0])) {
+            return false;
+        }
+
+        $this->auditLogger->info(
+            $disabled ? '[magenx-mcp] oauth client disabled' : '[magenx-mcp] oauth client enabled',
+            ['admin' => $adminLabel, 'client_id' => $clientId]
+        );
+
+        return true;
+    }
+
+    /**
+     * Give a client an administrator created a new secret, returned once; the old one stops working at once.
+     *
+     * Connections survive: they belong to the admins who approved them, not
+     * to the secret. The client cannot refresh until it holds the new one.
+     *
+     * @param string $clientId
+     * @param string $adminLabel
+     * @return string|null The new secret, or null when there is no such client.
+     */
+    public function rotateSecret(string $clientId, string $adminLabel): ?string
+    {
+        $clientSecret = $this->secret->generate(Secret::PREFIX_CLIENT_SECRET);
+        if (!$this->storage->updateAdminClient($clientId, ['secret_hash' => $this->secret->hash($clientSecret)])) {
+            return null;
+        }
+
+        $this->auditLogger->info('[magenx-mcp] oauth client secret rotated', [
+            'admin' => $adminLabel,
+            'client_id' => $clientId,
+        ]);
+
+        return $clientSecret;
     }
 
     /**

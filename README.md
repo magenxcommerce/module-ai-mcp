@@ -1836,8 +1836,8 @@ Desktop and Claude mobile connect as a person rather than as an integration:
    own OAuth client**, enter that client ID and secret.
 3. Claude opens a browser tab on your store. You sign in to the Magento admin
    as usual — password and two-factor — and land on **Connect AI Client**.
-4. It shows the client, the host the code goes to, and a box for write access.
-   Approve, and the tab returns to Claude, connected.
+4. It shows the client, the host the code goes to, the tool areas to tick, and
+   a box for write access. Approve, and the tab returns to Claude, connected.
 
 The connection then acts **as you**: your admin role is the ACL every tool is
 checked against, the audit log names you (`admin:alice via Claude`), and it
@@ -1847,6 +1847,48 @@ working beside it, unchanged.
 One client can serve every admin who connects through the same AI service;
 each approval is still its own connection, with its own admin. Deleting the
 client ends all of them.
+
+### Client policy
+
+Each client created on **AI MCP Connections** has a **Policy** with three
+settings, plus **Disable** and **Rotate Secret** buttons:
+
+- **Who may approve it.** Tick admins to limit approval to them. A phishing
+  link then works only if it reaches one of those admins, and an admin with
+  weaker credentials cannot approve the client at all. Ticking admins also
+  ends the connections of every admin who is not ticked. With nobody ticked,
+  any admin whose role includes `Magenx_AiMcp::oauth_grant` may approve, which
+  is how clients worked before this setting existed.
+- **Tool areas it may use.** This is the most any connection through the
+  client can get. On the consent page the approving admin ticks areas within
+  it, and the connection keeps those for its whole life, refreshes included.
+  At each call the connection gets the areas it was approved with that the
+  client still allows, so narrowing the client's areas also narrows its live
+  connections. Like every other toolset setting, this only removes tools. The
+  admin's role, `mcp:write` and the store's write switch still apply. With
+  every area ticked, there is no limit, and areas added by later releases are
+  included.
+- **When an admin approves it again.** This applies when the same admin
+  approves the client a second time:
+  - **Add** (the default) keeps both connections.
+  - **Replace** revokes the admin's earlier connections when the new code is
+    redeemed. If the new code is never redeemed, the earlier connection stays.
+  - **Refuse** blocks the new approval while the admin has a live connection.
+    The check runs on the consent page and again when the code is redeemed,
+    so two approvals made at the same time cannot both connect.
+
+  Other admins' connections are never affected.
+
+**Disable** refuses the client everywhere, with the same `invalid_client`
+error an unknown client gets, so a caller cannot tell that its ID still exists.
+Its connections are kept, and **Enable** restores them. Nobody has to sign in
+again. **Rotate Secret** shows a new secret once, and the old one stops working
+at once. Connections are kept, but the AI service cannot renew their tokens
+until the new secret is entered in its connector.
+
+These settings apply to clients an administrator created. A dynamically
+registered client has none of them, and a new registration would create
+another such client anyway.
 
 ### Dynamic client registration is off by default
 
@@ -1949,6 +1991,8 @@ behind the IP restriction it already has.
   with a **Revoke** button.
 - **Write is opt-in per connection.** Ticking the box grants `mcp:write`. That
   still needs your role, the store's write switch and `confirm: true`.
+- **Per-client approvers, tool areas and re-approval.** See
+  [Client policy](#client-policy).
 
 Every registration, approval, denial, replay and revocation is written to
 `var/log/magenx_ai_mcp.log`.
