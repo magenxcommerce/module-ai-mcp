@@ -26,6 +26,7 @@ class OAuthConfig
     private const XML_PATH_ACCESS_LIFETIME = 'magenx_ai_mcp/oauth/access_token_lifetime';
     private const XML_PATH_REFRESH_LIFETIME = 'magenx_ai_mcp/oauth/refresh_token_lifetime';
     private const XML_PATH_PUBLIC_BASE_URL = 'magenx_ai_mcp/oauth/public_base_url';
+    public const XML_PATH_CONNECTOR_KEY_HASH = 'magenx_ai_mcp/oauth/connector_key_hash';
 
     /** Bounds on the configurable lifetimes, so a typo cannot mint a token for a year. */
     private const ACCESS_MINUTES_MIN = 5;
@@ -131,6 +132,18 @@ class OAuthConfig
     public function getPublicBaseUrl(): string
     {
         return rtrim(trim((string) $this->scopeConfig->getValue(self::XML_PATH_PUBLIC_BASE_URL)), '/');
+    }
+
+    /**
+     * SHA-256 of the connector key every OAuth-authenticated MCP call must carry.
+     *
+     * Set and cleared only by {@see ConnectorKey}; never a value an admin types.
+     *
+     * @return string Empty when no key is required.
+     */
+    public function getConnectorKeyHash(): string
+    {
+        return trim((string) $this->scopeConfig->getValue(self::XML_PATH_CONNECTOR_KEY_HASH));
     }
 
     /**

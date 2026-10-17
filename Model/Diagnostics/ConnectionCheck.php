@@ -160,6 +160,9 @@ class ConnectionCheck
             $facts['oauth registration'] = $this->oauthConfig->isDynamicRegistrationAllowed()
                 ? 'open to anyone'
                 : 'admin-created clients only';
+            $facts['oauth connector key'] = $this->oauthConfig->getConnectorKeyHash() !== ''
+                ? 'required (x-api-key)'
+                : 'not set';
             $facts['oauth issuer'] = $this->endpoints->getIssuer();
             $facts['oauth resource'] = $this->endpoints->getResource();
             $facts['oauth resource metadata'] = $this->endpoints->getProtectedResourceMetadataUrl();

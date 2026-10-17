@@ -1872,6 +1872,24 @@ claude.ai connector that registered itself keeps working until its connection
 expires (30 days from approval by default) or is revoked. To reconnect, create
 a client and enter it in the connector, or turn registration back on.
 
+### Connector key (optional)
+
+**AI MCP Connections → Generate Key** creates a second secret. Add it to the
+connector as the request header `x-api-key` (claude.ai: Advanced settings →
+Request headers). From then on every MCP call made with an OAuth token must
+carry it, or is refused with **403**: a leaked access token is useless on its
+own, and so is an approval someone talked an admin into from their own Claude
+account, even with dynamic registration on.
+
+What it does not cover: claude.ai sends the header only alongside the bearer
+token, not on discovery, registration or the token endpoint, so those stay as
+reachable as before. The refusal is a 403 rather than a 401 on purpose, so the
+client does not loop through the OAuth flow, which cannot supply the key.
+An expired token is still a 401 and still refreshes. Integration tokens are not
+affected. Replacing the key refuses every connection until its connector has
+the new one; removing it stops requiring one. Only the hash is stored, under
+`magenx_ai_mcp/oauth/connector_key_hash`.
+
 ### Who talks to what
 
 ```
@@ -1902,6 +1920,9 @@ behind the IP restriction it already has.
   a flow can only start with a client an administrator created, and that client
   must present its secret to redeem a code. See
   [Dynamic client registration is off by default](#dynamic-client-registration-is-off-by-default).
+- **Optionally, a connector key.** With one generated, an OAuth token is
+  refused without the `x-api-key` header. See
+  [Connector key](#connector-key-optional).
 - **Callbacks are allowlisted.** A client, created or registered, only ever
   gets a redirect URI on `allowed_redirect_uris`. The default is claude.ai's
   callback. A code can never be delivered anywhere you did not list. Errors

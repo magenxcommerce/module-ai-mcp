@@ -377,6 +377,11 @@
             <argument name="auditLogger" xsi:type="object">MagenxAiMcpAuditLogger</argument>
         </arguments>
     </type>
+    <type name="Magenx\AiMcp\Model\OAuth\ConnectorKey">
+        <arguments>
+            <argument name="auditLogger" xsi:type="object">MagenxAiMcpAuditLogger</argument>
+        </arguments>
+    </type>
     <type name="Magenx\AiMcp\Controller\Adminhtml\Oauth\DeleteClient">
         <arguments>
             <argument name="auditLogger" xsi:type="object">MagenxAiMcpAuditLogger</argument>

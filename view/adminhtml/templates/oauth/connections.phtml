@@ -55,6 +55,27 @@ $clients = $block->getClients();
         </tbody>
     </table>
 <?php endif; ?>
+<h2><?= $escaper->escapeHtml(__('Connector Key')) ?></h2>
+<p>
+    <?= $escaper->escapeHtml(__('An optional second secret. The AI service sends it as the x-api-key request header on every call it makes with an OAuth token, so a token that leaks, or an approval someone talked an admin into from their own account, is refused without it. Integration tokens are not affected.')) ?>
+</p>
+<form method="post" action="<?= $escaper->escapeUrl($block->getConnectorKeyUrl()) ?>">
+    <input type="hidden" name="form_key" value="<?= $escaper->escapeHtmlAttr($block->getFormKey()) ?>"/>
+    <?php if ($block->isConnectorKeySet()): ?>
+        <p><strong><?= $escaper->escapeHtml(__('Required.')) ?></strong> <?= $escaper->escapeHtml(__('Replacing it refuses every connection until its connector has the new key.')) ?></p>
+        <button type="submit" name="operation" value="generate" class="action-secondary">
+            <span><?= $escaper->escapeHtml(__('Replace Key')) ?></span>
+        </button>
+        <button type="submit" name="operation" value="remove" class="action-secondary">
+            <span><?= $escaper->escapeHtml(__('Remove Key')) ?></span>
+        </button>
+    <?php else: ?>
+        <p><?= $escaper->escapeHtml(__('Not set: OAuth connections need no key.')) ?></p>
+        <button type="submit" name="operation" value="generate" class="action-primary">
+            <span><?= $escaper->escapeHtml(__('Generate Key')) ?></span>
+        </button>
+    <?php endif; ?>
+</form>
 <h2><?= $escaper->escapeHtml(__('Connections')) ?></h2>
 <p>
     <?= $escaper->escapeHtml(__('AI clients connected with OAuth. Each acts as the admin who approved it, with that admin\'s role. Revoking ends the connection at once; the client has to be connected again, which means signing in again.')) ?>

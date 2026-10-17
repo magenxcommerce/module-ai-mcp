@@ -80,7 +80,7 @@
             </group>
             <group id="oauth" translate="label comment" sortOrder="25" showInDefault="1">
                 <label>OAuth</label>
-                <comment><![CDATA[Lets claude.ai, Claude Desktop and other MCP clients connect with an admin's own sign-in instead of an integration token. The admin approves each connection on a consent page behind the normal admin login and two-factor check, and the client acts with that admin's role. Connections are listed, and can be revoked, under System &gt; Extensions &gt; AI MCP Connections. See the README for the nginx locations this needs.]]></comment>
+                <comment><![CDATA[Lets claude.ai, Claude Desktop and other MCP clients connect with an admin's own sign-in instead of an integration token. The admin approves each connection on a consent page behind the normal admin login and two-factor check, and the client acts with that admin's role. Clients are created, connections listed and revoked, and the optional connector key generated under System &gt; Extensions &gt; AI MCP Connections. See the README for the nginx locations this needs.]]></comment>
                 <field id="enabled" translate="label comment" type="select" sortOrder="10" showInDefault="1">
                     <label>Enable OAuth</label>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>

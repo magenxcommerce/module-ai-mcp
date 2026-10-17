@@ -53,6 +53,16 @@ class Connections extends Template
     }
 
     /**
+     * Whether OAuth connections must carry the connector key.
+     *
+     * @return bool
+     */
+    public function isConnectorKeySet(): bool
+    {
+        return $this->oauthConfig->getConnectorKeyHash() !== '';
+    }
+
+    /**
      * @return array<int, array<string, mixed>>
      */
     public function getGrants(): array
@@ -101,5 +111,13 @@ class Connections extends Template
     public function getDeleteClientUrl(): string
     {
         return $this->getUrl('magenx_aimcp/oauth/deleteClient');
+    }
+
+    /**
+     * @return string
+     */
+    public function getConnectorKeyUrl(): string
+    {
+        return $this->getUrl('magenx_aimcp/oauth/connectorKey');
     }
 }

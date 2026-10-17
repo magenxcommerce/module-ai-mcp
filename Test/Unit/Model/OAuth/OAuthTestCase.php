@@ -47,6 +47,7 @@ abstract class OAuthTestCase extends TestCase
     protected array $allowedRedirects = [self::CALLBACK];
     protected bool $loopback = false;
     protected bool $dynamicRegistration = true;
+    protected string $connectorKeyHash = '';
 
     /**
      * @return void
@@ -66,6 +67,7 @@ abstract class OAuthTestCase extends TestCase
         $this->oauthConfig->method('isLoopbackAllowed')->willReturnCallback(fn (): bool => $this->loopback);
         $this->oauthConfig->method('isDynamicRegistrationAllowed')
             ->willReturnCallback(fn (): bool => $this->dynamicRegistration);
+        $this->oauthConfig->method('getConnectorKeyHash')->willReturnCallback(fn (): string => $this->connectorKeyHash);
         $this->oauthConfig->method('getAccessTokenLifetime')->willReturn(3600);
         $this->oauthConfig->method('getRefreshTokenLifetime')->willReturn(30 * 86400);
         $this->oauthConfig->method('getPublicBaseUrl')->willReturn(self::BASE);

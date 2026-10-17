@@ -10,6 +10,7 @@ use Magenx\AiMcp\Model\Auth\AclResources;
 use Magenx\AiMcp\Model\Auth\Authenticator;
 use Magenx\AiMcp\Model\Config;
 use Magenx\AiMcp\Model\OAuth\OAuthConfig;
+use Magenx\AiMcp\Model\OAuth\Secret;
 use Magenx\AiMcp\Model\OAuth\TokenService;
 use Magenx\AiMcp\Test\Unit\GeneratedFactory;
 use Magento\Framework\HTTP\PhpEnvironment\RemoteAddress;
@@ -53,7 +54,8 @@ class AuthenticatorTest extends TestCase
             $this->createMock(LoggerInterface::class),
             $this->createMock(OAuthConfig::class),
             $this->createMock(TokenService::class),
-            $this->createMock(AclResources::class)
+            $this->createMock(AclResources::class),
+            new Secret()
         );
     }
 
