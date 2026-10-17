@@ -11,12 +11,13 @@ use Magenx\AiMcp\Model\OAuth\AuthorizationService;
 use Magenx\AiMcp\Model\OAuth\RedirectUriPolicy;
 use Magenx\AiMcp\Model\OAuth\Scope;
 use Magenx\AiMcp\Model\Protocol\Server;
+use Magenx\AiMcp\Model\Tool\ToolCatalog;
 use Magento\Backend\Block\Template;
 use Magento\Backend\Block\Template\Context;
 use Magento\Backend\Model\Auth\Session;
 
 /**
- * What the consent template shows: the client, where its code goes, and what it asked for.
+ * What the consent template shows: the client, where its code goes, what it asked for, and what may be ticked.
  */
 class Consent extends Template
 {
@@ -29,6 +30,7 @@ class Consent extends Template
      * @param RedirectUriPolicy $redirectUriPolicy
      * @param Config $config
      * @param Session $authSession
+     * @param ToolCatalog $catalog
      * @param array<string, mixed> $data
      */
     public function __construct(
@@ -37,6 +39,7 @@ class Consent extends Template
         private readonly RedirectUriPolicy $redirectUriPolicy,
         private readonly Config $config,
         private readonly Session $authSession,
+        private readonly ToolCatalog $catalog,
         array $data = []
     ) {
         parent::__construct($context, $data);
@@ -100,6 +103,40 @@ class Consent extends Template
     {
         return $this->authorization !== null
             && in_array(Scope::WRITE, $this->authorizationService->getRequestedScopes($this->authorization), true);
+    }
+
+    /**
+     * The tool areas the admin may tick, code to label: every area, or those the client is capped to.
+     *
+     * @return array<string, string>
+     */
+    public function getOfferedDomains(): array
+    {
+        $labels = $this->catalog->getDomains();
+        if ($this->authorization === null) {
+            return [];
+        }
+
+        $offered = $this->authorizationService->getOfferedDomains($this->authorization);
+
+        return $offered === null ? $labels : array_intersect_key($labels, array_flip($offered));
+    }
+
+    /**
+     * Why the signed-in admin may not approve this request, or null when they may.
+     *
+     * @return string|null
+     */
+    public function getRefusal(): ?string
+    {
+        if ($this->authorization === null) {
+            return null;
+        }
+
+        return $this->authorizationService->getRefusal(
+            $this->authorization,
+            (int) $this->authSession->getUser()?->getId()
+        );
     }
 
     /**

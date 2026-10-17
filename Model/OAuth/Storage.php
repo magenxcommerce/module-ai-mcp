@@ -11,7 +11,7 @@ use Magento\Framework\DB\Adapter\AdapterInterface;
 use Magento\Framework\DB\Sql\Expression;
 
 /**
- * The three OAuth tables, read and written directly.
+ * The OAuth tables, read and written directly.
  *
  * Plain rows rather than models, repositories and collections: nothing else
  * in Magento needs to load these, nothing should be able to save one through
@@ -27,6 +27,7 @@ class Storage
     public const TABLE_CLIENT = 'magenx_ai_mcp_oauth_client';
     public const TABLE_AUTHORIZATION = 'magenx_ai_mcp_oauth_authorization';
     public const TABLE_TOKEN = 'magenx_ai_mcp_oauth_token';
+    public const TABLE_CLIENT_APPROVER = 'magenx_ai_mcp_oauth_client_approver';
 
     public const STATUS_PENDING = 'pending';
     public const STATUS_APPROVED = 'approved';
@@ -38,6 +39,18 @@ class Storage
 
     /** Created by an administrator, who handed its id and secret to the client. */
     public const ORIGIN_ADMIN = 'admin';
+
+    /** A second approval by the same admin adds a connection beside the first. */
+    public const REAPPROVAL_ADD = 'add';
+
+    /** A second approval by the same admin replaces their earlier connections once its code is redeemed. */
+    public const REAPPROVAL_REPLACE = 'replace';
+
+    /** A second approval by the same admin is refused while an earlier connection is live. */
+    public const REAPPROVAL_REJECT = 'reject';
+
+    /** @var string[] */
+    public const REAPPROVAL_MODES = [self::REAPPROVAL_ADD, self::REAPPROVAL_REPLACE, self::REAPPROVAL_REJECT];
 
     /**
      * @param ResourceConnection $resource
@@ -81,7 +94,10 @@ class Storage
 
         return $connection->fetchAll(
             $connection->select()
-                ->from($this->table(self::TABLE_CLIENT), ['client_id', 'client_name', 'created_at'])
+                ->from(
+                    $this->table(self::TABLE_CLIENT),
+                    ['client_id', 'client_name', 'created_at', 'disabled', 'allowed_domains', 'reapproval']
+                )
                 ->where('origin = ?', self::ORIGIN_ADMIN)
                 ->order('created_at DESC')
         );
@@ -99,6 +115,114 @@ class Storage
             $this->table(self::TABLE_CLIENT),
             ['client_id = ?' => $clientId, 'origin = ?' => self::ORIGIN_ADMIN]
         ) === 1;
+    }
+
+    /**
+     * Change the policy columns of a client an administrator created.
+     *
+     * @param string $clientId
+     * @param array<string, mixed> $changes Any of disabled, allowed_domains, reapproval, secret_hash.
+     * @return bool Whether such a client exists.
+     */
+    public function updateAdminClient(string $clientId, array $changes): bool
+    {
+        $connection = $this->connection();
+        $where = ['client_id = ?' => $clientId, 'origin = ?' => self::ORIGIN_ADMIN];
+        $connection->update($this->table(self::TABLE_CLIENT), $changes, $where);
+
+        // The affected-row count is 0 for an update that changes nothing, so
+        // existence is asked separately.
+        return (bool) $connection->fetchOne(
+            $connection->select()->from($this->table(self::TABLE_CLIENT), ['client_id'])
+                ->where('client_id = ?', $clientId)
+                ->where('origin = ?', self::ORIGIN_ADMIN)
+        );
+    }
+
+    /**
+     * The admins allowed to approve a client. Empty means any admin whose role allows approving.
+     *
+     * @param string $clientId
+     * @return int[]
+     */
+    public function getClientApprovers(string $clientId): array
+    {
+        $connection = $this->connection();
+
+        return array_map('intval', $connection->fetchCol(
+            $connection->select()
+                ->from($this->table(self::TABLE_CLIENT_APPROVER), ['admin_user_id'])
+                ->where('client_id = ?', $clientId)
+        ));
+    }
+
+    /**
+     * Every client's approvers, keyed by client id, for listing many at once.
+     *
+     * @return array<string, int[]>
+     */
+    public function getApproversByClient(): array
+    {
+        $connection = $this->connection();
+        $result = [];
+        foreach ($connection->fetchAll(
+            $connection->select()->from($this->table(self::TABLE_CLIENT_APPROVER), ['client_id', 'admin_user_id'])
+        ) as $row) {
+            $result[(string) $row['client_id']][] = (int) $row['admin_user_id'];
+        }
+
+        return $result;
+    }
+
+    /**
+     * Replace a client's approver list.
+     *
+     * @param string $clientId
+     * @param int[] $adminUserIds
+     * @return void
+     */
+    public function setClientApprovers(string $clientId, array $adminUserIds): void
+    {
+        $connection = $this->connection();
+        $table = $this->table(self::TABLE_CLIENT_APPROVER);
+        $connection->beginTransaction();
+        try {
+            $connection->delete($table, ['client_id = ?' => $clientId]);
+            if ($adminUserIds !== []) {
+                $connection->insertMultiple($table, array_map(
+                    static fn (int $id): array => ['client_id' => $clientId, 'admin_user_id' => $id],
+                    $adminUserIds
+                ));
+            }
+            $connection->commit();
+        } catch (\Throwable $e) {
+            $connection->rollBack();
+
+            throw $e;
+        }
+    }
+
+    /**
+     * Active admin users, for choosing approvers.
+     *
+     * @return array<int, string> Username by user id.
+     */
+    public function getActiveAdminUsers(): array
+    {
+        $connection = $this->connection();
+        $rows = $connection->fetchPairs(
+            $connection->select()
+                ->from($this->table('admin_user'), ['user_id', 'username'])
+                ->where('is_active = ?', 1)
+                ->order('username ASC')
+        );
+
+        $result = [];
+        foreach ($rows as $id => $username) {
+            $result[(int) $id] = (string) $username;
+        }
+
+        return $result;
     }
 
     /**
@@ -144,7 +268,12 @@ class Storage
                 ->joinInner(
                     ['c' => $this->table(self::TABLE_CLIENT)],
                     'c.client_id = a.client_id',
-                    ['client_name']
+                    [
+                        'client_name',
+                        'client_disabled' => 'disabled',
+                        'client_domains' => 'allowed_domains',
+                        'client_reapproval' => 'reapproval',
+                    ]
                 )
                 ->where('a.request_id = ?', $requestId)
         );
@@ -277,6 +406,71 @@ class Storage
     }
 
     /**
+     * Whether an admin holds a live connection through a client.
+     *
+     * @param string $clientId
+     * @param int $adminUserId
+     * @param int $now
+     * @return bool
+     */
+    public function hasLiveGrant(string $clientId, int $adminUserId, int $now): bool
+    {
+        $connection = $this->connection();
+
+        return (bool) $connection->fetchOne(
+            $connection->select()
+                ->from($this->table(self::TABLE_TOKEN), ['entity_id'])
+                ->where('client_id = ?', $clientId)
+                ->where('admin_user_id = ?', $adminUserId)
+                ->where('revoked = ?', 0)
+                ->where('refresh_expires_at > ?', $now)
+                ->limit(1)
+        );
+    }
+
+    /**
+     * Revoke an admin's connections through a client, except one grant.
+     *
+     * @param string $clientId
+     * @param int $adminUserId
+     * @param string $keepFamilyId
+     * @return int Rows revoked.
+     */
+    public function revokeOtherGrants(string $clientId, int $adminUserId, string $keepFamilyId): int
+    {
+        return $this->connection()->update(
+            $this->table(self::TABLE_TOKEN),
+            ['revoked' => 1],
+            [
+                'client_id = ?' => $clientId,
+                'admin_user_id = ?' => $adminUserId,
+                'family_id <> ?' => $keepFamilyId,
+                'revoked = ?' => 0,
+            ]
+        );
+    }
+
+    /**
+     * Revoke every connection through a client held by an admin not on a list.
+     *
+     * @param string $clientId
+     * @param int[] $keepAdminUserIds Must not be empty.
+     * @return int Rows revoked.
+     */
+    public function revokeClientGrantsExcept(string $clientId, array $keepAdminUserIds): int
+    {
+        return $this->connection()->update(
+            $this->table(self::TABLE_TOKEN),
+            ['revoked' => 1],
+            [
+                'client_id = ?' => $clientId,
+                'admin_user_id NOT IN (?)' => $keepAdminUserIds,
+                'revoked = ?' => 0,
+            ]
+        );
+    }
+
+    /**
      * Record use, at most once a minute per token so the MCP endpoint does not write on every call.
      *
      * @param int $entityId
@@ -310,7 +504,11 @@ class Storage
         $select = $connection->select()
             ->from(['l' => $latest], [])
             ->joinInner(['t' => $this->table(self::TABLE_TOKEN)], 't.entity_id = l.entity_id')
-            ->joinInner(['c' => $this->table(self::TABLE_CLIENT)], 'c.client_id = t.client_id', ['client_name'])
+            ->joinInner(
+                ['c' => $this->table(self::TABLE_CLIENT)],
+                'c.client_id = t.client_id',
+                ['client_name', 'client_disabled' => 'disabled']
+            )
             ->joinInner(['u' => $this->table('admin_user')], 'u.user_id = t.admin_user_id', ['username'])
             ->order('t.entity_id DESC');
 
@@ -375,7 +573,11 @@ class Storage
         $row = $connection->fetchRow(
             $connection->select()
                 ->from(['t' => $this->table(self::TABLE_TOKEN)])
-                ->joinInner(['c' => $this->table(self::TABLE_CLIENT)], 'c.client_id = t.client_id', ['client_name'])
+                ->joinInner(
+                    ['c' => $this->table(self::TABLE_CLIENT)],
+                    'c.client_id = t.client_id',
+                    ['client_name', 'client_disabled' => 'disabled', 'client_domains' => 'allowed_domains']
+                )
                 ->joinInner(
                     ['u' => $this->table('admin_user')],
                     'u.user_id = t.admin_user_id',

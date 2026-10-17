@@ -30,6 +30,9 @@ class FakeStorage extends Storage
     /** @var array<int, array{username: string, is_active: int, lock_expires: string|null}> */
     public array $admins = [7 => ['username' => 'alice', 'is_active' => 1, 'lock_expires' => null]];
 
+    /** @var array<string, int[]> */
+    public array $approvers = [];
+
     private int $nextTokenId = 1;
 
     /**
@@ -92,6 +95,96 @@ class FakeStorage extends Storage
     /**
      * @inheritDoc
      */
+    public function updateAdminClient(string $clientId, array $changes): bool
+    {
+        if (($this->clients[$clientId]['origin'] ?? null) !== Storage::ORIGIN_ADMIN) {
+            return false;
+        }
+        $this->clients[$clientId] = $changes + $this->clients[$clientId];
+
+        return true;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function getClientApprovers(string $clientId): array
+    {
+        return $this->approvers[$clientId] ?? [];
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function getApproversByClient(): array
+    {
+        return $this->approvers;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function setClientApprovers(string $clientId, array $adminUserIds): void
+    {
+        $this->approvers[$clientId] = $adminUserIds;
+        if ($adminUserIds === []) {
+            unset($this->approvers[$clientId]);
+        }
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function getActiveAdminUsers(): array
+    {
+        $result = [];
+        foreach ($this->admins as $id => $admin) {
+            if ($admin['is_active'] === 1) {
+                $result[$id] = $admin['username'];
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function hasLiveGrant(string $clientId, int $adminUserId, int $now): bool
+    {
+        foreach ($this->tokens as $row) {
+            if ($row['client_id'] === $clientId && $row['admin_user_id'] === $adminUserId
+                && $row['revoked'] === 0 && $row['refresh_expires_at'] > $now
+            ) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function revokeOtherGrants(string $clientId, int $adminUserId, string $keepFamilyId): int
+    {
+        return $this->revokeMatching(static fn (array $row): bool => $row['client_id'] === $clientId
+            && $row['admin_user_id'] === $adminUserId
+            && $row['family_id'] !== $keepFamilyId);
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function revokeClientGrantsExcept(string $clientId, array $keepAdminUserIds): int
+    {
+        return $this->revokeMatching(static fn (array $row): bool => $row['client_id'] === $clientId
+            && !in_array($row['admin_user_id'], $keepAdminUserIds, true));
+    }
+
+    /**
+     * @inheritDoc
+     */
     public function markClientGranted(string $clientId): void
     {
         $this->clients[$clientId]['granted'] = 1;
@@ -117,7 +210,17 @@ class FakeStorage extends Storage
     {
         $row = $this->authorizations[$requestId] ?? null;
 
-        return $row === null ? null : $row + ['client_name' => $this->clients[$row['client_id']]['client_name']];
+        if ($row === null) {
+            return null;
+        }
+        $client = $this->clients[$row['client_id']];
+
+        return $row + [
+            'client_name' => $client['client_name'],
+            'client_disabled' => $client['disabled'] ?? 0,
+            'client_domains' => $client['allowed_domains'] ?? null,
+            'client_reapproval' => $client['reapproval'] ?? Storage::REAPPROVAL_ADD,
+        ];
     }
 
     /**
@@ -230,8 +333,12 @@ class FakeStorage extends Storage
             if ($row[$column] === $value && isset($this->admins[$row['admin_user_id']])) {
                 $admin = $this->admins[$row['admin_user_id']];
 
+                $client = $this->clients[$row['client_id']];
+
                 return $row + [
-                    'client_name' => $this->clients[$row['client_id']]['client_name'],
+                    'client_name' => $client['client_name'],
+                    'client_disabled' => $client['disabled'] ?? 0,
+                    'client_domains' => $client['allowed_domains'] ?? null,
                     'username' => $admin['username'],
                     'admin_is_active' => $admin['is_active'],
                     'admin_lock_expires' => $admin['lock_expires'],
@@ -249,9 +356,18 @@ class FakeStorage extends Storage
      */
     private function revokeWhere(string $column, mixed $value): int
     {
+        return $this->revokeMatching(static fn (array $row): bool => $row[$column] === $value);
+    }
+
+    /**
+     * @param callable(array<string, mixed>): bool $matches
+     * @return int
+     */
+    private function revokeMatching(callable $matches): int
+    {
         $count = 0;
         foreach ($this->tokens as $id => $row) {
-            if ($row[$column] === $value && $row['revoked'] === 0) {
+            if ($matches($row) && $row['revoked'] === 0) {
                 $this->tokens[$id]['revoked'] = 1;
                 $count++;
             }

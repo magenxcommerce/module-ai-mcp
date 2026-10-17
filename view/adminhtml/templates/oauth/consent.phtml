@@ -28,7 +28,7 @@
             </tr>
             <tr>
                 <th><?= $escaper->escapeHtml(__('Access')) ?></th>
-                <td><?= $escaper->escapeHtml(__('Whatever your own admin role allows, read-only unless you tick the box below.')) ?></td>
+                <td><?= $escaper->escapeHtml(__('Whatever your own admin role allows in the tool areas you tick below, read-only unless you also allow changes.')) ?></td>
             </tr>
             </tbody>
         </table>
@@ -36,6 +36,12 @@
         <div class="message message-warning">
             <div><?= $escaper->escapeHtml(__('Approve only if you started this connection yourself, just now, from the client named above. If someone sent you this link, deny it.')) ?></div>
         </div>
+        <?php $refusal = $block->getRefusal(); ?>
+        <?php if ($refusal !== null): ?>
+            <div class="message message-error">
+                <div><?= $escaper->escapeHtml($refusal) ?></div>
+            </div>
+        <?php endif; ?>
         <?php if (!$block->hasEndpointAccess()): ?>
             <div class="message message-error">
                 <div><?= $escaper->escapeHtml(__('Your admin role does not include "AI MCP Server", so this connection would be refused. Ask an administrator to add it to your role.')) ?></div>
@@ -50,6 +56,15 @@
         <form method="post" action="<?= $escaper->escapeUrl($block->getDecideUrl()) ?>">
             <input type="hidden" name="form_key" value="<?= $escaper->escapeHtmlAttr($block->getFormKey()) ?>"/>
             <input type="hidden" name="request" value="<?= $escaper->escapeHtmlAttr($block->getRequestId()) ?>"/>
+            <fieldset class="admin__fieldset">
+                <legend><?= $escaper->escapeHtml(__('Tool areas this connection may use')) ?></legend>
+                <?php foreach ($block->getOfferedDomains() as $code => $label): ?>
+                    <div class="admin__field admin__field-option">
+                        <input type="checkbox" class="admin__control-checkbox" id="magenx-mcp-domain-<?= $escaper->escapeHtmlAttr($code) ?>" name="domains[]" value="<?= $escaper->escapeHtmlAttr($code) ?>" checked/>
+                        <label class="admin__field-label" for="magenx-mcp-domain-<?= $escaper->escapeHtmlAttr($code) ?>"><?= $escaper->escapeHtml($label) ?></label>
+                    </div>
+                <?php endforeach; ?>
+            </fieldset>
             <?php if ($block->isWriteRequested()): ?>
                 <div class="admin__field admin__field-option">
                     <input type="checkbox" class="admin__control-checkbox" id="magenx-mcp-grant-write" name="grant_write" value="1"/>
@@ -65,7 +80,7 @@
                 <button type="submit" name="decision" value="deny" class="action-secondary">
                     <span><?= $escaper->escapeHtml(__('Deny')) ?></span>
                 </button>
-                <button type="submit" name="decision" value="approve" class="action-primary">
+                <button type="submit" name="decision" value="approve" class="action-primary"<?php if ($refusal !== null): ?> disabled<?php endif; ?>>
                     <span><?= $escaper->escapeHtml(__('Approve')) ?></span>
                 </button>
             </div>

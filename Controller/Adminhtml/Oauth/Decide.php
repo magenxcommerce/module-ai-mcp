@@ -10,6 +10,7 @@ use Magenx\AiMcp\Model\OAuth\AuthorizationService;
 use Magenx\AiMcp\Model\OAuth\OAuthException;
 use Magenx\AiMcp\Model\OAuth\PendingConsent;
 use Magenx\AiMcp\Model\Protocol\Server;
+use Magenx\AiMcp\Model\Tool\ToolCatalog;
 use Magento\Backend\App\Action;
 use Magento\Backend\App\Action\Context;
 use Magento\Framework\App\Action\HttpPostActionInterface;
@@ -30,11 +31,13 @@ class Decide extends Action implements HttpPostActionInterface
      * @param Context $context
      * @param AuthorizationService $authorizationService
      * @param PendingConsent $pendingConsent
+     * @param ToolCatalog $catalog
      */
     public function __construct(
         Context $context,
         private readonly AuthorizationService $authorizationService,
-        private readonly PendingConsent $pendingConsent
+        private readonly PendingConsent $pendingConsent,
+        private readonly ToolCatalog $catalog
     ) {
         parent::__construct($context);
     }
@@ -71,7 +74,8 @@ class Decide extends Action implements HttpPostActionInterface
                 $requestId,
                 $adminId,
                 $adminLabel,
-                $this->getRequest()->getPost('grant_write') === '1'
+                $this->getRequest()->getPost('grant_write') === '1',
+                $this->tickedDomains()
             );
         } catch (OAuthException $e) {
             $this->messageManager->addErrorMessage($e->getMessage());
@@ -82,5 +86,23 @@ class Decide extends Action implements HttpPostActionInterface
         $this->pendingConsent->forget();
 
         return $redirect->setUrl($url);
+    }
+
+    /**
+     * The tool areas ticked, or null when every area there is was ticked.
+     *
+     * Null rather than the list, so a connection approved for everything also
+     * gets an area a later release adds. The client's cap is applied after this,
+     * by the authorization service.
+     *
+     * @return string[]|null
+     */
+    private function tickedDomains(): ?array
+    {
+        $known = array_keys($this->catalog->getDomains());
+        $posted = $this->getRequest()->getPost('domains');
+        $ticked = is_array($posted) ? array_values(array_intersect($known, $posted)) : [];
+
+        return count($ticked) === count($known) ? null : $ticked;
     }
 }
