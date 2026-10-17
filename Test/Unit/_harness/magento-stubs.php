@@ -1739,6 +1739,7 @@ namespace Magento\Framework\App {
     interface CacheInterface {
         public function load($identifier);
         public function save($data, $identifier, $tags = [], $lifeTime = null);
+        public function clean($tags = []);
     }
 }
 
@@ -1803,5 +1804,62 @@ namespace Magento\Framework\App\Request {
     class Http {
         public function __construct(private array $headers = []) {}
         public function getHeader($name, $default = false) { return $this->headers[$name] ?? $default; }
+    }
+}
+
+// Product attachments: the companion module's repository, path helper and
+// settings, and the cache plumbing a write ends in.
+namespace Magenx\ProductAttachments\Model {
+    class AttachmentType {
+        public const UPLOAD = 'upload';
+        public const EXTERNAL = 'external';
+        public static function isValid(string $type): bool { return in_array($type, [self::UPLOAD, self::EXTERNAL], true); }
+    }
+    class AttachmentRepository {
+        public function getProductAttachments(int $productId): array { return []; }
+        public function getAttachment(int $attachmentId): ?array { return null; }
+        public function saveAttachment(?int $attachmentId, array $row): int { return 0; }
+        public function deleteAttachment(int $attachmentId): bool { return false; }
+        public function getUrl(string $mediaPath): string { return ''; }
+        public function getMimeType(string $mediaPath): string { return ''; }
+        public function getFileSize(string $mediaPath): ?int { return null; }
+    }
+    class AttachmentPath {
+        public function getUploadDirectory(string $sku): string { return ''; }
+        public function toMediaPath(string $fileBelowBase): string { return ''; }
+        public function getFileName(string $path): string { return ''; }
+        public function getExtension(string $fileName): string { return ''; }
+        public function sanitizeSegment(string $value): string { return ''; }
+    }
+    class Config {
+        public function isEnabled(?int $storeId = null): bool { return false; }
+        public function isShowOnStorefront(?int $storeId = null): bool { return false; }
+        public function getAllowedExtensions(): array { return []; }
+        public function isExtensionAllowed(string $extension): bool { return false; }
+        public function getMaxFileSize(): int { return 1; }
+    }
+}
+
+namespace Magento\Framework\Filesystem\Directory {
+    interface WriteInterface {
+        public function isExist($path = null); public function writeFile($path, $content, $mode = 'w+');
+    }
+}
+
+namespace Magento\Framework\Event {
+    interface ManagerInterface {
+        public function dispatch($eventName, array $data = []);
+    }
+}
+
+namespace Magento\Catalog\Model {
+    class Product {
+        public const CACHE_TAG = 'cat_p';
+    }
+}
+
+namespace Magento\Framework\Indexer {
+    class CacheContext {
+        public function registerTags($cacheTags) { return $this; }
     }
 }

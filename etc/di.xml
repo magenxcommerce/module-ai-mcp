@@ -149,6 +149,9 @@
                 <item name="add_product_media" xsi:type="object">Magenx\AiMcp\Model\Tool\Media\AddProductMedia\Proxy</item>
                 <item name="update_product_media" xsi:type="object">Magenx\AiMcp\Model\Tool\Media\UpdateProductMedia\Proxy</item>
                 <item name="delete_product_media" xsi:type="object">Magenx\AiMcp\Model\Tool\Media\DeleteProductMedia\Proxy</item>
+                <item name="list_product_attachments" xsi:type="object">Magenx\AiMcp\Model\Tool\Attachment\ListProductAttachments\Proxy</item>
+                <item name="save_product_attachment" xsi:type="object">Magenx\AiMcp\Model\Tool\Attachment\SaveProductAttachment\Proxy</item>
+                <item name="delete_product_attachment" xsi:type="object">Magenx\AiMcp\Model\Tool\Attachment\DeleteProductAttachment\Proxy</item>
                 <item name="list_product_link_types" xsi:type="object">Magenx\AiMcp\Model\Tool\Link\ListProductLinkTypes\Proxy</item>
                 <item name="get_product_links" xsi:type="object">Magenx\AiMcp\Model\Tool\Link\GetProductLinks\Proxy</item>
                 <item name="set_product_links" xsi:type="object">Magenx\AiMcp\Model\Tool\Link\SetProductLinks\Proxy</item>

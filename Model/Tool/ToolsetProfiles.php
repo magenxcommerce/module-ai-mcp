@@ -28,8 +28,8 @@ class ToolsetProfiles
         ],
         'catalog' => [
             'catalog', 'category', 'attribute', 'configurable', 'bundle', 'downloadable', 'link',
-            'media', 'mediagallery', 'price', 'inventory', 'urlrewrite', 'productfeed', 'quicksearch',
-            'review', 'search', 'store',
+            'media', 'attachment', 'mediagallery', 'price', 'inventory', 'urlrewrite', 'productfeed',
+            'quicksearch', 'review', 'search', 'store',
         ],
         'content' => ['cms', 'widget', 'email', 'design', 'mediagallery', 'blog', 'store'],
         'support' => ['sales', 'customer', 'quote', 'rma', 'helpdesk', 'gdpr', 'user', 'review', 'store'],

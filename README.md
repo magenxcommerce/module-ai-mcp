@@ -227,6 +227,9 @@ same ACL role, so nothing is lost but the serializer.
 | `add_product_media` | ✓ | `Magento_Catalog::products` |
 | `update_product_media` | ✓ | `Magento_Catalog::products` |
 | `delete_product_media` | ✓ | `Magento_Catalog::products` |
+| `list_product_attachments` | | `Magento_Catalog::products` |
+| `save_product_attachment` | ✓ | `Magento_Catalog::products` |
+| `delete_product_attachment` | ✓ | `Magento_Catalog::products` |
 | `list_product_link_types` | | `Magento_Catalog::products` |
 | `get_product_links` | | `Magento_Catalog::products` |
 | `set_product_links` | ✓ | `Magento_Catalog::products` |
@@ -1024,6 +1027,35 @@ the file.
 something that should not be on the record at all — a bank statement, a passport
 photo — and it has to come off. Leaving personal data in place because the only
 way to remove it is the admin is the worse failure.
+
+### Product attachments: written beside the product, not through it
+
+`list_product_attachments`, `save_product_attachment` and
+`delete_product_attachment` cover `magenxcommerce/module-product-attachments`
+(1.1 or later), which keeps one row per attachment in
+`magenx_product_attachment` — an uploaded file under
+`pub/media/<media directory>/<sku>/`, or an external link. Like the RMA module,
+it is a hard dependency.
+
+`update_product` cannot do this job. The product form's grid is synced by an
+observer on product save that acts only when the grid's own field is in the
+posted data, and no API save carries it; a `custom_attributes` entry under that
+name is dropped by Magento because it is not an EAV attribute. So these tools
+write through the module's `AttachmentRepository`, the same seam the observer
+uses, and store an upload where the form's uploader would.
+
+- **An upload never overwrites.** A name already taken in the product's folder
+  gets `_1`, `_2`… — an earlier row, and every order email already sent with
+  it, points at the old file. For the same reason an upload's bytes cannot be
+  swapped through `save_product_attachment`; delete the row and add again.
+- **The module's own limits apply.** Its allowed extensions and maximum file
+  size, under 4 MB decoded for the JSON-RPC body, and only `http(s)` links.
+  Writes are refused while the module is disabled.
+- **The product's cached pages are dropped.** A row in its own table changes no
+  product, so each write fires `clean_cache_by_tags` for `cat_p_<id>` itself;
+  otherwise the storefront keeps serving the attachment list it cached.
+- **An attachment id is honoured only with its own sku**, so a mistyped id
+  cannot reach another product's file.
 
 ### Admin users: enough to assign work, and no more
 
