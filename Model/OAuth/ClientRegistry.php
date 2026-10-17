@@ -10,14 +10,21 @@ use Magento\Framework\Stdlib\DateTime\DateTime as CoreDate;
 use Psr\Log\LoggerInterface;
 
 /**
- * Dynamic client registration (RFC 7591) and client authentication at the token endpoint.
+ * OAuth clients: created by an administrator, or registered by anyone (RFC 7591)
+ * where the operator allows it; and client authentication at the token endpoint.
  *
- * Registration is open, as MCP clients expect, and safe because of what it
- * cannot do: every redirect URI has to pass {@see RedirectUriPolicy}, so a
- * registered client can only ever receive codes at a callback the operator
- * listed. A client is a name and a set of callbacks — it carries no
- * privilege. Privilege comes from the admin who approves it, and is that
- * admin's own role.
+ * Every redirect URI has to pass {@see RedirectUriPolicy}, so a client can only
+ * ever receive codes at a callback the operator listed. A client is a name and
+ * a set of callbacks — it carries no privilege. Privilege comes from the admin
+ * who approves it, and is that admin's own role.
+ *
+ * That does not make open registration harmless. The listed callback is
+ * claude.ai's, where anyone has an account: a stranger can register, start a
+ * flow, learn the admin URL from the redirect, and send an admin the consent
+ * link — which, approved, connects the stranger's Claude. So by default only
+ * a client an administrator created may start a flow, and such a client is
+ * always confidential: without its secret a code cannot be redeemed, whoever
+ * talked an admin into approving it.
  */
 class ClientRegistry
 {
@@ -33,6 +40,7 @@ class ClientRegistry
 
     /**
      * @param Storage $storage
+     * @param OAuthConfig $config
      * @param RedirectUriPolicy $redirectUriPolicy
      * @param Secret $secret
      * @param CoreDate $date
@@ -40,6 +48,7 @@ class ClientRegistry
      */
     public function __construct(
         private readonly Storage $storage,
+        private readonly OAuthConfig $config,
         private readonly RedirectUriPolicy $redirectUriPolicy,
         private readonly Secret $secret,
         private readonly CoreDate $date,
@@ -117,6 +126,7 @@ class ClientRegistry
             'secret_hash' => $clientSecret === null ? null : $this->secret->hash($clientSecret),
             'granted' => 0,
             'created_at' => $now,
+            'origin' => Storage::ORIGIN_DYNAMIC,
         ]);
 
         $this->auditLogger->info('[magenx-mcp] oauth client registered', [
@@ -142,6 +152,73 @@ class ClientRegistry
         }
 
         return $response;
+    }
+
+    /**
+     * Create a confidential client for an administrator to hand to an AI service.
+     *
+     * Its callbacks are every URI on the allowlist, so one client serves
+     * claude.ai and claude.com alike. The secret is returned once and stored
+     * only as a hash.
+     *
+     * @param string $name
+     * @param string $adminLabel For the audit log.
+     * @return array{client_id: string, client_secret: string}
+     * @throws OAuthException When the allowlist names no callback.
+     */
+    public function createForAdmin(string $name, string $adminLabel): array
+    {
+        $redirectUris = array_values(array_filter(
+            array_unique($this->config->getAllowedRedirectUris()),
+            fn (string $uri): bool => $this->redirectUriPolicy->isAllowed($uri)
+        ));
+        if ($redirectUris === []) {
+            throw new OAuthException(
+                'invalid_redirect_uri',
+                'Add the AI service\'s callback to Allowed Redirect URIs before creating a client.'
+            );
+        }
+
+        $name = trim(preg_replace('/[\x00-\x1f\x7f]+/', ' ', $name) ?? '');
+        $name = mb_substr($name === '' ? 'Claude' : $name, 0, self::MAX_NAME_LENGTH);
+
+        $clientId = $this->secret->generate(Secret::PREFIX_CLIENT);
+        $clientSecret = $this->secret->generate(Secret::PREFIX_CLIENT_SECRET);
+
+        $this->storage->insertClient([
+            'client_id' => $clientId,
+            'client_name' => $name,
+            'redirect_uris' => json_encode($redirectUris, JSON_UNESCAPED_SLASHES),
+            'auth_method' => self::AUTH_BASIC,
+            'secret_hash' => $this->secret->hash($clientSecret),
+            'granted' => 0,
+            'created_at' => (int) $this->date->gmtTimestamp(),
+            'origin' => Storage::ORIGIN_ADMIN,
+        ]);
+
+        $this->auditLogger->info('[magenx-mcp] oauth client created by admin', [
+            'admin' => $adminLabel,
+            'client_id' => $clientId,
+            'client_name' => $name,
+            'redirect_uris' => $redirectUris,
+        ]);
+
+        return ['client_id' => $clientId, 'client_secret' => $clientSecret];
+    }
+
+    /**
+     * Whether this client may start an authorization flow.
+     *
+     * A dynamically registered client may not once registration is closed. Its
+     * existing connections keep refreshing until they expire or are revoked.
+     *
+     * @param array<string, mixed> $client
+     * @return bool
+     */
+    public function mayStartFlow(array $client): bool
+    {
+        return ($client['origin'] ?? Storage::ORIGIN_DYNAMIC) === Storage::ORIGIN_ADMIN
+            || $this->config->isDynamicRegistrationAllowed();
     }
 
     /**
@@ -176,7 +253,8 @@ class ClientRegistry
      * Authenticate a client at the token or revocation endpoint.
      *
      * The method used must be the one registered: a confidential client may
-     * not drop down to presenting no secret.
+     * not drop down to presenting no secret. A client an administrator created
+     * never registered a method, so it may present its secret either way.
      *
      * @param string|null $clientId
      * @param string|null $clientSecret
@@ -200,7 +278,10 @@ class ClientRegistry
             return $client;
         }
 
-        if ($methodUsed !== $registered || $clientSecret === null || $clientSecret === ''
+        $accepted = ($client['origin'] ?? Storage::ORIGIN_DYNAMIC) === Storage::ORIGIN_ADMIN
+            ? [self::AUTH_POST, self::AUTH_BASIC]
+            : [$registered];
+        if (!in_array($methodUsed, $accepted, true) || $clientSecret === null || $clientSecret === ''
             || !hash_equals((string) $client['secret_hash'], $this->secret->hash($clientSecret))
         ) {
             throw new OAuthException('invalid_client', 'Client authentication failed.', 401);

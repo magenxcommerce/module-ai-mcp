@@ -40,7 +40,7 @@ abstract class AbstractEndpoint implements CsrfAwareActionInterface
         protected readonly JsonResponder $responder,
         protected readonly Json $serializer,
         private readonly Config $config,
-        private readonly OAuthConfig $oauthConfig
+        protected readonly OAuthConfig $oauthConfig
     ) {
     }
 

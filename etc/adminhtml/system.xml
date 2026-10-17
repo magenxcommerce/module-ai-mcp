@@ -89,9 +89,18 @@
                         <field id="magenx_ai_mcp/general/enabled">1</field>
                     </depends>
                 </field>
+                <field id="allow_dynamic_registration" translate="label comment" type="select" sortOrder="15" showInDefault="1">
+                    <label>Allow Dynamic Client Registration</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    <comment><![CDATA[Leave this off. Create a client under System &gt; Extensions &gt; AI MCP Connections instead, and enter its client ID and secret in the connector's advanced settings ("Use your own OAuth client"). When on, anyone can register a client and start a flow: that reveals the admin URL to them, and lets them send an admin a consent link that would connect <em>their</em> Claude account to the admin's role.]]></comment>
+                    <depends>
+                        <field id="magenx_ai_mcp/general/enabled">1</field>
+                        <field id="magenx_ai_mcp/oauth/enabled">1</field>
+                    </depends>
+                </field>
                 <field id="allowed_redirect_uris" translate="label comment" type="textarea" sortOrder="20" showInDefault="1">
                     <label>Allowed Redirect URIs</label>
-                    <comment><![CDATA[One per line, matched exactly. A client can only register, and only ever receive an authorization code at, a URI listed here. The default is claude.ai's callback. Add other clients' callbacks only for services you trust with an admin's access.]]></comment>
+                    <comment><![CDATA[One per line, matched exactly. A client can only be created or registered with, and only ever receive an authorization code at, a URI listed here. The default is claude.ai's callback. Add other clients' callbacks only for services you trust with an admin's access.]]></comment>
                     <depends>
                         <field id="magenx_ai_mcp/general/enabled">1</field>
                         <field id="magenx_ai_mcp/oauth/enabled">1</field>

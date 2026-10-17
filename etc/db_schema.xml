@@ -18,6 +18,7 @@
         <column xsi:type="varchar" name="secret_hash" nullable="true" length="64" comment="SHA-256 of Client Secret"/>
         <column xsi:type="smallint" name="granted" unsigned="true" nullable="false" default="0" comment="Has Ever Received A Grant"/>
         <column xsi:type="int" name="created_at" unsigned="true" nullable="false" comment="Created At (Unix)"/>
+        <column xsi:type="varchar" name="origin" nullable="false" length="16" default="dynamic" comment="dynamic (RFC 7591) or admin (created in the admin)"/>
         <constraint xsi:type="primary" referenceId="PRIMARY">
             <column name="client_id"/>
         </constraint>

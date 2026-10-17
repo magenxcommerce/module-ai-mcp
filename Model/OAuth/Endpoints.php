@@ -182,18 +182,30 @@ class Endpoints
      */
     public function getAuthorizationServerMetadata(): array
     {
-        return [
+        // With registration closed, every client that can connect was created
+        // by an administrator and holds a secret, so a client is told to send it.
+        $dynamic = $this->config->isDynamicRegistrationAllowed();
+        $authMethods = $dynamic
+            ? ClientRegistry::AUTH_METHODS
+            : [ClientRegistry::AUTH_BASIC, ClientRegistry::AUTH_POST];
+
+        $metadata = [
             'issuer' => $this->getIssuer(),
             'authorization_endpoint' => $this->getAuthorizationEndpoint(),
             'token_endpoint' => $this->getTokenEndpoint(),
-            'registration_endpoint' => $this->getRegistrationEndpoint(),
+        ];
+        if ($dynamic) {
+            $metadata['registration_endpoint'] = $this->getRegistrationEndpoint();
+        }
+
+        return $metadata + [
             'revocation_endpoint' => $this->getRevocationEndpoint(),
             'scopes_supported' => Scope::SUPPORTED,
             'response_types_supported' => ['code'],
             'response_modes_supported' => ['query'],
             'grant_types_supported' => ['authorization_code', 'refresh_token'],
-            'token_endpoint_auth_methods_supported' => ClientRegistry::AUTH_METHODS,
-            'revocation_endpoint_auth_methods_supported' => ClientRegistry::AUTH_METHODS,
+            'token_endpoint_auth_methods_supported' => $authMethods,
+            'revocation_endpoint_auth_methods_supported' => $authMethods,
             'code_challenge_methods_supported' => [Pkce::METHOD_S256],
             'authorization_response_iss_parameter_supported' => true,
         ];

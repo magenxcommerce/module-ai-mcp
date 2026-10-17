@@ -116,4 +116,18 @@ class EndpointsTest extends OAuthTestCase
 
         $this->assertStringEndsWith('/request/abc/', $endpoints->getConsentUrl('abc'));
     }
+
+    /**
+     * @return void
+     */
+    public function testClosedRegistrationIsNotAdvertised(): void
+    {
+        $this->dynamicRegistration = false;
+
+        $metadata = $this->endpoints->getAuthorizationServerMetadata();
+
+        $this->assertArrayNotHasKey('registration_endpoint', $metadata);
+        $this->assertSame(['client_secret_basic', 'client_secret_post'], $metadata['token_endpoint_auth_methods_supported']);
+        $this->assertSame('https://shop.example/magenx-mcp/oauth/token', $metadata['token_endpoint']);
+    }
 }

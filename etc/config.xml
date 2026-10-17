@@ -34,12 +34,14 @@
                 switch still decide what a caller may reach.
             -->
             <!--
-                OAuth is off. When on, only claude.ai's callback may be registered,
-                loopback callbacks are refused, and an empty public base URL means
-                the default store's secure base URL.
+                OAuth is off. When on, only clients an administrator created can
+                connect (dynamic registration is closed), only claude.ai's callback
+                may be registered, loopback callbacks are refused, and an empty
+                public base URL means the default store's secure base URL.
             -->
             <oauth>
                 <enabled>0</enabled>
+                <allow_dynamic_registration>0</allow_dynamic_registration>
                 <allowed_redirect_uris>https://claude.ai/api/mcp/auth_callback
 https://claude.com/api/mcp/auth_callback</allowed_redirect_uris>
                 <allow_loopback_redirects>0</allow_loopback_redirects>

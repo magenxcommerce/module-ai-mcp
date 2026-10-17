@@ -59,6 +59,39 @@ class FakeStorage extends Storage
     /**
      * @inheritDoc
      */
+    public function getAdminClients(): array
+    {
+        $clients = array_values(array_filter(
+            $this->clients,
+            static fn (array $client): bool => ($client['origin'] ?? null) === Storage::ORIGIN_ADMIN
+        ));
+        usort($clients, static fn (array $a, array $b): int => $b['created_at'] <=> $a['created_at']);
+
+        return $clients;
+    }
+
+    /**
+     * Deletes the client's requests and tokens too, as the foreign keys do.
+     *
+     * @inheritDoc
+     */
+    public function deleteAdminClient(string $clientId): bool
+    {
+        if (($this->clients[$clientId]['origin'] ?? null) !== Storage::ORIGIN_ADMIN) {
+            return false;
+        }
+
+        unset($this->clients[$clientId]);
+        $belongs = static fn (array $row): bool => $row['client_id'] !== $clientId;
+        $this->authorizations = array_filter($this->authorizations, $belongs);
+        $this->tokens = array_filter($this->tokens, $belongs);
+
+        return true;
+    }
+
+    /**
+     * @inheritDoc
+     */
     public function markClientGranted(string $clientId): void
     {
         $this->clients[$clientId]['granted'] = 1;

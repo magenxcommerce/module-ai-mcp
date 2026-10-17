@@ -8,9 +8,10 @@ namespace Magenx\AiMcp\Test\Unit\Model\OAuth;
 
 use Magenx\AiMcp\Model\OAuth\ClientRegistry;
 use Magenx\AiMcp\Model\OAuth\OAuthException;
+use Magenx\AiMcp\Model\OAuth\Storage;
 
 /**
- * Open registration, gated by the redirect allowlist; client authentication at the token endpoint.
+ * Admin-created and open registration, gated by the redirect allowlist; client authentication at the token endpoint.
  *
  * @see ClientRegistry
  */
@@ -169,5 +170,89 @@ class ClientRegistryTest extends OAuthTestCase
     {
         $this->expectException(OAuthException::class);
         $this->clients->authenticate('mxclient_nope', null, ClientRegistry::AUTH_NONE);
+    }
+
+    /**
+     * @return void
+     */
+    public function testAdminClientIsConfidentialAndServesEveryListedCallback(): void
+    {
+        $this->allowedRedirects = [self::CALLBACK, 'https://claude.com/api/mcp/auth_callback'];
+
+        $created = $this->clients->createForAdmin('', 'admin:alice');
+
+        $this->assertStringStartsWith('mxclient_', $created['client_id']);
+        $this->assertStringStartsWith('mxs_', $created['client_secret']);
+        $stored = $this->storage->clients[$created['client_id']];
+        $this->assertSame(Storage::ORIGIN_ADMIN, $stored['origin']);
+        $this->assertSame('Claude', $stored['client_name']);
+        $this->assertSame(hash('sha256', $created['client_secret']), $stored['secret_hash']);
+        $this->assertSame($this->allowedRedirects, $this->clients->getRedirectUris($stored));
+    }
+
+    /**
+     * @return void
+     */
+    public function testAdminClientNeedsACallbackOnTheAllowlist(): void
+    {
+        $this->allowedRedirects = [];
+
+        try {
+            $this->clients->createForAdmin('Claude', 'admin:alice');
+            $this->fail('A client was created with nowhere to send its codes.');
+        } catch (OAuthException $e) {
+            $this->assertSame('invalid_redirect_uri', $e->getError());
+        }
+        $this->assertSame([], $this->storage->clients);
+    }
+
+    /**
+     * The client never told us which method it uses, so either carries the secret.
+     *
+     * @return void
+     */
+    public function testAdminClientPresentsItsSecretEitherWay(): void
+    {
+        $created = $this->clients->createForAdmin('Claude', 'admin:alice');
+
+        foreach ([ClientRegistry::AUTH_POST, ClientRegistry::AUTH_BASIC] as $method) {
+            $client = $this->clients->authenticate($created['client_id'], $created['client_secret'], $method);
+            $this->assertSame($created['client_id'], $client['client_id']);
+        }
+    }
+
+    /**
+     * What defeats consent phishing: an approval the attacker talked an admin into is useless without the secret.
+     *
+     * @return void
+     */
+    public function testAdminClientCannotAuthenticateWithoutItsSecret(): void
+    {
+        $created = $this->clients->createForAdmin('Claude', 'admin:alice');
+
+        foreach ([[null, ClientRegistry::AUTH_NONE], ['mxs_wrong', ClientRegistry::AUTH_POST]] as [$secret, $method]) {
+            try {
+                $this->clients->authenticate($created['client_id'], $secret, $method);
+                $this->fail('An admin-created client authenticated without its secret.');
+            } catch (OAuthException $e) {
+                $this->assertSame('invalid_client', $e->getError());
+            }
+        }
+    }
+
+    /**
+     * @return void
+     */
+    public function testOnlyAdminClientsMayStartAFlowOnceRegistrationIsClosed(): void
+    {
+        $dynamic = $this->clients->find($this->registerClient()['client_id']);
+        $admin = $this->clients->find($this->clients->createForAdmin('Claude', 'admin:alice')['client_id']);
+        self::assertIsArray($dynamic);
+        self::assertIsArray($admin);
+
+        $this->assertTrue($this->clients->mayStartFlow($dynamic));
+        $this->dynamicRegistration = false;
+        $this->assertFalse($this->clients->mayStartFlow($dynamic));
+        $this->assertTrue($this->clients->mayStartFlow($admin));
     }
 }

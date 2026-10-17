@@ -6,7 +6,56 @@
 /** @var \Magenx\AiMcp\Block\Adminhtml\Oauth\Connections $block */
 /** @var \Magento\Framework\Escaper $escaper */
 $grants = $block->getGrants();
+$clients = $block->getClients();
 ?>
+<h2><?= $escaper->escapeHtml(__('Clients')) ?></h2>
+<p>
+    <?= $escaper->escapeHtml(__('Create a client for each AI service you connect, then enter its client ID and secret in that service\'s connector settings (in claude.ai: Advanced settings, "Use your own OAuth client"). Only the service holding the secret can redeem an admin\'s approval. Deleting a client ends every connection made with it.')) ?>
+</p>
+<?php if ($block->isDynamicRegistrationAllowed()): ?>
+    <div class="message message-warning">
+        <div><?= $escaper->escapeHtml(__('Dynamic client registration is on, so anyone can register a client and start a connection. That reveals the admin URL to them, and lets them send an admin a consent link that would connect their own account. Turn it off under Stores > Configuration > Magenx > AI MCP Server > OAuth once your clients use a client created here.')) ?></div>
+    </div>
+<?php endif; ?>
+<form method="post" action="<?= $escaper->escapeUrl($block->getCreateClientUrl()) ?>">
+    <input type="hidden" name="form_key" value="<?= $escaper->escapeHtmlAttr($block->getFormKey()) ?>"/>
+    <label for="magenx-mcp-client-name"><?= $escaper->escapeHtml(__('Name')) ?></label>
+    <input type="text" class="admin__control-text" id="magenx-mcp-client-name" name="client_name" maxlength="100" placeholder="Claude"/>
+    <button type="submit" class="action-primary">
+        <span><?= $escaper->escapeHtml(__('Create Client')) ?></span>
+    </button>
+</form>
+<?php if ($clients !== []): ?>
+    <table class="data-grid">
+        <thead>
+        <tr>
+            <th class="data-grid-th"><?= $escaper->escapeHtml(__('Name')) ?></th>
+            <th class="data-grid-th"><?= $escaper->escapeHtml(__('Client ID')) ?></th>
+            <th class="data-grid-th"><?= $escaper->escapeHtml(__('Created')) ?></th>
+            <th class="data-grid-th"></th>
+        </tr>
+        </thead>
+        <tbody>
+        <?php foreach ($clients as $client): ?>
+            <tr>
+                <td><?= $escaper->escapeHtml($client['client_name']) ?></td>
+                <td><code><?= $escaper->escapeHtml($client['client_id']) ?></code></td>
+                <td><?= $escaper->escapeHtml($block->formatTimestamp($client['created_at'])) ?></td>
+                <td>
+                    <form method="post" action="<?= $escaper->escapeUrl($block->getDeleteClientUrl()) ?>">
+                        <input type="hidden" name="form_key" value="<?= $escaper->escapeHtmlAttr($block->getFormKey()) ?>"/>
+                        <input type="hidden" name="client" value="<?= $escaper->escapeHtmlAttr($client['client_id']) ?>"/>
+                        <button type="submit" class="action-secondary">
+                            <span><?= $escaper->escapeHtml(__('Delete')) ?></span>
+                        </button>
+                    </form>
+                </td>
+            </tr>
+        <?php endforeach; ?>
+        </tbody>
+    </table>
+<?php endif; ?>
+<h2><?= $escaper->escapeHtml(__('Connections')) ?></h2>
 <p>
     <?= $escaper->escapeHtml(__('AI clients connected with OAuth. Each acts as the admin who approved it, with that admin\'s role. Revoking ends the connection at once; the client has to be connected again, which means signing in again.')) ?>
 </p>
