@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.12.0](https://github.com/magenxcommerce/module-ai-mcp/compare/v1.11.0...v1.12.0) (2026-10-17)
+
+
+### Features
+
+* add product attachment tools ([#42](https://github.com/magenxcommerce/module-ai-mcp/issues/42)) ([4ff6deb](https://github.com/magenxcommerce/module-ai-mcp/commit/4ff6deb0e4d26eee6d49d962e45b56bfa40b0e25))
+
 ## [1.11.0](https://github.com/magenxcommerce/module-ai-mcp/compare/v1.10.0...v1.11.0) (2026-10-17)
 
 
