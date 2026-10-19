@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.13.0](https://github.com/magenxcommerce/module-ai-mcp/compare/v1.12.0...v1.13.0) (2026-10-19)
+
+
+### Features
+
+* **oauth:** redesign admin connections page; show issued secrets as copyable chips ([#44](https://github.com/magenxcommerce/module-ai-mcp/issues/44)) ([c3148b4](https://github.com/magenxcommerce/module-ai-mcp/commit/c3148b4f1ab4443de200bc450ff065640f59da71))
+
 ## [1.12.0](https://github.com/magenxcommerce/module-ai-mcp/compare/v1.11.0...v1.12.0) (2026-10-17)
 
 
