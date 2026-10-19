@@ -7,197 +7,289 @@
 /** @var \Magento\Framework\Escaper $escaper */
 $grants = $block->getGrants();
 $clients = $block->getClients();
+$reveal = $block->takeSecretReveal();
+$connectorKeySet = $block->isConnectorKeySet();
 ?>
-<h2><?= $escaper->escapeHtml(__('Clients')) ?></h2>
-<p>
-    <?= $escaper->escapeHtml(__('Create a client for each AI service you connect, then enter its client ID and secret in that service\'s connector settings (in claude.ai: Advanced settings, "Use your own OAuth client"). Only the service holding the secret can redeem an admin\'s approval. Deleting a client ends every connection made with it.')) ?>
-</p>
-<?php if ($block->isDynamicRegistrationAllowed()): ?>
-    <div class="message message-warning">
-        <div><?= $escaper->escapeHtml(__('Dynamic client registration is on, so anyone can register a client and start a connection. That reveals the admin URL to them, and lets them send an admin a consent link that would connect their own account. Turn it off under Stores > Configuration > Magenx > AI MCP Server > OAuth once your clients use a client created here.')) ?></div>
+<div class="magenx-mcp">
+<?php if ($reveal !== null): ?>
+    <div class="magenx-mcp-reveal" role="status">
+        <div class="magenx-mcp-reveal-title"><?= $escaper->escapeHtml($reveal['title']) ?></div>
+        <dl class="magenx-mcp-reveal-values">
+            <?php foreach ($reveal['values'] as $index => $value): ?>
+                <?php $valueId = 'magenx-mcp-reveal-' . (int) $index; ?>
+                <dt><?= $escaper->escapeHtml($value['label']) ?></dt>
+                <dd>
+                    <code class="magenx-mcp-chip" id="<?= $escaper->escapeHtmlAttr($valueId) ?>"><?= $escaper->escapeHtml($value['value']) ?></code>
+                    <button type="button" class="action-secondary magenx-mcp-copy"
+                            data-mage-init='<?= $escaper->escapeHtmlAttr(json_encode(['Magenx_AiMcp/js/copy-value' => ['target' => '#' . $valueId, 'copiedLabel' => (string) __('Copied')]])) ?>'>
+                        <span><?= $escaper->escapeHtml(__('Copy')) ?></span>
+                    </button>
+                </dd>
+            <?php endforeach; ?>
+        </dl>
+        <p class="magenx-mcp-reveal-note"><?= $escaper->escapeHtml($reveal['note']) ?></p>
     </div>
 <?php endif; ?>
-<form method="post" action="<?= $escaper->escapeUrl($block->getCreateClientUrl()) ?>">
-    <input type="hidden" name="form_key" value="<?= $escaper->escapeHtmlAttr($block->getFormKey()) ?>"/>
-    <label for="magenx-mcp-client-name"><?= $escaper->escapeHtml(__('Name')) ?></label>
-    <input type="text" class="admin__control-text" id="magenx-mcp-client-name" name="client_name" maxlength="100" placeholder="Claude"/>
-    <button type="submit" class="action-primary">
-        <span><?= $escaper->escapeHtml(__('Create Client')) ?></span>
-    </button>
-</form>
-<?php if ($clients !== []): ?>
-    <?php $adminUsers = $block->getAdminUsers(); ?>
-    <?php $domainOptions = $block->getDomainOptions(); ?>
-    <table class="data-grid">
-        <thead>
-        <tr>
-            <th class="data-grid-th"><?= $escaper->escapeHtml(__('Name')) ?></th>
-            <th class="data-grid-th"><?= $escaper->escapeHtml(__('Client ID')) ?></th>
-            <th class="data-grid-th"><?= $escaper->escapeHtml(__('Status')) ?></th>
-            <th class="data-grid-th"><?= $escaper->escapeHtml(__('Approvers')) ?></th>
-            <th class="data-grid-th"><?= $escaper->escapeHtml(__('Tool areas')) ?></th>
-            <th class="data-grid-th"><?= $escaper->escapeHtml(__('Created')) ?></th>
-            <th class="data-grid-th"></th>
-        </tr>
-        </thead>
-        <tbody>
-        <?php foreach ($clients as $client): ?>
-            <?php
-            $clientId = (string) $client['client_id'];
-            $approvers = $block->getApprovers($clientId);
-            $clientDomains = $block->decodeDomains($client['allowed_domains']);
-            $disabled = (int) $client['disabled'] === 1;
-            ?>
-            <tr>
-                <td><?= $escaper->escapeHtml($client['client_name']) ?></td>
-                <td><code><?= $escaper->escapeHtml($clientId) ?></code></td>
-                <td><?= $escaper->escapeHtml($disabled ? __('Disabled') : __('Enabled')) ?></td>
-                <td>
-                    <?= $escaper->escapeHtml($approvers === []
-                        ? __('Any admin allowed to approve')
-                        : implode(', ', array_intersect_key($adminUsers, array_flip($approvers)))) ?>
-                </td>
-                <td><?= $escaper->escapeHtml($block->describeDomains($client['allowed_domains'])) ?></td>
-                <td><?= $escaper->escapeHtml($block->formatTimestamp($client['created_at'])) ?></td>
-                <td>
-                    <form method="post" action="<?= $escaper->escapeUrl($block->getClientStatusUrl()) ?>">
-                        <input type="hidden" name="form_key" value="<?= $escaper->escapeHtmlAttr($block->getFormKey()) ?>"/>
-                        <input type="hidden" name="client" value="<?= $escaper->escapeHtmlAttr($clientId) ?>"/>
-                        <input type="hidden" name="status" value="<?= $escaper->escapeHtmlAttr($disabled ? 'enabled' : 'disabled') ?>"/>
-                        <button type="submit" class="action-secondary">
-                            <span><?= $escaper->escapeHtml($disabled ? __('Enable') : __('Disable')) ?></span>
+
+    <ul class="magenx-mcp-totals">
+        <li class="magenx-mcp-total">
+            <span class="magenx-mcp-total-label"><?= $escaper->escapeHtml(__('Clients')) ?></span>
+            <strong class="magenx-mcp-total-value"><?= (int) count($clients) ?></strong>
+        </li>
+        <li class="magenx-mcp-total">
+            <span class="magenx-mcp-total-label"><?= $escaper->escapeHtml(__('Active connections')) ?></span>
+            <strong class="magenx-mcp-total-value"><?= (int) count($grants) ?></strong>
+        </li>
+        <li class="magenx-mcp-total">
+            <span class="magenx-mcp-total-label"><?= $escaper->escapeHtml(__('Connector key')) ?></span>
+            <strong class="magenx-mcp-total-value"><?= $escaper->escapeHtml($connectorKeySet ? __('Required') : __('Not set')) ?></strong>
+        </li>
+    </ul>
+
+    <section class="admin__page-section magenx-mcp-section">
+        <div class="admin__page-section-title">
+            <span class="title"><?= $escaper->escapeHtml(__('Clients')) ?></span>
+        </div>
+        <div class="admin__page-section-content">
+            <p class="magenx-mcp-intro">
+                <?= $escaper->escapeHtml(__('Create a client for each AI service you connect, then enter its client ID and secret in that service\'s connector settings (in claude.ai: Advanced settings, "Use your own OAuth client"). Only the service holding the secret can redeem an admin\'s approval. Deleting a client ends every connection made with it.')) ?>
+            </p>
+            <?php if ($block->isDynamicRegistrationAllowed()): ?>
+                <div class="message message-warning">
+                    <div><?= $escaper->escapeHtml(__('Dynamic client registration is on, so anyone can register a client and start a connection. That reveals the admin URL to them, and lets them send an admin a consent link that would connect their own account. Turn it off under Stores > Configuration > Magenx > AI MCP Server > OAuth once your clients use a client created here.')) ?></div>
+                </div>
+            <?php endif; ?>
+            <form class="magenx-mcp-create" method="post" action="<?= $escaper->escapeUrl($block->getCreateClientUrl()) ?>">
+                <input type="hidden" name="form_key" value="<?= $escaper->escapeHtmlAttr($block->getFormKey()) ?>"/>
+                <div class="magenx-mcp-create-field">
+                    <label class="magenx-mcp-label" for="magenx-mcp-client-name"><?= $escaper->escapeHtml(__('Client name')) ?></label>
+                    <input type="text" class="admin__control-text" id="magenx-mcp-client-name" name="client_name" maxlength="100" placeholder="Claude"/>
+                </div>
+                <button type="submit" class="action-primary">
+                    <span><?= $escaper->escapeHtml(__('Create Client')) ?></span>
+                </button>
+            </form>
+            <?php if ($clients !== []): ?>
+                <?php $adminUsers = $block->getAdminUsers(); ?>
+                <?php $domainOptions = $block->getDomainOptions(); ?>
+                <div class="admin__data-grid-wrap magenx-mcp-grid-wrap">
+                    <table class="data-grid">
+                        <thead>
+                        <tr>
+                            <th class="data-grid-th"><?= $escaper->escapeHtml(__('Name')) ?></th>
+                            <th class="data-grid-th"><?= $escaper->escapeHtml(__('Client ID')) ?></th>
+                            <th class="data-grid-th"><?= $escaper->escapeHtml(__('Status')) ?></th>
+                            <th class="data-grid-th"><?= $escaper->escapeHtml(__('Approvers')) ?></th>
+                            <th class="data-grid-th"><?= $escaper->escapeHtml(__('Tool areas')) ?></th>
+                            <th class="data-grid-th"><?= $escaper->escapeHtml(__('Created')) ?></th>
+                            <th class="data-grid-th"><?= $escaper->escapeHtml(__('Actions')) ?></th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <?php foreach ($clients as $clientIndex => $client): ?>
+                            <?php
+                            $clientId = (string) $client['client_id'];
+                            $approvers = $block->getApprovers($clientId);
+                            $clientDomains = $block->decodeDomains($client['allowed_domains']);
+                            $disabled = (int) $client['disabled'] === 1;
+                            ?>
+                            <tr class="magenx-mcp-client-row">
+                                <td><strong><?= $escaper->escapeHtml($client['client_name']) ?></strong></td>
+                                <td><code class="magenx-mcp-chip magenx-mcp-chip-small"><?= $escaper->escapeHtml($clientId) ?></code></td>
+                                <td>
+                                    <span class="<?= $disabled ? 'grid-severity-minor' : 'grid-severity-notice' ?>">
+                                        <span><?= $escaper->escapeHtml($disabled ? __('Disabled') : __('Enabled')) ?></span>
+                                    </span>
+                                </td>
+                                <td>
+                                    <?= $escaper->escapeHtml($approvers === []
+                                        ? __('Any admin allowed to approve')
+                                        : implode(', ', array_intersect_key($adminUsers, array_flip($approvers)))) ?>
+                                </td>
+                                <td><?= $escaper->escapeHtml($block->describeDomains($client['allowed_domains'])) ?></td>
+                                <td><?= $escaper->escapeHtml($block->formatTimestamp($client['created_at'])) ?></td>
+                                <td>
+                                    <div class="magenx-mcp-actions">
+                                        <form method="post" action="<?= $escaper->escapeUrl($block->getClientStatusUrl()) ?>">
+                                            <input type="hidden" name="form_key" value="<?= $escaper->escapeHtmlAttr($block->getFormKey()) ?>"/>
+                                            <input type="hidden" name="client" value="<?= $escaper->escapeHtmlAttr($clientId) ?>"/>
+                                            <input type="hidden" name="status" value="<?= $escaper->escapeHtmlAttr($disabled ? 'enabled' : 'disabled') ?>"/>
+                                            <button type="submit" class="action-secondary">
+                                                <span><?= $escaper->escapeHtml($disabled ? __('Enable') : __('Disable')) ?></span>
+                                            </button>
+                                        </form>
+                                        <form method="post" action="<?= $escaper->escapeUrl($block->getRotateSecretUrl()) ?>">
+                                            <input type="hidden" name="form_key" value="<?= $escaper->escapeHtmlAttr($block->getFormKey()) ?>"/>
+                                            <input type="hidden" name="client" value="<?= $escaper->escapeHtmlAttr($clientId) ?>"/>
+                                            <button type="submit" class="action-secondary">
+                                                <span><?= $escaper->escapeHtml(__('Rotate Secret')) ?></span>
+                                            </button>
+                                        </form>
+                                        <form method="post" action="<?= $escaper->escapeUrl($block->getDeleteClientUrl()) ?>">
+                                            <input type="hidden" name="form_key" value="<?= $escaper->escapeHtmlAttr($block->getFormKey()) ?>"/>
+                                            <input type="hidden" name="client" value="<?= $escaper->escapeHtmlAttr($clientId) ?>"/>
+                                            <button type="submit" class="action-secondary magenx-mcp-danger">
+                                                <span><?= $escaper->escapeHtml(__('Delete')) ?></span>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr class="magenx-mcp-policy-row">
+                                <td colspan="7">
+                                    <details class="magenx-mcp-policy">
+                                        <summary><?= $escaper->escapeHtml(__('Policy')) ?></summary>
+                                        <form method="post" action="<?= $escaper->escapeUrl($block->getSaveClientUrl()) ?>">
+                                            <input type="hidden" name="form_key" value="<?= $escaper->escapeHtmlAttr($block->getFormKey()) ?>"/>
+                                            <input type="hidden" name="client" value="<?= $escaper->escapeHtmlAttr($clientId) ?>"/>
+                                            <fieldset class="admin__fieldset magenx-mcp-policy-group">
+                                                <legend class="magenx-mcp-label"><?= $escaper->escapeHtml(__('Who may approve it')) ?></legend>
+                                                <p class="note"><?= $escaper->escapeHtml(__('Tick none to leave it to each admin\'s role. Ticking some limits approval to them, and ends the connections of anyone else.')) ?></p>
+                                                <div class="magenx-mcp-options">
+                                                    <?php foreach ($adminUsers as $userId => $username): ?>
+                                                        <?php $optionId = 'magenx-mcp-approver-' . (int) $clientIndex . '-' . (int) $userId; ?>
+                                                        <div class="admin__field admin__field-option">
+                                                            <input type="checkbox" class="admin__control-checkbox" id="<?= $escaper->escapeHtmlAttr($optionId) ?>" name="approvers[]" value="<?= (int) $userId ?>"<?php if (in_array($userId, $approvers, true)): ?> checked<?php endif; ?>/>
+                                                            <label class="admin__field-label" for="<?= $escaper->escapeHtmlAttr($optionId) ?>"><?= $escaper->escapeHtml($username) ?></label>
+                                                        </div>
+                                                    <?php endforeach; ?>
+                                                </div>
+                                            </fieldset>
+                                            <fieldset class="admin__fieldset magenx-mcp-policy-group">
+                                                <legend class="magenx-mcp-label"><?= $escaper->escapeHtml(__('Tool areas it may use')) ?></legend>
+                                                <p class="note"><?= $escaper->escapeHtml(__('The most any connection through it can get. The approving admin ticks areas within these. Narrowing them applies to live connections at once.')) ?></p>
+                                                <div class="magenx-mcp-options">
+                                                    <?php foreach ($domainOptions as $code => $label): ?>
+                                                        <?php $optionId = 'magenx-mcp-domain-' . (int) $clientIndex . '-' . $code; ?>
+                                                        <div class="admin__field admin__field-option">
+                                                            <input type="checkbox" class="admin__control-checkbox" id="<?= $escaper->escapeHtmlAttr($optionId) ?>" name="domains[]" value="<?= $escaper->escapeHtmlAttr($code) ?>"<?php if ($clientDomains === null || in_array($code, $clientDomains, true)): ?> checked<?php endif; ?>/>
+                                                            <label class="admin__field-label" for="<?= $escaper->escapeHtmlAttr($optionId) ?>"><?= $escaper->escapeHtml($label) ?></label>
+                                                        </div>
+                                                    <?php endforeach; ?>
+                                                </div>
+                                            </fieldset>
+                                            <fieldset class="admin__fieldset magenx-mcp-policy-group">
+                                                <legend class="magenx-mcp-label"><?= $escaper->escapeHtml(__('When an admin approves it again')) ?></legend>
+                                                <select name="reapproval" class="admin__control-select">
+                                                    <?php foreach ($block->getReapprovalOptions() as $value => $label): ?>
+                                                        <option value="<?= $escaper->escapeHtmlAttr($value) ?>"<?php if ($value === $client['reapproval']): ?> selected<?php endif; ?>><?= $escaper->escapeHtml($label) ?></option>
+                                                    <?php endforeach; ?>
+                                                </select>
+                                            </fieldset>
+                                            <button type="submit" class="action-primary">
+                                                <span><?= $escaper->escapeHtml(__('Save')) ?></span>
+                                            </button>
+                                        </form>
+                                    </details>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+                <p class="note"><?= $escaper->escapeHtml(__('Disabling a client refuses it everywhere, as if it did not exist, and keeps its connections for when it is enabled again. Rotating its secret keeps its connections too; the service needs the new secret before it can renew them.')) ?></p>
+            <?php endif; ?>
+        </div>
+    </section>
+
+    <section class="admin__page-section magenx-mcp-section">
+        <div class="admin__page-section-title">
+            <span class="title"><?= $escaper->escapeHtml(__('Connector Key')) ?></span>
+        </div>
+        <div class="admin__page-section-content">
+            <p class="magenx-mcp-intro">
+                <?= $escaper->escapeHtml(__('An optional second secret. The AI service sends it as the x-api-key request header on every call it makes with an OAuth token, so a token that leaks, or an approval someone talked an admin into from their own account, is refused without it. Integration tokens are not affected.')) ?>
+            </p>
+            <form method="post" action="<?= $escaper->escapeUrl($block->getConnectorKeyUrl()) ?>">
+                <input type="hidden" name="form_key" value="<?= $escaper->escapeHtmlAttr($block->getFormKey()) ?>"/>
+                <?php if ($connectorKeySet): ?>
+                    <p class="magenx-mcp-status">
+                        <span class="grid-severity-notice"><span><?= $escaper->escapeHtml(__('Required')) ?></span></span>
+                        <?= $escaper->escapeHtml(__('Replacing it refuses every connection until its connector has the new key.')) ?>
+                    </p>
+                    <div class="magenx-mcp-actions">
+                        <button type="submit" name="operation" value="generate" class="action-secondary">
+                            <span><?= $escaper->escapeHtml(__('Replace Key')) ?></span>
                         </button>
-                    </form>
-                    <form method="post" action="<?= $escaper->escapeUrl($block->getRotateSecretUrl()) ?>">
-                        <input type="hidden" name="form_key" value="<?= $escaper->escapeHtmlAttr($block->getFormKey()) ?>"/>
-                        <input type="hidden" name="client" value="<?= $escaper->escapeHtmlAttr($clientId) ?>"/>
-                        <button type="submit" class="action-secondary">
-                            <span><?= $escaper->escapeHtml(__('Rotate Secret')) ?></span>
+                        <button type="submit" name="operation" value="remove" class="action-secondary magenx-mcp-danger">
+                            <span><?= $escaper->escapeHtml(__('Remove Key')) ?></span>
                         </button>
-                    </form>
-                    <form method="post" action="<?= $escaper->escapeUrl($block->getDeleteClientUrl()) ?>">
-                        <input type="hidden" name="form_key" value="<?= $escaper->escapeHtmlAttr($block->getFormKey()) ?>"/>
-                        <input type="hidden" name="client" value="<?= $escaper->escapeHtmlAttr($clientId) ?>"/>
-                        <button type="submit" class="action-secondary">
-                            <span><?= $escaper->escapeHtml(__('Delete')) ?></span>
+                    </div>
+                <?php else: ?>
+                    <p class="magenx-mcp-status">
+                        <span class="grid-severity-minor"><span><?= $escaper->escapeHtml(__('Not set')) ?></span></span>
+                        <?= $escaper->escapeHtml(__('OAuth connections need no key.')) ?>
+                    </p>
+                    <div class="magenx-mcp-actions">
+                        <button type="submit" name="operation" value="generate" class="action-primary">
+                            <span><?= $escaper->escapeHtml(__('Generate Key')) ?></span>
                         </button>
-                    </form>
-                </td>
-            </tr>
-            <tr>
-                <td colspan="7">
-                    <details>
-                        <summary><?= $escaper->escapeHtml(__('Policy')) ?></summary>
-                        <form method="post" action="<?= $escaper->escapeUrl($block->getSaveClientUrl()) ?>">
-                            <input type="hidden" name="form_key" value="<?= $escaper->escapeHtmlAttr($block->getFormKey()) ?>"/>
-                            <input type="hidden" name="client" value="<?= $escaper->escapeHtmlAttr($clientId) ?>"/>
-                            <fieldset class="admin__fieldset">
-                                <legend><?= $escaper->escapeHtml(__('Who may approve it')) ?></legend>
-                                <p class="note"><?= $escaper->escapeHtml(__('Tick none to leave it to each admin\'s role. Ticking some limits approval to them, and ends the connections of anyone else.')) ?></p>
-                                <?php foreach ($adminUsers as $userId => $username): ?>
-                                    <label class="admin__field-option">
-                                        <input type="checkbox" class="admin__control-checkbox" name="approvers[]" value="<?= (int) $userId ?>"<?php if (in_array($userId, $approvers, true)): ?> checked<?php endif; ?>/>
-                                        <?= $escaper->escapeHtml($username) ?>
-                                    </label>
-                                <?php endforeach; ?>
-                            </fieldset>
-                            <fieldset class="admin__fieldset">
-                                <legend><?= $escaper->escapeHtml(__('Tool areas it may use')) ?></legend>
-                                <p class="note"><?= $escaper->escapeHtml(__('The most any connection through it can get. The approving admin ticks areas within these. Narrowing them applies to live connections at once.')) ?></p>
-                                <?php foreach ($domainOptions as $code => $label): ?>
-                                    <label class="admin__field-option">
-                                        <input type="checkbox" class="admin__control-checkbox" name="domains[]" value="<?= $escaper->escapeHtmlAttr($code) ?>"<?php if ($clientDomains === null || in_array($code, $clientDomains, true)): ?> checked<?php endif; ?>/>
-                                        <?= $escaper->escapeHtml($label) ?>
-                                    </label>
-                                <?php endforeach; ?>
-                            </fieldset>
-                            <fieldset class="admin__fieldset">
-                                <legend><?= $escaper->escapeHtml(__('When an admin approves it again')) ?></legend>
-                                <select name="reapproval" class="admin__control-select">
-                                    <?php foreach ($block->getReapprovalOptions() as $value => $label): ?>
-                                        <option value="<?= $escaper->escapeHtmlAttr($value) ?>"<?php if ($value === $client['reapproval']): ?> selected<?php endif; ?>><?= $escaper->escapeHtml($label) ?></option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </fieldset>
-                            <button type="submit" class="action-primary">
-                                <span><?= $escaper->escapeHtml(__('Save')) ?></span>
-                            </button>
-                        </form>
-                    </details>
-                </td>
-            </tr>
-        <?php endforeach; ?>
-        </tbody>
-    </table>
-    <p class="note"><?= $escaper->escapeHtml(__('Disabling a client refuses it everywhere, as if it did not exist, and keeps its connections for when it is enabled again. Rotating its secret keeps its connections too; the service needs the new secret before it can renew them.')) ?></p>
-<?php endif; ?>
-<h2><?= $escaper->escapeHtml(__('Connector Key')) ?></h2>
-<p>
-    <?= $escaper->escapeHtml(__('An optional second secret. The AI service sends it as the x-api-key request header on every call it makes with an OAuth token, so a token that leaks, or an approval someone talked an admin into from their own account, is refused without it. Integration tokens are not affected.')) ?>
-</p>
-<form method="post" action="<?= $escaper->escapeUrl($block->getConnectorKeyUrl()) ?>">
-    <input type="hidden" name="form_key" value="<?= $escaper->escapeHtmlAttr($block->getFormKey()) ?>"/>
-    <?php if ($block->isConnectorKeySet()): ?>
-        <p><strong><?= $escaper->escapeHtml(__('Required.')) ?></strong> <?= $escaper->escapeHtml(__('Replacing it refuses every connection until its connector has the new key.')) ?></p>
-        <button type="submit" name="operation" value="generate" class="action-secondary">
-            <span><?= $escaper->escapeHtml(__('Replace Key')) ?></span>
-        </button>
-        <button type="submit" name="operation" value="remove" class="action-secondary">
-            <span><?= $escaper->escapeHtml(__('Remove Key')) ?></span>
-        </button>
-    <?php else: ?>
-        <p><?= $escaper->escapeHtml(__('Not set: OAuth connections need no key.')) ?></p>
-        <button type="submit" name="operation" value="generate" class="action-primary">
-            <span><?= $escaper->escapeHtml(__('Generate Key')) ?></span>
-        </button>
-    <?php endif; ?>
-</form>
-<h2><?= $escaper->escapeHtml(__('Connections')) ?></h2>
-<p>
-    <?= $escaper->escapeHtml(__('AI clients connected with OAuth. Each acts as the admin who approved it, with that admin\'s role. Revoking ends the connection at once; the client has to be connected again, which means signing in again.')) ?>
-</p>
-<?php if ($grants === []): ?>
-    <div class="message message-notice">
-        <div><?= $escaper->escapeHtml(__('No active connections.')) ?></div>
-    </div>
-<?php else: ?>
-    <table class="data-grid">
-        <thead>
-        <tr>
-            <th class="data-grid-th"><?= $escaper->escapeHtml(__('Admin')) ?></th>
-            <th class="data-grid-th"><?= $escaper->escapeHtml(__('Client')) ?></th>
-            <th class="data-grid-th"><?= $escaper->escapeHtml(__('Access')) ?></th>
-            <th class="data-grid-th"><?= $escaper->escapeHtml(__('Tool areas')) ?></th>
-            <th class="data-grid-th"><?= $escaper->escapeHtml(__('Last used')) ?></th>
-            <th class="data-grid-th"><?= $escaper->escapeHtml(__('Expires')) ?></th>
-            <th class="data-grid-th"></th>
-        </tr>
-        </thead>
-        <tbody>
-        <?php foreach ($grants as $grant): ?>
-            <tr>
-                <td><?= $escaper->escapeHtml($grant['username']) ?></td>
-                <td>
-                    <?= $escaper->escapeHtml($grant['client_name']) ?>
-                    <?php if ((int) $grant['client_disabled'] === 1): ?>
-                        (<?= $escaper->escapeHtml(__('client disabled')) ?>)
-                    <?php endif; ?>
-                </td>
-                <td><?= $escaper->escapeHtml(str_contains((string) $grant['scope'], 'mcp:write') ? __('Read and write') : __('Read only')) ?></td>
-                <td><?= $escaper->escapeHtml($block->describeDomains($grant['domains'])) ?></td>
-                <td><?= $escaper->escapeHtml($block->formatTimestamp($grant['last_used_at'] ?? $grant['created_at'])) ?></td>
-                <td><?= $escaper->escapeHtml($block->formatTimestamp($grant['refresh_expires_at'])) ?></td>
-                <td>
-                    <form method="post" action="<?= $escaper->escapeUrl($block->getRevokeUrl()) ?>">
-                        <input type="hidden" name="form_key" value="<?= $escaper->escapeHtmlAttr($block->getFormKey()) ?>"/>
-                        <input type="hidden" name="family" value="<?= $escaper->escapeHtmlAttr($grant['family_id']) ?>"/>
-                        <button type="submit" class="action-secondary">
-                            <span><?= $escaper->escapeHtml(__('Revoke')) ?></span>
-                        </button>
-                    </form>
-                </td>
-            </tr>
-        <?php endforeach; ?>
-        </tbody>
-    </table>
-<?php endif; ?>
+                    </div>
+                <?php endif; ?>
+            </form>
+        </div>
+    </section>
+
+    <section class="admin__page-section magenx-mcp-section">
+        <div class="admin__page-section-title">
+            <span class="title"><?= $escaper->escapeHtml(__('Connections')) ?></span>
+        </div>
+        <div class="admin__page-section-content">
+            <p class="magenx-mcp-intro">
+                <?= $escaper->escapeHtml(__('AI clients connected with OAuth. Each acts as the admin who approved it, with that admin\'s role. Revoking ends the connection at once; the client has to be connected again, which means signing in again.')) ?>
+            </p>
+            <?php if ($grants === []): ?>
+                <div class="message message-notice">
+                    <div><?= $escaper->escapeHtml(__('No active connections.')) ?></div>
+                </div>
+            <?php else: ?>
+                <div class="admin__data-grid-wrap magenx-mcp-grid-wrap">
+                    <table class="data-grid">
+                        <thead>
+                        <tr>
+                            <th class="data-grid-th"><?= $escaper->escapeHtml(__('Admin')) ?></th>
+                            <th class="data-grid-th"><?= $escaper->escapeHtml(__('Client')) ?></th>
+                            <th class="data-grid-th"><?= $escaper->escapeHtml(__('Access')) ?></th>
+                            <th class="data-grid-th"><?= $escaper->escapeHtml(__('Tool areas')) ?></th>
+                            <th class="data-grid-th"><?= $escaper->escapeHtml(__('Last used')) ?></th>
+                            <th class="data-grid-th"><?= $escaper->escapeHtml(__('Expires')) ?></th>
+                            <th class="data-grid-th"><?= $escaper->escapeHtml(__('Actions')) ?></th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <?php foreach ($grants as $grant): ?>
+                            <?php $canWrite = str_contains((string) $grant['scope'], 'mcp:write'); ?>
+                            <tr>
+                                <td><strong><?= $escaper->escapeHtml($grant['username']) ?></strong></td>
+                                <td>
+                                    <?= $escaper->escapeHtml($grant['client_name']) ?>
+                                    <?php if ((int) $grant['client_disabled'] === 1): ?>
+                                        <span class="grid-severity-minor"><span><?= $escaper->escapeHtml(__('client disabled')) ?></span></span>
+                                    <?php endif; ?>
+                                </td>
+                                <td>
+                                    <span class="<?= $canWrite ? 'grid-severity-major' : 'grid-severity-notice' ?>">
+                                        <span><?= $escaper->escapeHtml($canWrite ? __('Read and write') : __('Read only')) ?></span>
+                                    </span>
+                                </td>
+                                <td><?= $escaper->escapeHtml($block->describeDomains($grant['domains'])) ?></td>
+                                <td><?= $escaper->escapeHtml($block->formatTimestamp($grant['last_used_at'] ?? $grant['created_at'])) ?></td>
+                                <td><?= $escaper->escapeHtml($block->formatTimestamp($grant['refresh_expires_at'])) ?></td>
+                                <td>
+                                    <form method="post" action="<?= $escaper->escapeUrl($block->getRevokeUrl()) ?>">
+                                        <input type="hidden" name="form_key" value="<?= $escaper->escapeHtmlAttr($block->getFormKey()) ?>"/>
+                                        <input type="hidden" name="family" value="<?= $escaper->escapeHtmlAttr($grant['family_id']) ?>"/>
+                                        <button type="submit" class="action-secondary magenx-mcp-danger">
+                                            <span><?= $escaper->escapeHtml(__('Revoke')) ?></span>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            <?php endif; ?>
+        </div>
+    </section>
+</div>

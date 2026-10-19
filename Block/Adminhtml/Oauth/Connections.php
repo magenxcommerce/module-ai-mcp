@@ -8,6 +8,7 @@ namespace Magenx\AiMcp\Block\Adminhtml\Oauth;
 
 use Magenx\AiMcp\Model\OAuth\DomainList;
 use Magenx\AiMcp\Model\OAuth\OAuthConfig;
+use Magenx\AiMcp\Model\OAuth\SecretReveal;
 use Magenx\AiMcp\Model\OAuth\Storage;
 use Magenx\AiMcp\Model\Tool\ToolCatalog;
 use Magento\Backend\Block\Template;
@@ -29,6 +30,7 @@ class Connections extends Template
      * @param CoreDate $date
      * @param ToolCatalog $catalog
      * @param DomainList $domainList
+     * @param SecretReveal $secretReveal
      * @param array<string, mixed> $data
      */
     public function __construct(
@@ -38,9 +40,20 @@ class Connections extends Template
         private readonly CoreDate $date,
         private readonly ToolCatalog $catalog,
         private readonly DomainList $domainList,
+        private readonly SecretReveal $secretReveal,
         array $data = []
     ) {
         parent::__construct($context, $data);
+    }
+
+    /**
+     * The secret an action just issued, to show this once; null when there is none.
+     *
+     * @return array{title: string, values: array<int, array{label: string, value: string}>, note: string}|null
+     */
+    public function takeSecretReveal(): ?array
+    {
+        return $this->secretReveal->take();
     }
 
     /**

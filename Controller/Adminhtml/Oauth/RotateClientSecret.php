@@ -7,6 +7,7 @@ declare(strict_types=1);
 namespace Magenx\AiMcp\Controller\Adminhtml\Oauth;
 
 use Magenx\AiMcp\Model\OAuth\ClientRegistry;
+use Magenx\AiMcp\Model\OAuth\SecretReveal;
 use Magento\Backend\App\Action;
 use Magento\Backend\App\Action\Context;
 use Magento\Framework\App\Action\HttpPostActionInterface;
@@ -22,10 +23,12 @@ class RotateClientSecret extends Action implements HttpPostActionInterface
     /**
      * @param Context $context
      * @param ClientRegistry $clientRegistry
+     * @param SecretReveal $secretReveal
      */
     public function __construct(
         Context $context,
-        private readonly ClientRegistry $clientRegistry
+        private readonly ClientRegistry $clientRegistry,
+        private readonly SecretReveal $secretReveal
     ) {
         parent::__construct($context);
     }
@@ -35,17 +38,23 @@ class RotateClientSecret extends Action implements HttpPostActionInterface
      */
     public function execute(): Redirect
     {
+        $clientId = (string) $this->getRequest()->getPost('client');
         $clientSecret = $this->clientRegistry->rotateSecret(
-            (string) $this->getRequest()->getPost('client'),
+            $clientId,
             'admin:' . (string) $this->_auth->getUser()?->getUserName()
         );
         if ($clientSecret !== null) {
-            $this->messageManager->addSuccessMessage(__(
-                'New client secret: %1 — The old one no longer works. Enter the new one in the connector\'s '
-                . 'settings: its connections are kept, but it cannot renew their tokens until it has the new '
-                . 'secret. Copy it now: it is stored only as a hash and cannot be shown again.',
-                $clientSecret
-            ));
+            $this->secretReveal->stash(
+                (string) __('Client secret rotated'),
+                [
+                    ['label' => (string) __('Client ID'), 'value' => $clientId],
+                    ['label' => (string) __('New client secret'), 'value' => $clientSecret],
+                ],
+                (string) __('The old secret no longer works. Enter the new one in the connector\'s settings: its '
+                    . 'connections are kept, but it cannot renew their tokens until it has the new secret. Copy it '
+                    . 'now: it is stored only as a hash and cannot be shown again.')
+            );
+            $this->messageManager->addSuccessMessage(__('The client secret was rotated.'));
         } else {
             $this->messageManager->addErrorMessage(__('That client was not found.'));
         }

@@ -5,6 +5,9 @@
  */
 -->
 <page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <head>
+        <css src="Magenx_AiMcp::css/connections.css"/>
+    </head>
     <body>
         <referenceContainer name="content">
             <block class="Magenx\AiMcp\Block\Adminhtml\Oauth\Connections" name="magenx_aimcp.oauth.connections" template="Magenx_AiMcp::oauth/connections.phtml"/>

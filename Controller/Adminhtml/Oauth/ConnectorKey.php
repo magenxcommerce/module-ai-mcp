@@ -7,6 +7,7 @@ declare(strict_types=1);
 namespace Magenx\AiMcp\Controller\Adminhtml\Oauth;
 
 use Magenx\AiMcp\Model\OAuth\ConnectorKey as ConnectorKeyModel;
+use Magenx\AiMcp\Model\OAuth\SecretReveal;
 use Magento\Backend\App\Action;
 use Magento\Backend\App\Action\Context;
 use Magento\Framework\App\Action\HttpPostActionInterface;
@@ -22,10 +23,12 @@ class ConnectorKey extends Action implements HttpPostActionInterface
     /**
      * @param Context $context
      * @param ConnectorKeyModel $connectorKey
+     * @param SecretReveal $secretReveal
      */
     public function __construct(
         Context $context,
-        private readonly ConnectorKeyModel $connectorKey
+        private readonly ConnectorKeyModel $connectorKey,
+        private readonly SecretReveal $secretReveal
     ) {
         parent::__construct($context);
     }
@@ -44,12 +47,16 @@ class ConnectorKey extends Action implements HttpPostActionInterface
             );
         } else {
             $key = $this->connectorKey->generate($adminLabel);
-            $this->messageManager->addSuccessMessage(__(
-                'Connector key: %1 — In the connector\'s settings, add the request header x-api-key with this '
-                . 'value. Every OAuth connection without it is refused from now on. Copy it now: it is stored '
-                . 'only as a hash and cannot be shown again.',
-                $key
-            ));
+            $this->secretReveal->stash(
+                (string) __('Connector key generated'),
+                [
+                    ['label' => (string) __('Header name'), 'value' => 'x-api-key'],
+                    ['label' => (string) __('Header value'), 'value' => $key],
+                ],
+                (string) __('In the connector\'s settings, add this request header. Every OAuth connection without '
+                    . 'it is refused from now on. Copy it now: it is stored only as a hash and cannot be shown again.')
+            );
+            $this->messageManager->addSuccessMessage(__('The connector key was generated.'));
         }
 
         return $this->resultRedirectFactory->create()->setPath('magenx_aimcp/oauth/connections');
